@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ticket Details | Ticket-Tally</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="../static/css/main.css" />
+  <link rel="stylesheet" href="../static/css/dashboard.css" />
+  <link rel="stylesheet" href="../static/css/tickets.css" />
+  <link rel="stylesheet" href="../static/css/fixes.css" />
+  <style>
+    .ticket-detail-page {
+      min-height: 100vh;
+      background: var(--background);
+      padding: 2rem 0;
+    }
+
+    .detail-header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-md);
+    }
+
+    .detail-title {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+
+    .detail-meta {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .detail-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .detail-card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .info-row {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 1rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .info-value {
+      color: var(--text-primary);
+    }
+
+    .timeline-container {
+      position: relative;
+      padding-left: 2.5rem;
+    }
+
+    .timeline-line {
+      position: absolute;
+      left: 0.75rem;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(to bottom,
+          var(--primary-500),
+          var(--accent-500));
+    }
+
+    .timeline-event {
+      position: relative;
+      margin-bottom: 2rem;
+      padding-left: 1.5rem;
+    }
+
+    .timeline-event:last-child {
+      margin-bottom: 0;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: -2rem;
+      top: 0.25rem;
+      width: 1rem;
+      height: 1rem;
+      background: var(--primary-500);
+      border: 3px solid var(--surface);
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px var(--border);
+    }
+
+    .timeline-event.created .timeline-dot {
+      background: var(--info);
+    }
+
+    .timeline-event.updated .timeline-dot {
+      background: var(--warning);
+    }
+
+    .timeline-event.resolved .timeline-dot {
+      background: var(--success);
+    }
+
+    .timeline-event.commented .timeline-dot {
+      background: var(--accent-500);
+    }
+
+    .timeline-content {
+      background: var(--surface-elevated);
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      border-left: 3px solid var(--primary-500);
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 0.5rem;
+    }
+
+    .timeline-action {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .timeline-user {
+      color: var(--primary-500);
+      font-weight: 600;
+    }
+
+    .timeline-time {
+      font-size: 0.875rem;
+      color: var(--text-tertiary);
+    }
+
+    .timeline-description {
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+    }
+
+    .comment-section {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 2px solid var(--border);
+    }
+
+    .comment-form {
+      background: var(--surface-elevated);
+      padding: 1.5rem;
+      border-radius: var(--radius-lg);
+      margin-bottom: 2rem;
+    }
+
+    .comment-item {
+      background: var(--surface-elevated);
+      padding: 1.5rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 1rem;
+      border-left: 3px solid var(--accent-500);
+    }
+
+    .comment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .comment-author {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .comment-avatar {
+      width: 2.5rem;
+      height: 2.5rem;
+      background: linear-gradient(135deg,
+          var(--primary-500),
+          var(--accent-500));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 0.875rem;
+    }
+
+    .comment-author-name {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .comment-time {
+      font-size: 0.875rem;
+      color: var(--text-tertiary);
+    }
+
+    .comment-body {
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 2px solid var(--border);
+    }
+
+    .refresh-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: var(--radius-md);
+      color: var(--success);
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .refresh-indicator.syncing {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: var(--warning);
+    }
+
+    @media (max-width: 992px) {
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="ticket-detail-page">
+    <div class="container">
+      <!-- Header with Back Button -->
+      <div class="mb-4">
+        <button onclick="goBack()" class="btn btn-outline-custom">
+          <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </button>
+        <button id="darkModeToggle" class="btn btn-icon-only float-end">
+          <i class="fas fa-moon"></i>
+        </button>
+      </div>
+
+      <!-- Ticket Header -->
+      <div class="detail-header">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h1 class="detail-title" id="ticketTitle">Loading...</h1>
+            <div class="detail-meta">
+              <span id="ticketId" style="
+                    font-family: var(--font-display);
+                    font-weight: 700;
+                    color: var(--text-secondary);
+                  "></span>
+              <span id="ticketStatus"></span>
+              <span id="ticketPriority"></span>
+              <span id="ticketCategory"></span>
+            </div>
+          </div>
+          <div class="text-end">
+            <div class="refresh-indicator mb-2" id="syncStatus">
+              <i class="fas fa-sync-alt"></i>
+              <span>Auto-updating</span>
+            </div>
+            <button onclick="downloadTicketPDF(ticketId)" class="btn btn-primary-custom">
+              <i class="fas fa-download me-2"></i>Download PDF
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content Grid -->
+      <div class="detail-grid">
+        <!-- Left Column - Details & Timeline -->
+        <div>
+          <!-- Ticket Information -->
+          <div class="detail-card mb-4">
+            <h2 class="detail-card-title">
+              <i class="fas fa-info-circle me-2"></i>Ticket Information
+            </h2>
+            <div class="info-row">
+              <div class="info-label">Subject:</div>
+              <div class="info-value" id="detailSubject">-</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Description:</div>
+              <div class="info-value" id="detailDescription" style="white-space: pre-wrap">
+                -
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Created By:</div>
+              <div class="info-value" id="detailCreatedBy">-</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Assigned To:</div>
+              <div class="info-value" id="detailAssignedTo">-</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Created Date:</div>
+              <div class="info-value" id="detailCreatedDate">-</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Last Updated:</div>
+              <div class="info-value" id="detailUpdatedDate">-</div>
+            </div>
+          </div>
+
+          <!-- Timeline & Activity Log -->
+          <div class="detail-card">
+            <h2 class="detail-card-title">
+              <i class="fas fa-history me-2"></i>Timeline & Activity Log
+            </h2>
+            <div class="timeline-container" id="timelineContainer">
+              <!-- Timeline events will be inserted here -->
+            </div>
+          </div>
+
+          <!-- Comments Section -->
+          <div class="comment-section">
+            <h3 class="mb-4">
+              <i class="fas fa-comments me-2"></i>Comments & Discussion
+            </h3>
+
+            <!-- Add Comment Form -->
+            <div class="comment-form">
+              <form id="commentForm">
+                <div class="mb-3">
+                  <label for="commentText" class="form-label">Add a comment</label>
+                  <textarea class="form-control" id="commentText" rows="3"
+                    placeholder="Share updates, ask questions, or provide feedback..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary-custom">
+                  <i class="fas fa-paper-plane me-2"></i>Post Comment
+                </button>
+              </form>
+            </div>
+
+            <!-- Comments List -->
+            <div id="commentsList">
+              <!-- Comments will be inserted here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column - Quick Info & Stats -->
+        <div>
+          <!-- Quick Stats -->
+          <div class="detail-card mb-4">
+            <h2 class="detail-card-title">
+              <i class="fas fa-chart-bar me-2"></i>Quick Stats
+            </h2>
+            <div class="info-row">
+              <div class="info-label">Age:</div>
+              <div class="info-value" id="ticketAge">-</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Comments:</div>
+              <div class="info-value" id="commentCount">0</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Updates:</div>
+              <div class="info-value" id="updateCount">0</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">SLA Status:</div>
+              <div class="info-value" id="slaStatus">-</div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="detail-card">
+            <h2 class="detail-card-title">
+              <i class="fas fa-clock me-2"></i>Recent Activity
+            </h2>
+            <div id="recentActivity">
+              <!-- Recent activity will be inserted here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button onclick="goBack()" class="btn btn-outline-custom btn-lg">
+          <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </button>
+        <button onclick="downloadTicketPDF(ticketId)" class="btn btn-primary-custom btn-lg">
+          <i class="fas fa-file-pdf me-2"></i>Download as PDF
+        </button>
+        <button id="withdrawBtn" onclick="withdrawTicket()" class="btn btn-outline-danger btn-lg d-none">
+          <i class="fas fa-ban me-2"></i>Withdraw Ticket
+        </button>
+        <button onclick="printTicket()" class="btn btn-outline-custom btn-lg">
+          <i class="fas fa-print me-2"></i>Print
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../static/js/theme.js"></script>
+  <script src="../static/js/auth.js"></script>
+  <script src="../static/js/ticket-details.js?v=8"></script>
+</body>
+
+</html>

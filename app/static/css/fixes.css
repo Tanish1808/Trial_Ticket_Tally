@@ -1,0 +1,148 @@
+/* ==========================================================================
+   Additional Fixes & Enhancements
+   Navigation Link Visibility & Chart Improvements
+   ========================================================================== */
+
+/* Enhanced Navbar Link Visibility */
+.navbar-dark .nav-link,
+.navbar .nav-link {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    font-size: 1rem;
+    opacity: 0.95;
+}
+
+.navbar-dark .nav-link:hover,
+.navbar .nav-link:hover {
+    color: var(--primary-500) !important;
+    opacity: 1;
+}
+
+.navbar-dark .nav-link.active,
+.navbar .nav-link.active {
+    color: var(--primary-500) !important;
+    opacity: 1;
+    font-weight: 700 !important;
+}
+
+/* Better Navbar Spacing */
+.navbar-nav.mx-auto {
+    gap: 1.5rem;
+}
+
+@media (min-width: 992px) {
+    .navbar-nav.mx-auto {
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+}
+
+/* Chart Container Enhancements */
+.content-card canvas {
+    max-height: 400px;
+}
+
+.chart-container canvas {
+    background: transparent !important;
+}
+
+/* Ensure charts are visible in dark mode */
+[data-theme="dark"] canvas {
+    filter: brightness(1.1);
+}
+
+/* Chart Card Styling */
+.content-card h3 {
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+/* Mobile Navbar Improvements */
+@media (max-width: 991px) {
+    .navbar-collapse {
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .navbar .nav-link {
+        font-size: 1.1rem;
+        padding: 1rem !important;
+    }
+    
+    .navbar .btn {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+}
+
+/* Ensure proper canvas sizing */
+.row canvas {
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* Chart Legend Styling */
+.chartjs-legend {
+    color: var(--text-primary) !important;
+}
+
+/* Additional Chart Spacing */
+.col-lg-8.mb-4 .content-card,
+.col-lg-4.mb-4 .content-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.col-lg-8.mb-4 .content-card canvas,
+.col-lg-4.mb-4 .content-card canvas {
+    flex: 1;
+}
+
+/* Status Filter Tabs */
+#ticketStatusTabs {
+    gap: 0.5rem;
+}
+
+#ticketStatusTabs .nav-link {
+    color: var(--text-secondary);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.625rem 1.25rem;
+    font-weight: 500;
+    transition: var(--transition-base);
+}
+
+#ticketStatusTabs .nav-link:hover {
+    background: var(--surface);
+    color: var(--primary-500);
+    border-color: var(--primary-500);
+}
+
+#ticketStatusTabs .nav-link.active {
+    background: linear-gradient(135deg, var(--primary-500), var(--accent-500));
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+#ticketStatusTabs .nav-link i {
+    opacity: 0.8;
+}
+
+#ticketStatusTabs .nav-link.active i {
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    #ticketStatusTabs {
+        flex-wrap: wrap;
+    }
+    
+    #ticketStatusTabs .nav-link {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+}

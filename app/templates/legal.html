@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }} | Ticket-Tally</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+    <style>
+        .legal-header {
+            background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%);
+            color: white;
+            padding: 4rem 0;
+            margin-bottom: 3rem;
+        }
+
+        .legal-content {
+            max-width: 800px;
+            margin: 0 auto 4rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        .legal-content h2 {
+            color: var(--text-primary);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .legal-content ul {
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Simplified Navbar -->
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('web.index') }}">
+                <i class="fas fa-ticket-alt me-2"></i> Ticket-Tally
+            </a>
+            <a href="{{ url_for('web.index') }}" class="btn btn-outline-light btn-sm">Back to Home</a>
+        </div>
+    </nav>
+
+    <header class="legal-header text-center">
+        <div class="container">
+            <h1 class="display-4 fw-bold">{{ title }}</h1>
+            <p class="lead opacity-75">Last Updated: {{ date }}</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="legal-content">
+            {% if page_type == 'privacy' %}
+            <p>At Ticket-Tally, we take your privacy seriously. This Privacy Policy explains how we collect, use,
+                disclosure, and safeguard your information when you visit our website.</p>
+
+            <h2>1. Collection of Information</h2>
+            <p>We may collect information about you in a variety of ways. The information we may collect on the Site
+                includes:</p>
+            <ul>
+                <li><strong>Personal Data:</strong> Personally identifiable information, such as your name, shipping
+                    address, email address, and telephone number.</li>
+                <li><strong>Derivative Data:</strong> Information our servers automatically collect when you access the
+                    Site, such as your IP address, your browser type, your operating system, your access times, and the
+                    pages you have viewed directly before and after accessing the Site.</li>
+            </ul>
+
+            <h2>2. Use of Your Information</h2>
+            <p>Having accurate information about you permits us to provide you with a smooth, efficient, and customized
+                experience. Specifically, we may use information collected about you via the Site to:</p>
+            <ul>
+                <li>Create and manage your account.</li>
+                <li>Email you regarding your account or order.</li>
+                <li>Fulfill and manage purchases, orders, payments, and other transactions related to the Site.</li>
+            </ul>
+
+            <h2>3. Contact Us</h2>
+            <p>If you have questions or comments about this Privacy Policy, please contact us at <a
+                    href="{{ url_for('web.contact') }}">Support</a>.</p>
+
+            {% elif page_type == 'terms' %}
+            <p>These Terms of Service ("Terms") govern your access to and use of Ticket-Tally services. By accessing or
+                using the Service, you agree to be bound by these Terms.</p>
+
+            <h2>1. Accounts</h2>
+            <p>When you create an account with us, you must provide us information that is accurate, complete, and
+                current at all times. Failure to do so constitutes a breach of the Terms, which may result in immediate
+                termination of your account on our Service.</p>
+
+            <h2>2. Intellectual Property</h2>
+            <p>The Service and its original content, features, and functionality are and will remain the exclusive
+                property of Ticket-Tally and its licensors.</p>
+
+            <h2>3. Termination</h2>
+            <p>We may terminate or suspend access to our Service immediately, without prior notice or liability, for any
+                reason whatsoever, including without limitation if you breach the Terms.</p>
+
+            {% elif page_type == 'security' %}
+            <p>Security is our top priority. We employ industry-standard security measures to ensure your data is
+                protected.</p>
+
+            <h2>1. Data Encryption</h2>
+            <p>All data transmitted between your browser and our servers is encrypted using TLS (Transport Layer
+                Security) protocols.</p>
+
+            <h2>2. Access Control</h2>
+            <p>We implement strict role-based access control (RBAC) to ensure that only authorized personnel have access
+                to sensitive data.</p>
+
+            <h2>3. Infrastructure</h2>
+            <p>Our infrastructure is hosted on secure, compliant cloud providers with 24/7 monitoring and automated
+                threat detection.</p>
+            {% else %}
+            <p>Content not found.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <footer class="text-center py-4 text-muted border-top">
+        <div class="container">
+            <p class="mb-0">&copy; 2026 Ticket-Tally. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+
+</html>

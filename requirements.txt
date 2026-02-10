@@ -1,0 +1,14 @@
+flask
+flask-sqlalchemy
+flask-migrate
+flask-cors
+flask-socketio
+eventlet
+PyJWT
+python-dotenv
+psycopg2-binary
+pydantic
+email-validator
+weasyprint
+gunicorn
+pytest

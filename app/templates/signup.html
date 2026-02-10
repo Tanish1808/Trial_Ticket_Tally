@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up | Ticket-Tally</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}" />
+</head>
+
+<body>
+  <div class="auth-container">
+    <div class="auth-background"></div>
+
+    <div class="container">
+      <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-md-10 col-lg-8 col-xl-6">
+          <div class="auth-card">
+            <!-- Brand Header -->
+            <div class="auth-header text-center">
+              <a href="{{ url_for('web.index') }}" class="auth-brand">
+                <div class="brand-icon">
+                  <i class="fas fa-ticket-alt"></i>
+                </div>
+                <span class="brand-text">Ticket-Tally</span>
+              </a>
+              <h2 class="auth-title">Create Your Account</h2>
+              <p class="auth-subtitle">
+                Join as an employee to start managing tickets
+              </p>
+
+              <!-- Dark Mode Toggle -->
+              <button id="darkModeToggle" class="btn btn-icon-only theme-toggle" title="Toggle Dark Mode">
+                <i class="fas fa-moon"></i>
+              </button>
+            </div>
+
+            <!-- Info Alert -->
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
+              All new signups are automatically assigned the
+              <strong>Employee</strong> role. Contact your administrator for
+              IT Staff or Admin access.
+            </div>
+
+            <!-- Signup Form -->
+            <form id="signupForm" class="auth-form">
+              <div class="row">
+                <div class="col-md-6 mb-4">
+                  <label for="firstName" class="form-label">First Name</label>
+                  <div class="input-group">
+                    <span class="input-group-text">
+                      <i class="fas fa-user"></i>
+                    </span>
+                    <input type="text" class="form-control" id="firstName" placeholder="Enter first name" required />
+                  </div>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                  <label for="lastName" class="form-label">Last Name</label>
+                  <div class="input-group">
+                    <span class="input-group-text">
+                      <i class="fas fa-user"></i>
+                    </span>
+                    <input type="text" class="form-control" id="lastName" placeholder="Enter last name" required />
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label for="email" class="form-label">Email Address</label>
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="fas fa-envelope"></i>
+                  </span>
+                  <input type="email" class="form-control" id="email" placeholder="Enter your email" required />
+                  <div class="invalid-feedback" id="emailFeedback">
+                    Please provide a valid email.
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label for="department" class="form-label">Department</label>
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="fas fa-building"></i>
+                  </span>
+                  <select class="form-select" id="department" required>
+                    <option value="">Select your department</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Sales">Sales</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="HR">Human Resources</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Operations">Operations</option>
+                    <option value="Support">Customer Support</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="fas fa-lock"></i>
+                  </span>
+                  <input type="password" class="form-control" id="password" placeholder="Create a password"
+                    minlength="6" required />
+                  <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+                <small class="text-muted">Password must be at least 6 characters long</small>
+              </div>
+
+              <div class="mb-4">
+                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="fas fa-lock"></i>
+                  </span>
+                  <input type="password" class="form-control" id="confirmPassword" placeholder="Re-enter your password"
+                    minlength="6" required />
+                  <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="agreeTerms" required />
+                  <label class="form-check-label" for="agreeTerms">
+                    I agree to the
+                    <a href="#" class="signup-link">Terms of Service</a> and
+                    <a href="#" class="signup-link">Privacy Policy</a>
+                  </label>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary-custom w-100 btn-lg mb-3">
+                <i class="fas fa-user-plus me-2"></i>Create Account
+              </button>
+
+              <div class="text-center">
+                <p class="text-muted mb-0">
+                  Already have an account?
+                  <a href="{{ url_for('web.login') }}" class="signup-link">Sign In</a>
+                </p>
+              </div>
+            </form>
+          </div>
+
+          <!-- Back to Home -->
+          <div class="text-center mt-4">
+            <a href="{{ url_for('web.index') }}" class="back-link">
+              <i class="fas fa-arrow-left me-2"></i>Back to Home
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Account Exists Modal -->
+  <div class="modal fade" id="accountExistsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center p-4 border-0 shadow-sm" style="border-radius: 0.75rem;">
+        <div class="modal-body">
+          <div class="mb-3"
+            style="width: 60px; height: 60px; background: var(--surface-elevated); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto;">
+            <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+          </div>
+          <h5 class="mb-2 fw-bold text-danger">Account Already Exists</h5>
+          <p class="text-muted mb-4">
+            An account with this email address is already registered.
+            <br>Please sign in or use a different email.
+          </p>
+          <div class="d-grid gap-2">
+            <a href="{{ url_for('web.login') }}" class="btn btn-primary-custom">Go to Login</a>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Try Different Email</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+  <script>
+    // Signup form handler
+    document
+      .getElementById("signupForm")
+      .addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const firstName = document.getElementById("firstName").value;
+        const lastName = document.getElementById("lastName").value;
+        const email = document.getElementById("email").value;
+
+        // Clear previous validation
+        document.getElementById("email").classList.remove("is-invalid");
+        const department = document.getElementById("department").value; // Currently not used in backend schema directly, but could be added later
+        const password = document.getElementById("password").value;
+        const confirmPassword = document.getElementById("confirmPassword").value;
+        const submitBtn = this.querySelector('button[type="submit"]');
+
+        // Validate passwords match
+        if (password !== confirmPassword) {
+          alert("Passwords do not match. Please try again.");
+          return;
+        }
+
+        try {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Account...';
+
+          const response = await fetch('/api/v1/auth/signup', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email: email,
+              password: password,
+              full_name: `${firstName} ${lastName}`,
+              department: department,
+              role: "employee"
+            })
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            // Store token and user info
+            localStorage.setItem('token', data.access_token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+
+            showToast("Account created successfully! Redirecting...", "success");
+            // Redirect to employee dashboard (default for new signups)
+            setTimeout(() => {
+              window.location.href = "{{ url_for('web.employee_dashboard') }}";
+            }, 1000);
+
+          } else {
+            // Check for specific duplicate email error
+            if (data.error && (data.error.includes("Email already registered") || data.error.includes("already exists"))) {
+              // Show Inline Error
+              const emailInput = document.getElementById("email");
+              const emailFeedback = document.getElementById("emailFeedback");
+
+              emailInput.classList.add("is-invalid");
+              emailFeedback.textContent = "This email address is already registered.";
+
+              // Show Modal
+              const modal = new bootstrap.Modal(document.getElementById('accountExistsModal'));
+              modal.show();
+            } else {
+              // Generic error
+              alert(data.error || "Signup failed. Please try again.");
+            }
+          }
+
+        } catch (error) {
+          console.error('Error:', error);
+          alert('An error occurred. Please try again.');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fas fa-user-plus me-2"></i>Create Account';
+        }
+      });
+
+    // Toggle password visibility
+    document
+      .getElementById("togglePassword")
+      .addEventListener("click", function () {
+        const passwordInput = document.getElementById("password");
+        const icon = this.querySelector("i");
+
+        if (passwordInput.type === "password") {
+          passwordInput.type = "text";
+          icon.classList.remove("fa-eye");
+          icon.classList.add("fa-eye-slash");
+        } else {
+          passwordInput.type = "password";
+          icon.classList.remove("fa-eye-slash");
+          icon.classList.add("fa-eye");
+        }
+      });
+
+    document
+      .getElementById("toggleConfirmPassword")
+      .addEventListener("click", function () {
+        const passwordInput = document.getElementById("confirmPassword");
+        const icon = this.querySelector("i");
+
+        if (passwordInput.type === "password") {
+          passwordInput.type = "text";
+          icon.classList.remove("fa-eye");
+          icon.classList.add("fa-eye-slash");
+        } else {
+          passwordInput.type = "password";
+          icon.classList.remove("fa-eye-slash");
+          icon.classList.add("fa-eye");
+        }
+      });
+  </script>
+</body>
+
+</html>

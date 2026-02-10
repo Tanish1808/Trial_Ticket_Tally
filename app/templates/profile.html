@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile | Ticket-Tally</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="/static/css/fixes.css" />
+  <style>
+    .profile-page {
+      min-height: 100vh;
+      background: var(--background);
+      padding: 2rem 0;
+    }
+
+    .profile-header {
+      background: linear-gradient(135deg,
+          var(--primary-500) 0%,
+          var(--accent-500) 100%);
+      border-radius: var(--radius-xl);
+      padding: 3rem 2rem;
+      margin-bottom: 2rem;
+      color: white;
+      box-shadow: var(--shadow-xl);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-header::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 400px;
+      height: 400px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+    }
+
+    .profile-avatar-large {
+      width: 120px;
+      height: 120px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .profile-name {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+
+    .profile-role {
+      font-size: 1.125rem;
+      opacity: 0.9;
+      font-weight: 500;
+    }
+
+    .profile-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      text-align: center;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 0.25rem;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.95;
+    }
+
+    .profile-content {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .profile-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .profile-card-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .profile-card-icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      background: linear-gradient(135deg,
+          var(--primary-500),
+          var(--accent-500));
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .info-item {
+      padding: 1rem;
+      background: var(--surface-elevated);
+      border-radius: var(--radius-md);
+      border-left: 3px solid var(--primary-500);
+    }
+
+    .info-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .info-value {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .preference-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem;
+      background: var(--surface-elevated);
+      border-radius: var(--radius-md);
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+      transition: var(--transition-base);
+    }
+
+    .preference-item:hover {
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .preference-info h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: var(--text-primary);
+    }
+
+    .preference-info p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--border);
+      transition: 0.4s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: 0.4s;
+      border-radius: 50%;
+    }
+
+    input:checked+.slider {
+      background: linear-gradient(135deg,
+          var(--primary-500),
+          var(--accent-500));
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(26px);
+    }
+
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .activity-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--surface-elevated);
+      border-radius: var(--radius-md);
+      border-left: 3px solid var(--primary-500);
+    }
+
+    .activity-icon {
+      width: 3rem;
+      height: 3rem;
+      background: var(--primary-500);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .activity-content {
+      flex: 1;
+    }
+
+    .activity-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .activity-time {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 768px) {
+      .profile-header {
+        padding: 2rem 1.5rem;
+      }
+
+      .profile-avatar-large {
+        width: 90px;
+        height: 90px;
+        font-size: 2.5rem;
+      }
+
+      .profile-name {
+        font-size: 1.5rem;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="profile-page">
+    <div class="container">
+      <!-- Back Button -->
+      <div class="mb-4">
+        <button onclick="goBackToDashboard()" class="btn btn-outline-custom">
+          <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </button>
+        <button id="darkModeToggle" class="btn btn-icon-only float-end">
+          <i class="fas fa-moon"></i>
+        </button>
+      </div>
+
+      <!-- Profile Header -->
+      <div class="profile-header">
+        <div class="profile-avatar-large" id="profileAvatar">
+          <!-- Initials will be inserted here -->
+        </div>
+        <h1 class="profile-name" id="profileName">Loading...</h1>
+        <p class="profile-role" id="profileRole">Role</p>
+
+        <!-- Stats -->
+        <div class="profile-stats" id="profileStats">
+          <!-- Stats will be inserted here -->
+        </div>
+      </div>
+
+      <!-- Profile Content -->
+      <div class="profile-content">
+        <!-- Personal Information -->
+        <div class="profile-card">
+          <h2 class="profile-card-title">
+            <div class="profile-card-icon">
+              <i class="fas fa-user"></i>
+            </div>
+            Personal Information
+          </h2>
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">Full Name</div>
+              <div class="info-value" id="infoName">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Email Address</div>
+              <div class="info-value" id="infoEmail">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Role</div>
+              <div class="info-value" id="infoRole">-</div>
+            </div>
+            <div class="info-item" id="infoDepartmentContainer">
+              <div class="info-label">Department</div>
+              <div class="info-value" id="infoDepartment">-</div>
+            </div>
+            <div class="info-item" id="infoTeamContainer" style="display: none">
+              <div class="info-label">Team</div>
+              <div class="info-value" id="infoTeam">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Member Since</div>
+              <div class="info-value" id="infoMemberSince">-</div>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <button class="btn btn-primary-custom" onclick="editProfile()">
+              <i class="fas fa-edit me-2"></i>Edit Profile
+            </button>
+            <button class="btn btn-outline-custom ms-2" onclick="changePassword()">
+              <i class="fas fa-key me-2"></i>Change Password
+            </button>
+          </div>
+        </div>
+
+        <!-- Preferences & Settings -->
+        <div class="profile-card">
+          <h2 class="profile-card-title">
+            <div class="profile-card-icon">
+              <i class="fas fa-sliders-h"></i>
+            </div>
+            Preferences & Settings
+          </h2>
+
+          <div class="preference-item">
+            <div class="preference-info">
+              <h4>Dark Mode</h4>
+              <p>Switch between light and dark theme</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="darkModeSwitch" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="preference-item">
+            <div class="preference-info">
+              <h4>Email Notifications</h4>
+              <p>Receive email updates on ticket changes</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="emailNotifications" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="preference-item">
+            <div class="preference-info">
+              <h4>Auto-Refresh</h4>
+              <p>Automatically update dashboards</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="autoRefresh" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="preference-item">
+            <div class="preference-info">
+              <h4>Show Closed Tickets</h4>
+              <p>Display closed tickets in dashboard</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="showClosed" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="profile-card">
+          <h2 class="profile-card-title">
+            <div class="profile-card-icon">
+              <i class="fas fa-history"></i>
+            </div>
+            Recent Activity
+          </h2>
+          <div class="activity-list" id="recentActivity">
+            <!-- Activity items will be inserted here -->
+          </div>
+        </div>
+
+        <!-- Account Actions -->
+        <div class="profile-card">
+          <h2 class="profile-card-title">
+            <div class="profile-card-icon">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            Account & Security
+          </h2>
+
+          <div class="d-grid gap-3">
+            <button id="btn-download-data" class="btn btn-outline-custom btn-lg text-start">
+              <i class="fas fa-download me-3"></i>
+              <span>
+                <strong>Download My Data</strong><br />
+                <small class="text-muted">Export all your tickets and activity</small>
+              </span>
+            </button>
+
+            <button class="btn btn-outline-custom btn-lg text-start" onclick="clearNotifications()">
+              <i class="fas fa-bell-slash me-3"></i>
+              <span>
+                <strong>Clear Notifications</strong><br />
+                <small class="text-muted">Remove all notification history</small>
+              </span>
+            </button>
+
+            <button class="btn btn-outline-danger btn-lg text-start" onclick="confirmLogout()">
+              <i class="fas fa-sign-out-alt me-3"></i>
+              <span>
+                <strong>Logout</strong><br />
+                <small class="text-muted">Sign out of your account</small>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div class="modal fade" id="editProfileModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Profile</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editProfileForm">
+            <div class="mb-3">
+              <label for="editFullName" class="form-label">Full Name</label>
+              <input type="text" class="form-control" id="editFullName" required>
+            </div>
+            <div class="mb-3" id="editDepartmentContainer">
+              <label for="editDepartment" class="form-label">Department</label>
+              <input type="text" class="form-control" id="editDepartment">
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Change Password</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="changePasswordForm">
+            <div class="mb-3">
+              <label for="currentPassword" class="form-label">Current Password</label>
+              <input type="password" class="form-control" id="currentPassword" required>
+            </div>
+            <div class="mb-3">
+              <label for="newPassword" class="form-label">New Password</label>
+              <input type="password" class="form-control" id="newPassword" required minlength="6">
+              <div class="form-text">Must be at least 6 characters long.</div>
+            </div>
+            <div class="mb-3">
+              <label for="confirmPassword" class="form-label">Confirm New Password</label>
+              <input type="password" class="form-control" id="confirmPassword" required>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Change Password</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Options Modal -->
+  <div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-file-export me-2"></i>Export Your Data</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Select the format for your data export:</p>
+          <div class="d-grid gap-2">
+            <button class="btn btn-outline-primary text-start text-wrap" style="white-space: normal;"
+              onclick="confirmExport('json')">
+              <i class="fas fa-file-code me-2"></i>
+              <strong>JSON (Complete Data)</strong>
+              <div class="small text-muted">Includes all tickets, comments, and history. Best for backup.</div>
+            </button>
+            <button class="btn btn-outline-success text-start text-wrap" style="white-space: normal;"
+              onclick="confirmExport('csv')">
+              <i class="fas fa-file-csv me-2"></i>
+              <strong>CSV (Spreadsheet)</strong>
+              <div class="small text-muted">Summary of tickets and comments. Best for Excel/Sheets.</div>
+            </button>
+            <button class="btn btn-outline-danger text-start text-wrap" style="white-space: normal;"
+              onclick="confirmExport('pdf')">
+              <i class="fas fa-file-pdf me-2"></i>
+              <strong>PDF (Report)</strong>
+              <div class="small text-muted">A professional printable report of your activity.</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- No Notifications Modal (Reused) -->
+  <div class="modal fade" id="noNotificationsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content text-center p-4 border-0 shadow-sm" style="border-radius: 0.75rem;">
+        <div class="modal-body">
+          <div class="mb-3"
+            style="width: 60px; height: 60px; background: #f3f4f6; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto;">
+            <i class="fas fa-bell-slash fa-2x text-muted"></i>
+          </div>
+          <h5 class="mb-2 fw-bold">No Notifications</h5>
+          <p class="text-muted small mb-4">You have no notifications to clear.</p>
+          <button type="button" class="btn btn-secondary btn-sm w-100 rounded-pill"
+            data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clear Confirmation Modal -->
+  <div class="modal fade" id="clearNotificationsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger">Clear All Notifications?</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted">Are you sure you want to delete <strong>all</strong> your notifications? This action
+            cannot be undone.</p>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger rounded-pill px-4" onclick="confirmClearNotifications()">Yes,
+            Clear All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/js/theme.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/notifications.js"></script>
+  <script src="/static/js/profile.js"></script>
+</body>
+
+</html>
