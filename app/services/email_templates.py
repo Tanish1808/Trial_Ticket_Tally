@@ -241,3 +241,44 @@ def get_ticket_resolved_email(name, ticket_id, title):
     </body>
     </html>
     """
+
+def get_reset_password_email(name, reset_link):
+    base_url = Config.BASE_URL
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Reset Your Password</title>
+        {get_base_style()}
+    </head>
+    <body>
+        <div class="container">
+            <div class="header" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);">
+                <h1>Password Reset</h1>
+            </div>
+            <div class="content">
+                <p>Hello {name},</p>
+                <p>We received a request to reset your password for your Ticket Tally account.</p>
+                <p>If you didn't make this request, you can safely ignore this email.</p>
+                
+                <div style="text-align: center;">
+                    <a href="{reset_link}" class="button" style="background-color: #ef4444;">Reset Password</a>
+                </div>
+                
+                <p style="margin-top: 20px; font-size: 13px; color: #64748b;">
+                    Or copy and paste this link into your browser:<br>
+                    <a href="{reset_link}" style="color: #ef4444;">{reset_link}</a>
+                </p>
+                
+                <p>This link will expire in 1 hour.</p>
+                
+                <p>Best regards,<br>Ticket Tally Security</p>
+            </div>
+            <div class="footer">
+                &copy; 2026 Ticket Tally. All rights reserved.
+            </div>
+        </div>
+    </body>
+    </html>
+    """

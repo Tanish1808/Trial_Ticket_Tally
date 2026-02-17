@@ -195,10 +195,28 @@ class NotificationService:
         # Given the user can't login if they forgot password, this notification is only useful 
         # if they recover access or for security audit. 
         # Let's just create it.
+        # Validate email config before attempting to send
+        from app.core.config import Config
+        from app.services.email_service import EmailService
+        from app.services.email_templates import get_reset_password_email
+        
+        # Construct Reset Link
+        reset_link = f"{Config.BASE_URL}/reset-password/{token}"
+        
+        # Prepare Email Body
+        email_body = get_reset_password_email(user.full_name, reset_link)
+        
+        # Send Email
+        EmailService.send_email(
+            to_email=user.email,
+            subject="Reset Your Password - Ticket Tally",
+            body=email_body
+        )
+
         NotificationService.create_notification(
             user_id=user.id,
             title="Password Reset Requested",
-            message="A password reset was requested for your account.",
+            message="A password reset link has been sent to your email.",
             type='warning'
         )
 
