@@ -133,10 +133,44 @@ def get_it_dashboard_stats():
         )
     ).count()
 
+    # 5. Weekly Performance Trends (Assigned vs Resolved)
+    # Get last 7 days dates
+    # 5. Weekly Performance Trends (Assigned vs Resolved)
+    # Get last 7 days dates
+    dates = [(today_date - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
+    assigned_trend = [0] * 7
+    resolved_trend = [0] * 7
+
+    seven_days_ago = today_date - timedelta(days=7)
+    
+    # Re-use base query filter logic but applying date range
+    trend_tickets = query.filter(
+        (Ticket.created_at >= seven_days_ago) | 
+        ((Ticket.updated_at >= seven_days_ago) & (Ticket.status == TicketStatus.RESOLVED))
+    ).all()
+    
+    for t in trend_tickets:
+        if t.created_at:
+            t_date = t.created_at.date()
+            days_ago = (today_date - t_date).days
+            if 0 <= days_ago < 7:
+               assigned_trend[6 - days_ago] += 1
+        
+        if t.status == TicketStatus.RESOLVED and t.updated_at:
+            t_date = t.updated_at.date()
+            days_ago = (today_date - t_date).days
+            if 0 <= days_ago < 7:
+               resolved_trend[6 - days_ago] += 1
+
     return jsonify({
         "assigned_tickets": assigned_to_team,
         "in_progress_tickets": in_progress,
         "resolved_tickets": resolved_today,
-        "sla_breaches": sla_breaches
+        "sla_breaches": sla_breaches,
+        "weekly_activity": {
+            "dates": dates,
+            "assigned": assigned_trend,
+            "resolved": resolved_trend
+        }
     })
 

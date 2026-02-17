@@ -78,6 +78,8 @@ async function getTickets() {
 async function loadTickets() {
     cachedTickets = await getTickets();
     await updateKPIs();
+    // Render Chart
+    renderPriorityChart(cachedTickets);
     // Default view: All tickets
     displayTickets(cachedTickets, 'all');
 }
@@ -99,14 +101,90 @@ async function updateKPIs() {
             document.getElementById('inProgressTickets').textContent = data.in_progress_tickets;
             document.getElementById('resolvedTickets').textContent = data.resolved_tickets;
             document.getElementById('slaBreaches').textContent = data.sla_breaches;
+
+            // Render Weekly Chart
+            if (data.weekly_activity) {
+                renderWeeklyChart(data.weekly_activity);
+            }
         }
     } catch (e) {
         console.error("Failed to update IT KPIs", e);
     }
 }
 
-function updatePerformanceChart(meData) {
-    // [Removed as requested]
+// Chart Global Instance
+let priorityChartInstance = null;
+
+function renderPriorityChart(tickets) {
+    const ctx = document.getElementById('priorityChart');
+    if (!ctx) return;
+
+    // Filter for Active Tickets only (Open, In Progress)
+    const activeTickets = tickets.filter(t => t.status !== 'Resolved' && t.status !== 'Closed' && t.status !== 'Withdrawn');
+
+    // Count by Priority
+    const counts = {
+        'Critical': 0,
+        'High': 0,
+        'Medium': 0,
+        'Low': 0
+    };
+
+    activeTickets.forEach(t => {
+        if (counts.hasOwnProperty(t.priority)) {
+            counts[t.priority]++;
+        }
+    });
+
+    // Destroy existing if exists
+    if (priorityChartInstance) {
+        priorityChartInstance.destroy();
+    }
+
+    // Colors matching CSS variables (approximate)
+    // Critical: Danger (Red), High: Warning (Orange), Medium: Info (Blue), Low: Success (Green) or Secondary
+    const data = {
+        labels: ['Critical', 'High', 'Medium', 'Low'],
+        datasets: [{
+            data: [counts.Critical, counts.High, counts.Medium, counts.Low],
+            backgroundColor: [
+                '#ef4444', // Red-500
+                '#f97316', // Orange-500
+                '#3b82f6', // Blue-500
+                '#10b981'  // Emerald-500
+            ],
+            borderWidth: 0,
+            hoverOffset: 4
+        }]
+    };
+
+    priorityChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 8
+                    }
+                },
+                title: {
+                    display: true,
+                    text: `Total Active: ${activeTickets.length}`,
+                    position: 'bottom',
+                    font: {
+                        size: 14,
+                        weight: 'normal'
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
 }
 
 function displayTickets(tickets, viewMode = 'all') {
@@ -173,10 +251,94 @@ function getModal(id) {
 }
 
 // Open Confirmation Modal
+// Open Confirmation Modal
 function openApproachModal(ticketId) {
     document.getElementById('approachTicketId').value = ticketId;
     const modal = getModal('confirmApproachModal');
     modal.show();
+}
+
+// Chart Global Instance
+let weeklyChartInstance = null;
+
+function renderWeeklyChart(activityData) {
+    const ctx = document.getElementById('weeklyChart');
+    if (!ctx || !activityData) return;
+
+    // Formatting dates for X-Axis (e.g., "Mon", "Tue" or "Feb 10")
+    const labels = activityData.dates.map(dateStr => {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', { weekday: 'short' }); // Mon, Tue...
+    });
+
+    // Destroy existing
+    if (weeklyChartInstance) {
+        weeklyChartInstance.destroy();
+    }
+
+    weeklyChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Assigned',
+                    data: activityData.assigned,
+                    backgroundColor: '#3b82f6', // Blue-500
+                    borderRadius: 4,
+                    barPercentage: 0.6
+                },
+                {
+                    label: 'Resolved',
+                    data: activityData.resolved,
+                    backgroundColor: '#10b981', // Emerald-500
+                    borderRadius: 4,
+                    barPercentage: 0.6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 8
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        display: true,
+                        drawBorder: false,
+                        color: 'rgba(0,0,0,0.05)'
+                    },
+                    ticks: {
+                        precision: 0
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
 }
 
 // Actual Action triggerd by Modal Button

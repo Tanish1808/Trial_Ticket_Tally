@@ -120,7 +120,6 @@
 ├── README.md
 ├── check_users.py
 ├── create_admin.py
-├── debug_deployment.py
 ├── debug_users.py
 ├── delete_test_users.py
 ├── dump.txt
@@ -128,7 +127,6 @@
 ├── fix_assignments.py
 ├── fix_db.py
 ├── migrate_comments.py
-├── refactor_frontend.py
 ├── requirements.txt
 ├── reset_db.py
 ├── run.py
