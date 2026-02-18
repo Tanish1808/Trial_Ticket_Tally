@@ -13,8 +13,8 @@ from app.utils.password import hash_password
 def create_admin():
     app = create_app()
     with app.app_context():
-        email = "admin@demo.com"
-        password = "demo123"
+        email = "a79321035@gmail.com"
+        password = "admin@tt"
         
         existing_admin = User.query.filter_by(email=email).first()
         if existing_admin:
