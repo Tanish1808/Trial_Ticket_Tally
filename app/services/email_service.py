@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class EmailService:
     @staticmethod
-    def send_email(to_email: str, subject: str, body: str, attachments=None):
+    def send_email(to_email: str, subject: str, body: str, attachments=None, reply_to=None, sender_name=None):
         if not Config.MAIL_SERVER or not Config.MAIL_USERNAME:
             logger.warning("Email configuration missing. Skipping email send.")
             logger.info(f"Would have sent email to {to_email}: {subject}")
@@ -17,10 +17,19 @@ class EmailService:
         try:
             from email.mime.application import MIMEApplication
             msg = MIMEMultipart()
-            msg['From'] = Config.MAIL_USERNAME
+            
+            if sender_name:
+                # Format: "Sender Name" <system@email.com>
+                msg['From'] = f'"{sender_name}" <{Config.MAIL_USERNAME}>'
+            else:
+                msg['From'] = Config.MAIL_USERNAME
+                
             msg['To'] = to_email
             msg['Subject'] = subject
             msg.attach(MIMEText(body, 'html'))
+            
+            if reply_to:
+                msg.add_header('Reply-To', reply_to)
 
             if attachments:
                 for filename, content in attachments:

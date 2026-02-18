@@ -40,24 +40,43 @@ def contact():
             flash('Failed to save message. Please try again later.', 'danger')
             return render_template('contact.html')
 
-        # Send Email to Admin (Best Effort)
+        # Send Email to System AND Admin
         try:
-            admin_email = current_app.config.get('MAIL_USERNAME')
-            if admin_email:
-                body = f"""
-                <h3>New Contact Form Submission</h3>
-                <p><strong>Name:</strong> {name}</p>
-                <p><strong>Email:</strong> {email}</p>
-                <p><strong>Subject:</strong> {subject}</p>
-                <hr>
-                <p>{message}</p>
-                """
+            from app.models.user import User, UserRole
+            from app.services.email_templates import get_contact_form_email
+            
+            # 1. Get System Email
+            system_email = current_app.config.get('MAIL_USERNAME')
+            
+            # 2. Get Admin Email(s) from Database
+            # assuming there is at least one admin, or get all
+            admin_users = User.query.filter_by(role=UserRole.ADMIN).all()
+            admin_emails = [u.email for u in admin_users]
+            
+            # Combine unique recipients (System + Admins + Hardcoded)
+            recipients = set()
+            if system_email:
+                recipients.add(system_email)
+            for email in admin_emails:
+                recipients.add(email)
+            
+            # Explicitly add user requested email
+            recipients.add('a79321035@gmail.com')
                 
-                EmailService.send_email(
-                    to_email=admin_email,
-                    subject=f"Contact Form: {subject}",
-                    body=body
-                )
+            if recipients:
+                html_body = get_contact_form_email(name, email, subject, message)
+                
+                # Send to each recipient
+                for recipient in recipients:
+                    print(f"Sending contact email to: {recipient}") # Debug log
+                    EmailService.send_email(
+                        to_email=recipient,
+                        subject=f"Contact Form: {subject}",
+                        body=html_body,
+                        reply_to=email,  # Set Reply-To to the sender's email
+                        sender_name=f"{name} ({email})" # Show "Name (email)" as the sender
+                    )
+            
         except Exception as e:
             print(f"Contact Form Email Error: {e}")
             # Do not rollback or flash error to user if DB save succeeded

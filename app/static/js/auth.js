@@ -2,15 +2,18 @@
    Authentication Utilities
    ========================================================================== */
 
-// Get current user from localStorage
+// Get current user from storage (Session first, then Local)
 function getCurrentUser() {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+    const sessionUser = sessionStorage.getItem('user');
+    if (sessionUser) return JSON.parse(sessionUser);
+
+    const localUser = localStorage.getItem('user');
+    return localUser ? JSON.parse(localUser) : null;
 }
 
-// Get auth token
+// Get auth token (Session first, then Local)
 function getAuthToken() {
-    return localStorage.getItem('token');
+    return sessionStorage.getItem('token') || localStorage.getItem('token');
 }
 
 // Check if user is logged in
@@ -20,8 +23,24 @@ function isAuthenticated() {
 
 // Logout user
 function logout() {
+    const user = getCurrentUser();
+    const isDemo = user && user.email === 'demo@tickettally.com';
+
+    if (isDemo) {
+        // Redirect to Landing Page but KEEP session to maintain Demo Mode
+        window.location.href = '/';
+        return;
+    }
+
+    // Normal Logout
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    localStorage.removeItem('access_token');
+
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('access_token');
+
     window.location.href = '/login';
 }
 

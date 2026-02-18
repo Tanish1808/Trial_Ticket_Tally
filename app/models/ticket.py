@@ -11,6 +11,7 @@ class Ticket(db.Model):
     category = db.Column(db.String(50), nullable=False, default="General")
     status = db.Column(db.Enum(TicketStatus), default=TicketStatus.OPEN, nullable=False)
     priority = db.Column(db.Enum(TicketPriority), default=TicketPriority.MEDIUM, nullable=False)
+    is_demo = db.Column(db.Boolean, default=False, nullable=False)
     
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     assigned_to_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)

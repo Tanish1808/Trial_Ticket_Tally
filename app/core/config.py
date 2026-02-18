@@ -21,3 +21,7 @@ class Config:
     UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
 
     BASE_URL = os.getenv('BASE_URL', 'http://localhost:5000')
+
+    # Demo User Configuration
+    DEMO_EMAIL = "demo@tickettally.com"
+    DEMO_PASSWORD = "demo_password_secure_2026"

@@ -115,21 +115,36 @@ class TicketService:
     @staticmethod
     def get_tickets(user):
         from app.core.constants import UserRole
+        from app.core.config import Config
+        
+        # Check if user is Demo User
+        is_demo_user = (user.email == Config.DEMO_EMAIL)
+        
+        # Base query
+        query = Ticket.query
+        
+        # FILTER: 
+        # - Demo User sees ONLY Demo tickets
+        # - Normal Users see ONLY Non-Demo tickets
+        if is_demo_user:
+            query = query.filter_by(is_demo=True)
+        else:
+            query = query.filter_by(is_demo=False)
         
         if user.role == UserRole.EMPLOYEE:
-             return Ticket.query.filter_by(created_by_id=user.id).all()
+             return query.filter_by(created_by_id=user.id).all()
              
         if user.role == UserRole.IT_STAFF:
             # IT Staff should see tickets for their team OR tickets specifically assigned to them
             if user.team_id:
-                return Ticket.query.filter(
+                return query.filter(
                     (Ticket.team_id == user.team_id) | 
                     (Ticket.assigned_to_id == user.id)
                 ).all()
-            # If no team assigned, show all tickets
-            return Ticket.query.all()
+            # If no team assigned, show all tickets (scoped by demo filter)
+            return query.all()
 
-        return Ticket.query.all()
+        return query.all()
 
     @staticmethod
     def claim_ticket(ticket_id: int, user_id: int) -> Ticket:

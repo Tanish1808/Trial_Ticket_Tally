@@ -13,8 +13,10 @@ def get_dashboard_stats():
     from sqlalchemy import func
     from datetime import datetime, timedelta
 
-    # 1. Ticket Status Counts (Efficient Group By)
-    status_counts = db.session.query(Ticket.status, func.count(Ticket.id)).group_by(Ticket.status).all()
+    # 1. Ticket Status Counts (Efficient Group By) - EXCLUDE DEMO
+    status_counts = db.session.query(Ticket.status, func.count(Ticket.id))\
+        .filter(Ticket.is_demo == False)\
+        .group_by(Ticket.status).all()
     status_map = {s: c for s, c in status_counts}
     
     # Safe mapping helper
@@ -23,22 +25,29 @@ def get_dashboard_stats():
 
     today_date = datetime.utcnow().date()
     resolved_today = Ticket.query.filter(
+        Ticket.is_demo == False,
         Ticket.status == TicketStatus.RESOLVED,
         func.date(Ticket.updated_at) == today_date
     ).count()
 
-    total_tickets = Ticket.query.count()
+    total_tickets = Ticket.query.filter(Ticket.is_demo == False).count()
     open_tickets = get_count(TicketStatus.OPEN)
     in_progress_tickets = get_count(TicketStatus.IN_PROGRESS)
     resolved_tickets = get_count(TicketStatus.RESOLVED)
+    # Users not filtered by demo currently (Demo user is a valid user, but maybe exclude?)
+    # Let's keep total_users as is for now.
     users_count = User.query.count()
     
-    # 2. Category Distribution
-    cat_counts = db.session.query(Ticket.category, func.count(Ticket.id)).group_by(Ticket.category).all()
+    # 2. Category Distribution - EXCLUDE DEMO
+    cat_counts = db.session.query(Ticket.category, func.count(Ticket.id))\
+        .filter(Ticket.is_demo == False)\
+        .group_by(Ticket.category).all()
     categories = {cat or "Uncategorized": count for cat, count in cat_counts}
         
-    # 3. Priority Breakdown
-    prio_counts = db.session.query(Ticket.priority, func.count(Ticket.id)).group_by(Ticket.priority).all()
+    # 3. Priority Breakdown - EXCLUDE DEMO
+    prio_counts = db.session.query(Ticket.priority, func.count(Ticket.id))\
+        .filter(Ticket.is_demo == False)\
+        .group_by(Ticket.priority).all()
     priorities = {prio.value: count for prio, count in prio_counts}
 
     # 4. Trends (Last 7 days)
@@ -53,6 +62,7 @@ def get_dashboard_stats():
     # So we ONLY need tickets where created_at or updated_at is >= 7 days ago.
     
     relevant_tickets = Ticket.query.filter(
+        Ticket.is_demo == False,
         (Ticket.created_at >= seven_days_ago) | 
         (Ticket.updated_at >= seven_days_ago)
     ).all()

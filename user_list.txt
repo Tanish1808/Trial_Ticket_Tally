@@ -1,9 +1,0 @@
-ID: 2, Name: System Admin, Email: admin@demo.com
-ID: 3, Name: Williom  John, Email: shahtanish390@gmail.com
-ID: 5, Name: John  Doe, Email: jayntilalshah1931@gmail.com
-ID: 6, Name: David Williom, Email: tanish.shahdev@gmail.com
-ID: 7, Name: Tanish Shah, Email: tanishshah1808@gmail.com
-ID: 8, Name: Saumya Prajapati, Email: saumyaprajapatia@gmail.com
-ID: 9, Name: Rutvik Patel, Email: rutvikpatel7969@gmail.com
-ID: 12, Name: Test Admin, Email: admin@tt.com
-ID: 15, Name: Dhyey Daftary, Email: hemalshah909@gmail.com

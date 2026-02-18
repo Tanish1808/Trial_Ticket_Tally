@@ -80,3 +80,19 @@ def reset_password():
         return jsonify({"message": "Password reset successfully. You can now login."})
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+
+@auth_bp.route('/demo-login', methods=['POST'])
+def demo_login():
+    try:
+        result = AuthService.login_demo_user()
+        return jsonify({
+            "access_token": result['access_token'],
+            "user": {
+                "id": result['user'].id,
+                "email": result['user'].email,
+                "role": result['user'].role.value,
+                "name": result['user'].full_name
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

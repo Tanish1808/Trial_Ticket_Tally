@@ -4,6 +4,7 @@ from app.utils.password import hash_password, verify_password
 from app.utils.jwt import create_access_token
 from app.schemas.auth_schema import SignupRequest, LoginRequest
 from app.services.email_service import EmailService
+from datetime import datetime
 
 class AuthService:
     @staticmethod
@@ -88,3 +89,104 @@ class AuthService:
         db.session.commit()
         
         return True
+
+    @staticmethod
+    def get_or_create_demo_user() -> User:
+        from app.core.config import Config
+        from app.core.constants import UserRole
+        
+        user = User.query.filter_by(email=Config.DEMO_EMAIL).first()
+        if not user:
+            user = User(
+                email=Config.DEMO_EMAIL,
+                password_hash=hash_password(Config.DEMO_PASSWORD),
+                full_name="Demo Employee",
+                role=UserRole.EMPLOYEE,
+                department="Sales",
+                is_active=True
+            )
+            db.session.add(user)
+        else:
+            # Ensure role is updated to EMPLOYEE if it was previously ADMIN
+            user.role = UserRole.EMPLOYEE
+            user.full_name = "Demo Employee"
+            
+        db.session.commit()
+            
+        # Ensure sample tickets exist for demo user
+        from app.models.ticket import Ticket
+        from app.models.team import Team
+        from app.core.constants import TicketStatus, TicketPriority
+        
+        # Get or Create Teams
+        it_team = Team.query.filter_by(name="IT Support").first()
+        if not it_team:
+            it_team = Team(name="IT Support")
+            db.session.add(it_team)
+            
+        hr_team = Team.query.filter_by(name="Human Resources").first()
+        if not hr_team:
+            hr_team = Team(name="Human Resources")
+            db.session.add(hr_team)
+            
+        # Commit to get IDs
+        db.session.commit()
+        
+        # CLEAR existing tickets for demo user to ensure clean state
+        existing_tickets = Ticket.query.filter_by(created_by_id=user.id).all()
+        for t in existing_tickets:
+            db.session.delete(t)
+        db.session.commit()
+        
+        # Create fresh sample tickets
+        sample_tickets = [
+            Ticket(
+                title="VPN Access Issue", 
+                description="Unable to connect to company VPN from home network. Error code 403.",
+                category="Network Issue",
+                priority=TicketPriority.HIGH,
+                status=TicketStatus.OPEN,
+                created_by_id=user.id,
+                assigned_to_id=user.id,
+                team_id=it_team.id,
+                is_demo=True,
+                created_at=datetime.utcnow()
+            ),
+            Ticket(
+                title="Outlook Sync Error", 
+                description="Emails are not syncing on my desktop client. Webmail works fine.",
+                category="Email Issue",
+                priority=TicketPriority.MEDIUM,
+                status=TicketStatus.IN_PROGRESS,
+                created_by_id=user.id,
+                assigned_to_id=user.id,
+                team_id=it_team.id,
+                is_demo=True,
+                created_at=datetime.utcnow()
+            ),
+            Ticket(
+                title="Payroll Discrepancy", 
+                description="My payslip for this month shows incorrect deduction.",
+                category="Payroll",
+                priority=TicketPriority.HIGH,
+                status=TicketStatus.OPEN,
+                created_by_id=user.id,
+                assigned_to_id=user.id,
+                team_id=hr_team.id,
+                is_demo=True,
+                created_at=datetime.utcnow()
+            )
+        ]
+        db.session.add_all(sample_tickets)
+        db.session.commit()
+            
+        return user
+
+    @staticmethod
+    def login_demo_user() -> dict:
+        user = AuthService.get_or_create_demo_user()
+        token = create_access_token(identity=str(user.id))
+        return {
+            "access_token": token,
+            "user": user
+        }
