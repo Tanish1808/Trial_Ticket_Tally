@@ -22,6 +22,16 @@ def token_required(f):
             if not current_user:
                 raise Exception("User not found")
             g.user = current_user
+            
+            # Read-Only Demo Enforcement
+            from app.core.config import Config
+            if g.user.email == Config.DEMO_EMAIL:
+                if request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
+                    # Allow logout if it exists as a protected route, otherwise block all state changes
+                    # Assuming logout might be '/api/v1/auth/logout' or similar
+                    if not request.path.endswith('/logout'): 
+                        return jsonify({'message': 'Demo user is in read-only mode.'}), 403
+
         except Exception as e:
             return jsonify({'message': str(e)}), 401
         

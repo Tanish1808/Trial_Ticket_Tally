@@ -282,3 +282,52 @@ def get_reset_password_email(name, reset_link):
     </body>
     </html>
     """
+
+def get_contact_form_email(name, email, subject, message):
+    base_url = Config.BASE_URL
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>New Contact Message</title>
+        {get_base_style()}
+    </head>
+    <body>
+        <div class="container">
+            <div class="header" style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);">
+                <h1>New Contact Message</h1>
+            </div>
+            <div class="content">
+                <p>Hello Admin,</p>
+                <p>You have received a new message from the <strong>Contact Us</strong> form.</p>
+                
+                <div class="info-box" style="border-left-color: #ec4899;">
+                    <div style="margin-bottom: 8px;">
+                        <span class="credential-label">Sender Name:</span>
+                        <span style="font-size: 16px;">{name}</span>
+                    </div>
+                    <div>
+                        <span class="credential-label">Subject:</span>
+                        <span style="font-weight: bold;">{subject}</span>
+                    </div>
+                </div>
+
+                <p><strong>Message:</strong></p>
+                <div style="background-color: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; font-style: italic; color: #475569;">
+                    "{message}"
+                </div>
+                
+                <div style="text-align: center; margin-top: 25px;">
+                    <a href="mailto:{email}?subject=Re: {subject}" class="button" style="background-color: #ec4899;">Reply to User</a>
+                </div>
+                
+                <p>Best regards,<br>Ticket Tally System</p>
+            </div>
+            <div class="footer">
+                &copy; 2026 Ticket Tally. All rights reserved.
+            </div>
+        </div>
+    </body>
+    </html>
+    """

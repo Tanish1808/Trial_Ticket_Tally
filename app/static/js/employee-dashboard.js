@@ -270,6 +270,18 @@ function showRaiseTicketModal() {
 async function handleRaiseTicket(e) {
     e.preventDefault();
 
+    // Check for Demo Mode
+    if (document.body.classList.contains('demo-mode')) {
+        // Close the form modal first
+        const formModal = bootstrap.Modal.getInstance(document.getElementById('raiseTicketModal'));
+        if (formModal) formModal.hide();
+
+        // Show Restricted Modal
+        const restrictedModal = new bootstrap.Modal(document.getElementById('restrictedActionModal'));
+        restrictedModal.show();
+        return;
+    }
+
     const submitBtn = e.target.querySelector('button[type="submit"]');
     const originalBtnText = submitBtn.innerHTML;
     submitBtn.disabled = true;

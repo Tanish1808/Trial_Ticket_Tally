@@ -347,6 +347,30 @@
     </div>
   </div>
 
+  <!-- Restricted Action Modal -->
+  <div class="modal fade" id="restrictedActionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center p-4 border-0 shadow-lg" style="border-radius: 1rem;">
+        <div class="modal-body">
+          <div class="mb-4"
+            style="width: 60px; height: 60px; background: rgba(220, 53, 69, 0.1); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto; color: var(--danger);">
+            <i class="fas fa-lock fa-2x"></i>
+          </div>
+          <h4 class="mb-3 fw-bold">Demo Mode Restricted</h4>
+          <p class="text-muted mb-4">
+            Ticket creation is disabled in this <strong>Read-Only Demo</strong>. <br>
+            Please feel free to explore existing tickets!
+          </p>
+          <div class="d-grid gap-2">
+            <button class="btn btn-primary-custom" data-bs-dismiss="modal">
+              Understood
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal fade" id="noNotificationsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
       <div class="modal-content text-center p-4 border-0 shadow-sm" style="border-radius: 0.75rem;">

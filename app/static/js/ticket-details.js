@@ -129,6 +129,13 @@ async function loadTicketDetails() {
 
 // Withdraw Ticket
 async function withdrawTicket() {
+    // Check for Demo Mode
+    if (document.body.classList.contains('demo-mode')) {
+        const restrictedModal = new bootstrap.Modal(document.getElementById('restrictedActionModal'));
+        restrictedModal.show();
+        return;
+    }
+
     if (!confirm('Are you sure you want to withdraw this ticket? This action cannot be undone.')) {
         return;
     }
@@ -419,6 +426,13 @@ window.showReplyForm = function (commentId) {
 
 // Submit Reply
 window.submitReply = async function (parentId) {
+    // Check for Demo Mode
+    if (document.body.classList.contains('demo-mode')) {
+        const restrictedModal = new bootstrap.Modal(document.getElementById('restrictedActionModal'));
+        restrictedModal.show();
+        return;
+    }
+
     const text = document.getElementById(`reply-text-${parentId}`).value.trim();
     if (!text) return;
 
@@ -478,6 +492,13 @@ function renderRecentActivity(ticket) {
 // Handle add comment
 async function handleAddComment(e) {
     e.preventDefault();
+
+    // Check for Demo Mode
+    if (document.body.classList.contains('demo-mode')) {
+        const restrictedModal = new bootstrap.Modal(document.getElementById('restrictedActionModal'));
+        restrictedModal.show();
+        return;
+    }
 
     const commentText = document.getElementById('commentText').value.trim();
     if (!commentText) return;
