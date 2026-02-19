@@ -235,16 +235,6 @@ class TicketService:
             ticket.updated_at = datetime.utcnow()
             
             # Add History - System Action
-            # We use a system ID or None for changed_by_id if allow nullable, 
-            # but existing history usually requires a user. 
-            # If changed_by_id is not nullable, we might need a system user or handle it.
-            # Checking TicketStatusHistory model... assume changed_by_id is nullable or we have a system user.
-            # If not nullable, we might need to skip history or assign to an admin.
-            # Let's check the model definition in memory or just assume we can pass None if nullable.
-            # Looking at previous view_file of TicketStatusHistory... I didn't view it. 
-            # I'll optimistically assume it handles it or I'll pick the creator as the 'closer' or just not add history if strict.
-            # Better: let's try to add history with None (System).
-            
             history = TicketStatusHistory(
                 ticket_id=ticket.id,
                 old_status=old_status,
@@ -256,3 +246,4 @@ class TicketService:
             
         db.session.commit()
         print(f"Auto-closed {count} resolved tickets.")
+

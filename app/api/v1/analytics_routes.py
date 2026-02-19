@@ -97,8 +97,58 @@ def get_dashboard_stats():
             "dates": dates,
             "created": created_trend,
             "resolved": resolved_trend
-        }
+        },
+        "sla_compliance": get_sla_stats()
     })
+
+def get_sla_stats():
+    from app.models.ticket import Ticket
+    from app.core.constants import TicketPriority, TicketStatus
+    from datetime import datetime, timedelta
+    
+    # Define SLA hours
+    sla_hours = {
+        TicketPriority.CRITICAL: 4,
+        TicketPriority.HIGH: 8,
+        TicketPriority.MEDIUM: 24,
+        TicketPriority.LOW: 48
+    }
+    
+    tickets = Ticket.query.filter(Ticket.is_demo == False).all()
+    
+    met = 0
+    missed = 0
+    pending = 0
+    
+    now = datetime.utcnow()
+    
+    for t in tickets:
+        # Calculate deadline
+        hours = sla_hours.get(t.priority, 24)
+        deadline = t.created_at + timedelta(hours=hours)
+        
+        if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED]:
+            # Use updated_at as proxy for resolution time
+            resolution_time = t.updated_at
+            if resolution_time <= deadline:
+                met += 1
+            else:
+                missed += 1
+        elif t.status == TicketStatus.WITHDRAWN:
+            continue # Ignore withdrawn
+        else:
+            # Active tickets
+            if now > deadline:
+                missed += 1 # Active breach
+            else:
+                pending += 1 # On track
+                
+    total_processed = met + missed
+    return {
+        "met": met,
+        "missed": missed,
+        "pending": pending
+    }
 
 @analytics_bp.route('/it-dashboard', methods=['GET'])
 @token_required

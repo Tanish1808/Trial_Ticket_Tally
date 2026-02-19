@@ -256,6 +256,8 @@ function updateCharts(data) {
         }
     }
 
+    // SLA Chart - Compliance
+
 
 }
 
@@ -716,7 +718,7 @@ function showChangePriorityModal(ticketId) {
     // Check if ticket status restricts changes
     const restrictedStatuses = ['Resolved', 'Closed', 'Withdrawn'];
     if (restrictedStatuses.includes(ticket.status)) {
-        document.getElementById('statusInfoMessage').textContent = `This ticket is ${ticket.status}.Priority cannot be changed.`;
+        document.getElementById('statusInfoMessage').textContent = `This ticket is ${ticket.status}. Priority cannot be changed.`;
         const infoEl = document.getElementById('statusInfoModal');
         const infoModal = bootstrap.Modal.getInstance(infoEl) || new bootstrap.Modal(infoEl);
         infoModal.show();

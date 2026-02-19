@@ -27,7 +27,6 @@ def create_app():
     migrate.init_app(app, db)
     CORS(app)
     socketio.init_app(app)
-    
     from app.core.extensions import scheduler
     scheduler.init_app(app)
     scheduler.start()
@@ -39,8 +38,6 @@ def create_app():
     def auto_close_job():
         with app.app_context():
             TicketService.auto_close_resolved_tickets()
-
-    # Register Blueprints
     from app.api.v1.auth_routes import auth_bp
     from app.api.v1.ticket_routes import ticket_bp
     from app.api.v1.user_routes import user_bp
