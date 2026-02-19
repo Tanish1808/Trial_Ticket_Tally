@@ -89,6 +89,10 @@ def get_all_users():
     
     query = User.query
     
+    # Exclude Demo User
+    from app.core.config import Config
+    query = query.filter(User.email != Config.DEMO_EMAIL)
+    
     if search_query:
         search = f"%{search_query}%"
         # Search by name OR email
@@ -120,7 +124,7 @@ def get_all_users():
         "department": u.department,
         "team": u.team.name if u.team else None,
         "tickets_raised": len(u.created_tickets),
-        "tickets_resolved": sum(1 for t in u.assigned_tickets if t.status == TicketStatus.RESOLVED),
+        "tickets_resolved": sum(1 for t in u.assigned_tickets if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED]),
         "is_active": u.is_active,
         "created_at": u.created_at.isoformat() if u.created_at else None
     } for u in users])
