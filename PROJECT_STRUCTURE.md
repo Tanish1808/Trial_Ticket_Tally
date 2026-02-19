@@ -1,7 +1,7 @@
 # File Tree: Trial_Ticket_Tally_01
 
-**Generated:** 2/10/2026, 3:22:45 AM
-**Root Path:** `d:\Trial_Ticket_Tally_01`
+Generated: 2/19/2026
+Root Path: `d:\Trial_Ticket_Tally_01`
 
 ```
 ├── app
@@ -115,27 +115,11 @@
 ├── tests
 │   ├── test_project_restriction.py
 │   └── test_team_assignment.py
+├── .env
 ├── .gitignore
-├── PROJECT_EXPLANATION.txt
+├── PROJECT_STRUCTURE.md
 ├── README.md
-├── check_users.py
-├── create_admin.py
-├── debug_users.py
-├── delete_test_users.py
-├── dump.txt
-├── dump_users.py
-├── fix_assignments.py
-├── fix_db.py
-├── migrate_comments.py
 ├── requirements.txt
-├── reset_db.py
-├── run.py
-├── seed_teams.py
-├── simulate_users.py
-├── simulate_workflow.py
-├── test_api.py
-├── test_api_v2.py
-├── update_db.py
-└── user_list.txt
+└── run.py
 ```
 
