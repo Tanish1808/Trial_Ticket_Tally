@@ -27,6 +27,18 @@ def create_app():
     migrate.init_app(app, db)
     CORS(app)
     socketio.init_app(app)
+    
+    from app.core.extensions import scheduler
+    scheduler.init_app(app)
+    scheduler.start()
+    
+    # Register Scheduled Jobs
+    from app.services.ticket_service import TicketService
+    
+    @scheduler.task('interval', id='auto_close_tickets', days=1, misfire_grace_time=900)
+    def auto_close_job():
+        with app.app_context():
+            TicketService.auto_close_resolved_tickets()
 
     # Register Blueprints
     from app.api.v1.auth_routes import auth_bp

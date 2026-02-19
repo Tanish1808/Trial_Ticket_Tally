@@ -11,7 +11,7 @@ class TicketStatusHistory(db.Model):
     old_status = db.Column(db.Enum(TicketStatus), nullable=True)
     new_status = db.Column(db.Enum(TicketStatus), nullable=False)
     
-    changed_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    changed_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     changed_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
