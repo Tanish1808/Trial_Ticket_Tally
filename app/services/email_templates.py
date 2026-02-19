@@ -328,6 +328,105 @@ def get_contact_form_email(name, email, subject, message):
                 &copy; 2026 Ticket Tally. All rights reserved.
             </div>
         </div>
+    </html>
+    """
+
+def get_project_created_email(name, project_name, start_date, deadline):
+    base_url = Config.BASE_URL
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Project Created</title>
+        {get_base_style()}
+    </head>
+    <body>
+        <div class="container">
+            <div class="header" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+                <h1>Project Created Successfully</h1>
+            </div>
+            <div class="content">
+                <p>Hello {name},</p>
+                <p>You have successfully created a new project. Here are the details:</p>
+                
+                <div class="info-box" style="border-left-color: #6366f1;">
+                    <div style="margin-bottom: 8px;">
+                        <span class="credential-label">Project Name:</span>
+                        <span style="font-size: 16px; font-weight: bold;">{project_name}</span>
+                    </div>
+                    <div style="margin-bottom: 5px;">
+                        <span class="credential-label">Start Date:</span>
+                        <span>{start_date}</span>
+                    </div>
+                    <div>
+                        <span class="credential-label">Deadline:</span>
+                        <span>{deadline}</span>
+                    </div>
+                </div>
+
+                <p>You can now add tasks and track progress from your dashboard.</p>
+                
+                <div style="text-align: center;">
+                    <a href="{base_url}/dashboard" class="button">View Project</a>
+                </div>
+                
+                <p>Best regards,<br>Ticket Tally System</p>
+            </div>
+            <div class="footer">
+                &copy; 2026 Ticket Tally. All rights reserved.
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+def get_project_assignment_email(name, project_name, role, start_date, deadline):
+    base_url = Config.BASE_URL
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>New Project Assignment</title>
+        {get_base_style()}
+    </head>
+    <body>
+        <div class="container">
+            <div class="header" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                <h1>New Project Assignment</h1>
+            </div>
+            <div class="content">
+                <p>Hello {name},</p>
+                <p>You have been assigned to a new project: <strong>{project_name}</strong>.</p>
+                
+                <div class="info-box" style="border-left-color: #8b5cf6;">
+                    <div style="margin-bottom: 8px;">
+                        <span class="credential-label">Project:</span>
+                        <span style="font-size: 16px; font-weight: bold;">{project_name}</span>
+                    </div>
+                    <div style="margin-bottom: 5px;">
+                        <span class="credential-label">Your Role:</span>
+                        <span>{role}</span>
+                    </div>
+                    <div>
+                        <span class="credential-label">Timeline:</span>
+                        <span>{start_date} - {deadline}</span>
+                    </div>
+                </div>
+
+                <p>Please log in to review the project details and your tasks.</p>
+                
+                <div style="text-align: center;">
+                    <a href="{base_url}/dashboard" class="button" style="background-color: #8b5cf6;">View Assignment</a>
+                </div>
+                
+                <p>Best regards,<br>Ticket Tally Admin</p>
+            </div>
+            <div class="footer">
+                &copy; 2026 Ticket Tally. All rights reserved.
+            </div>
+        </div>
     </body>
     </html>
     """

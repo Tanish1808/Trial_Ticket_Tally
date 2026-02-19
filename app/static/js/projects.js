@@ -35,12 +35,164 @@ function setupEventListeners() {
     nextMonth.setMonth(nextMonth.getMonth() + 1);
     document.getElementById('projectDeadline').value = nextMonth.toISOString().split('T')[0];
 
-    // [REMOVED] Team Autocomplete Setup
-    // setupTeamAutocomplete();
+    setupTeamAutocomplete();
 }
 
-// [REMOVED] Team Autocomplete Component - Reverted to simple email input as per user request
+// Global Team Members State
+let currentTeamMembers = [];
 
+function setupTeamAutocomplete() {
+    const input = document.getElementById('teamInput');
+    const suggestionsList = document.getElementById('teamSuggestions');
+    let debounceTimer;
+
+    // Handle Input Typing
+    input.addEventListener('input', function () {
+        const query = this.value.trim();
+
+        clearTimeout(debounceTimer);
+
+        if (query.length < 2) {
+            suggestionsList.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(async () => {
+            try {
+                const response = await fetch(`/api/v1/users?search=${encodeURIComponent(query)}&role=employee`, {
+                    headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+                });
+
+                if (response.ok) {
+                    const users = await response.json();
+                    renderSuggestions(users);
+                }
+            } catch (e) {
+                console.error("Search error", e);
+            }
+        }, 300); // 300ms debounce
+    });
+
+    // Handle Enter Key (Add Email Directly)
+    input.addEventListener('keydown', async function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const email = this.value.trim();
+            if (email) {
+                // Check if valid user first
+                await validateAndAddUser(email);
+            }
+        }
+    });
+
+    // Hide suggestions on click outside
+    document.addEventListener('click', function (e) {
+        if (!input.contains(e.target) && !suggestionsList.contains(e.target)) {
+            suggestionsList.style.display = 'none';
+        }
+    });
+}
+
+function renderSuggestions(users) {
+    const list = document.getElementById('teamSuggestions');
+    list.innerHTML = '';
+
+    if (users.length === 0) {
+        list.style.display = 'none';
+        return;
+    }
+
+    users.forEach(user => {
+        // Don't show already added members
+        if (currentTeamMembers.some(m => m.email === user.email)) return;
+
+        const li = document.createElement('li');
+        li.className = 'list-group-item list-group-item-action curspr-pointer';
+        li.innerHTML = `
+            <div class="d-flex align-items-center">
+                <div class="member-avatar me-2" style="width: 24px; height: 24px; font-size: 10px;">
+                    ${user.full_name.split(' ').map(n => n[0]).join('')}
+                </div>
+                <div>
+                    <div>${user.full_name}</div>
+                    <small class="text-muted">${user.email}</small>
+                </div>
+            </div>
+        `;
+        li.onclick = () => {
+            addTeamMember(user);
+            document.getElementById('teamInput').value = '';
+            list.style.display = 'none';
+        };
+        list.appendChild(li);
+    });
+
+    list.style.display = users.length > 0 ? 'block' : 'none';
+}
+
+async function validateAndAddUser(email) {
+    // 1. Check if already added
+    if (currentTeamMembers.some(m => m.email.toLowerCase() === email.toLowerCase())) {
+        document.getElementById('teamInput').value = ''; // Clear duplicate
+        return;
+    }
+
+    try {
+        // 2. Check API
+        const response = await fetch(`/api/v1/users?search=${encodeURIComponent(email)}`, {
+            headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+        });
+
+        if (response.ok) {
+            const users = await response.json();
+            const exactMatch = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+            if (exactMatch) {
+                addTeamMember(exactMatch);
+                document.getElementById('teamInput').value = '';
+            } else {
+                showUserNotFound(email);
+            }
+        }
+    } catch (e) {
+        console.error("Validation error", e);
+    }
+}
+
+function showUserNotFound(email) {
+    document.getElementById('notFoundEmail').textContent = email;
+    const modal = new bootstrap.Modal(document.getElementById('userNotFoundModal'));
+    modal.show();
+}
+
+function addTeamMember(user) {
+    currentTeamMembers.push({
+        email: user.email,
+        name: user.full_name || user.email // Fallback
+    });
+    renderChips();
+    // Update hidden input for legacy compliance if needed (though we use currentTeamMembers in submit)
+    document.getElementById('projectTeam').value = JSON.stringify(currentTeamMembers);
+}
+
+function removeTeamMember(email) {
+    currentTeamMembers = currentTeamMembers.filter(m => m.email !== email);
+    renderChips();
+    document.getElementById('projectTeam').value = JSON.stringify(currentTeamMembers);
+}
+
+function renderChips() {
+    const container = document.getElementById('teamChips');
+    container.innerHTML = currentTeamMembers.map(member => `
+        <span class="badge bg-light text-dark border d-flex align-items-center gap-2 p-2">
+            <div class="member-avatar" style="width: 20px; height: 20px; font-size: 8px;">
+                ${member.name ? member.name.split(' ').map(n => n[0]).join('') : '?'}
+            </div>
+            ${member.name}
+            <i class="fas fa-times text-muted cursor-pointer" onclick="removeTeamMember('${member.email}')"></i>
+        </span>
+    `).join('');
+}
 
 // Initialize page
 function initializeProjectsPage() {
@@ -257,6 +409,9 @@ function showAddProjectModal() {
     const form = document.getElementById('addProjectForm');
     form.reset();
     form.onsubmit = handleAddProject; // Reset submit handler in case it was changed by edit
+    currentTeamMembers = []; // Reset team
+    renderChips(); // Clear chips
+
     document.querySelector('#addProjectModal .modal-title').innerHTML = '<i class="fas fa-plus-circle me-2"></i>Create New Project';
 
     // Set Status Options for Create (Only Active & Planning)
@@ -285,32 +440,38 @@ function validateProjectDates(startDate, deadline) {
 async function handleAddProject(e) {
     e.preventDefault();
 
+    // Check for pending team input and Auto-Add
+    const teamInput = document.getElementById('teamInput');
+    if (teamInput && teamInput.value.trim().length > 0) {
+        const email = teamInput.value.trim();
+        await validateAndAddUser(email);
+
+        // If input is still there, it meant validation failed (modal showed)
+        if (teamInput.value.trim().length > 0) {
+            return; // Stop submission
+        }
+    }
+
+    // Prevent Double Submission
+    const submitBtn = document.querySelector('#addProjectForm button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+
     const name = document.getElementById('projectName').value;
     const description = document.getElementById('projectDescription').value;
     const status = document.getElementById('projectStatus').value;
     const priority = document.getElementById('projectPriority').value;
     const startDate = document.getElementById('projectStartDate').value;
     const deadline = document.getElementById('projectDeadline').value;
-    const teamEmails = document.getElementById('projectTeam').value;
+
+    // Use the chips array instead of parsing text
+    const team = currentTeamMembers;
 
     // Validate Dates
     if (!validateProjectDates(startDate, deadline)) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Create Project';
         return;
-    }
-
-    // Parse team members (Handling new object format)
-    let team = [];
-    if (teamEmails.startsWith('[')) {
-        try {
-            team = JSON.parse(teamEmails);
-        } catch (e) { console.error("Error parsing team", e); }
-    } else {
-        // Fallback for old comma-separated behavior or manual typing
-        team = teamEmails
-            .split(',')
-            .map(email => email.trim())
-            .filter(email => email)
-            .map(email => ({ email: email })); // Backend will try both email/name now
     }
 
     const projectData = {
@@ -346,6 +507,9 @@ async function handleAddProject(e) {
     } catch (e) {
         console.error("Error creating project", e);
         alert("Error creating project");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Create Project';
     }
 }
 
@@ -511,11 +675,18 @@ function editProject(projectId) {
             statusSelect.innerHTML = `<option value="Completed" selected>Completed</option>`;
             statusSelect.disabled = true;
         } else {
-            statusSelect.innerHTML = `
+            let options = `
             <option value="Active">Active</option>
             <option value="On Hold">On Hold</option>
             <option value="Completed">Completed</option>
             `;
+
+            // Allow keeping it in Planning if it is currently Planning
+            if (project.status === 'Planning') {
+                options = `<option value="Planning">Planning</option>` + options;
+            }
+
+            statusSelect.innerHTML = options;
             statusSelect.disabled = false;
         }
 
@@ -523,17 +694,14 @@ function editProject(projectId) {
         document.getElementById('projectPriority').value = project.priority;
         document.getElementById('projectStartDate').value = project.startDate || '';
         document.getElementById('projectDeadline').value = project.deadline || '';
-        // document.getElementById('projectTeam').value = project.team ? project.team.map(m => m.email).join(', ') : '';
 
-        // [REVERTED] Simple Team Population (Comma-separated emails)
-        const teamInput = document.getElementById('projectTeam');
-        if (teamInput) {
-            teamInput.value = project.team ? project.team.map(m => m.email).join(', ') : '';
-        }
+        // Populate Chips from Team
+        currentTeamMembers = project.team ? project.team.map(m => ({ email: m.email, name: m.name || m.email })) : [];
+        renderChips();
 
         // [NEW] Disable all fields if Completed
         const isCompleted = project.status === 'Completed';
-        const fieldsToDisable = ['projectName', 'projectDescription', 'projectPriority', 'projectStartDate', 'projectDeadline', 'projectTeam', 'projectStatus'];
+        const fieldsToDisable = ['projectName', 'projectDescription', 'projectPriority', 'projectStartDate', 'projectDeadline', 'projectStatus'];
         const submitBtn = document.querySelector('#addProjectForm button[type="submit"]');
 
         fieldsToDisable.forEach(id => {
@@ -552,6 +720,24 @@ function editProject(projectId) {
         form.onsubmit = async function (e) {
             e.preventDefault();
 
+            // Check for pending team input and Auto-Add
+            const teamInput = document.getElementById('teamInput');
+            if (teamInput && teamInput.value.trim().length > 0) {
+                const email = teamInput.value.trim();
+                await validateAndAddUser(email);
+
+                // If input is still there, it meant validation failed (modal showed)
+                if (teamInput.value.trim().length > 0) {
+                    return; // Stop submission
+                }
+            }
+
+            // Prevent Double Submission
+            const submitBtn = document.querySelector('#addProjectForm button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+
+
             const getFormData = () => {
                 const name = document.getElementById('projectName').value;
                 const description = document.getElementById('projectDescription').value;
@@ -559,17 +745,9 @@ function editProject(projectId) {
                 const priority = document.getElementById('projectPriority').value;
                 const startDate = document.getElementById('projectStartDate').value;
                 const deadline = document.getElementById('projectDeadline').value;
-                const teamEmails = document.getElementById('projectTeam').value;
 
-                // Parse team members (Handling new object format)
-                let team = [];
-                if (teamEmails.startsWith('[')) {
-                    try {
-                        team = JSON.parse(teamEmails);
-                    } catch (e) { console.error("Error parsing team", e); }
-                } else {
-                    team = teamEmails.split(',').map(email => email.trim()).filter(email => email).map(email => ({ email: email }));
-                }
+                // Use Chips
+                const team = currentTeamMembers;
 
                 return { name, description, status, priority, startDate, deadline, team };
             };
@@ -578,6 +756,8 @@ function editProject(projectId) {
 
             // Validate Dates
             if (!validateProjectDates(data.startDate, data.deadline)) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Project';
                 return;
             }
 
@@ -606,6 +786,9 @@ function editProject(projectId) {
                 } catch (e) {
                     console.error(e);
                     alert('Error updating project: ' + e.message);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Project';
                 }
             };
 

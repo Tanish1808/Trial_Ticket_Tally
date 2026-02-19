@@ -48,6 +48,48 @@ def create_project():
         db.session.add(new_project)
         db.session.commit()
         
+        # Send Email Notifications
+        try:
+            from app.services.email_service import EmailService
+            from app.services.email_templates import get_project_created_email, get_project_assignment_email
+            
+            # 1. Notify Admin (Creator)
+            admin_email_body = get_project_created_email(
+                name=g.user.full_name,
+                project_name=new_project.name,
+                start_date=new_project.start_date.strftime('%Y-%m-%d') if new_project.start_date else 'N/A',
+                deadline=new_project.deadline.strftime('%Y-%m-%d') if new_project.deadline else 'N/A'
+            )
+            
+            EmailService.send_email(
+                g.user.email,
+                f"Project Created - {new_project.name} 🚀",
+                admin_email_body
+            )
+            
+            # 2. Notify Assigned Team Members
+            for member in new_project.team:
+                # Skip if member is the creator (though usually they are different roles, just in case)
+                if member.id == g.user.id:
+                    continue
+                    
+                member_email_body = get_project_assignment_email(
+                    name=member.full_name,
+                    project_name=new_project.name,
+                    role="Team Member", # detailed role not in Many-to-Many, generic "Team Member"
+                    start_date=new_project.start_date.strftime('%Y-%m-%d') if new_project.start_date else 'N/A',
+                    deadline=new_project.deadline.strftime('%Y-%m-%d') if new_project.deadline else 'N/A'
+                )
+                
+                EmailService.send_email(
+                    member.email,
+                    f"New Project Assignment - {new_project.name} 📋",
+                    member_email_body
+                )
+                
+        except Exception as e:
+            print(f"Failed to send project emails: {e}")
+        
         return jsonify(new_project.to_dict()), 201
         
     except KeyError as e:
@@ -100,6 +142,9 @@ def update_project(project_id):
         
     # Handle Team Update
     if 'team' in data:
+        # 1. Capture existing members specific IDs
+        existing_member_ids = {u.id for u in project.team}
+        
         project.team = [] # Clear existing
         for member_data in data['team']:
             identifier = member_data.get('email') or member_data.get('name')
@@ -112,8 +157,35 @@ def update_project(project_id):
                 
                 if user:
                     project.team.append(user)
-    
-    db.session.commit()
+        
+        db.session.commit()
+
+        # 2. Identify and Notify New Members
+        try:
+            from app.services.email_service import EmailService
+            from app.services.email_templates import get_project_assignment_email
+            
+            for member in project.team:
+                if member.id not in existing_member_ids and member.id != g.user.id:
+                    member_email_body = get_project_assignment_email(
+                        name=member.full_name,
+                        project_name=project.name,
+                        role="Team Member",
+                        start_date=project.start_date.strftime('%Y-%m-%d') if project.start_date else 'N/A',
+                        deadline=project.deadline.strftime('%Y-%m-%d') if project.deadline else 'N/A'
+                    )
+                    
+                    EmailService.send_email(
+                        member.email,
+                        f"New Project Assignment - {project.name} 📋",
+                        member_email_body
+                    )
+        except Exception as e:
+            print(f"Failed to send assignment emails during update: {e}")
+            
+    else:
+        db.session.commit()
+
     return jsonify(project.to_dict())
 
 @project_bp.route('/<int:project_id>', methods=['DELETE'])
