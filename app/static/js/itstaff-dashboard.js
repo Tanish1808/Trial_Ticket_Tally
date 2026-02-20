@@ -401,8 +401,8 @@ function filterTickets(status) {
     let viewMode = 'all';
 
     if (status === 'all') {
-        // Show all for team
-        filtered = cachedTickets;
+        // Show all for team (excluding Closed by default)
+        filtered = cachedTickets.filter(t => t.status !== 'Closed');
     } else if (status === 'my-assignments') {
         viewMode = 'my-assignments';
         // Strict filtering for "My Assignments"
@@ -435,7 +435,7 @@ function handleSearch(e) {
         String(t.id).includes(term) ||
         (t.title && t.title.toLowerCase().includes(term)) ||
         (t.createdByName && t.createdByName.toLowerCase().includes(term))
-    );
+    ).filter(t => t.status !== 'Closed');
     displayTickets(filtered);
 }
 

@@ -219,7 +219,7 @@ function filterTickets(status) {
     let filtered;
 
     if (status === 'all') {
-        filtered = cachedTickets;
+        filtered = cachedTickets.filter(t => t.status !== 'Closed');
     } else {
         filtered = cachedTickets.filter(t => t.status === status);
     }
@@ -255,7 +255,7 @@ function handleSearch(e) {
             (ticket.priority && ticket.priority.toLowerCase().includes(searchTerm)) ||
             (ticket.status && ticket.status.toLowerCase().includes(searchTerm)) ||
             (ticket.assignedTo && ticket.assignedTo.toLowerCase().includes(searchTerm));
-    });
+    }).filter(t => t.status !== 'Closed');
 
     displayTickets(filtered);
 }

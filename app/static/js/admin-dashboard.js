@@ -337,9 +337,9 @@ async function loadAllTickets(filter = null) {
     // Helper: Verify "Show Closed" preference
     const showClosed = localStorage.getItem('show-closed') === 'true'; // Default false for "Show Closed" usually
     if (!showClosed && currentTicketFilter !== 'Closed') {
-        // Filter out closed tickets from "All" and other non-closed views
+        // Filter out closed and withdrawn tickets from "All" and other non-closed views
         if (currentTicketFilter === 'all') {
-            tickets = tickets.filter(t => t.status !== 'Closed');
+            tickets = tickets.filter(t => t.status !== 'Closed' && t.status !== 'Withdrawn');
         }
     }
 
@@ -794,6 +794,11 @@ function handleSearch(e) {
             });
         } else {
             tickets = allTickets.filter(t => t.status === currentTicketFilter);
+        }
+    } else {
+        const showClosed = localStorage.getItem('show-closed') === 'true';
+        if (!showClosed) {
+            tickets = tickets.filter(t => t.status !== 'Closed' && t.status !== 'Withdrawn');
         }
     }
 
