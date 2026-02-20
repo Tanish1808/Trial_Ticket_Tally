@@ -42,18 +42,20 @@
 
 ### ⚙️ Core Functionality
 *   **Triple-Role Access:** Dedicated modules for **Admin** (Control), **IT Staff** (Resolution), and **Employee** (Request).
-*   **Smart Lifecycle:** Automated assignment, SLA tracking, and resolution reporting.
-*   **Integrated Communications:** SMTP-driven email triggers with dynamic PDF report generation.
-*   **Safe-Concurrency:** Protection against race conditions when multiple staff approach the same ticket.
+*   **Smart Lifecycle:** Automated ticket assignment, claim system, SLA tracking, and resolution reporting.
+*   **Project Management:** Full CRUD operations for projects with team assignments, progress tracking, and deadline management.
+*   **Integrated Communications:** SMTP-driven email triggers with dynamic PDF report generation and in-app notifications.
+*   **Safe-Concurrency:** Protection against race conditions when multiple staff approach the same ticket (workload limits, claim system).
+*   **Comment & Timeline:** Full conversation history on tickets with status change tracking.
 
 ---
-
 
 ## 🏗️ System Architecture
 
 The project adheres to a clean, modular architecture, ensuring separation of concerns and effortless scalability.
 
-```mermaid
+```
+mermaid
 graph TD
     User((User)) -->|Auth/Requests| Flask[Flask Backend]
     Flask -->|Logic| Services[Service Layer]
@@ -68,29 +70,62 @@ graph TD
 
 ## 📂 Project Structure Map
 
-```text
+```
 Trial_Ticket_Tally_01/
 ├── app/                        # 📦 Core Application Bundle
 │   ├── api/v1/                 # 🚀 RESTful API Layer
-│   │   ├── admin_routes        # System & Performance metrics
-│   │   ├── ticket_routes       # Lifecycle & Comment logic
-│   │   └── user_routes         # Profile & Auth sync
+│   │   ├── admin_routes.py     # System & Performance metrics, message management
+│   │   ├── analytics_routes.py # Analytics and reporting endpoints
+│   │   ├── auth_routes.py      # Authentication, login, register, password reset
+│   │   ├── it_staff_routes.py # IT Staff specific operations
+│   │   ├── notification_routes.py # Notification handling
+│   │   ├── project_routes.py   # Project CRUD with team assignment
+│   │   ├── ticket_routes.py    # Ticket lifecycle, comments, PDF generation
+│   │   └── user_routes.py      # User profile management
 │   ├── core/                   # 🧠 System Backbone
-│   │   ├── database            # Engine & Session configuration
-│   │   └── constants           # Enums (Roles, Status, Priority)
+│   │   ├── config.py           # Application configuration & environment
+│   │   ├── constants.py        # Enums (UserRole, TicketStatus, TicketPriority, ProjectStatus, SLAStatus)
+│   │   ├── database.py         # SQLAlchemy engine & session setup
+│   │   └── extensions.py       # Flask extensions initialization
+│   ├── middleware/             # 🛡️ Request Processing
+│   │   └── auth_middleware.py  # JWT token validation & role-based access
 │   ├── models/                 # 💾 Persistent Data Models (ORM)
+│   │   ├── comment.py          # Ticket comments
+│   │   ├── message.py          # Contact form messages
+│   │   ├── notification.py     # In-app notifications
+│   │   ├── project.py          # Projects with team management
+│   │   ├── sla.py              # SLA definitions
+│   │   ├── team.py             # Team definitions
+│   │   ├── ticket.py           # Main ticket model
+│   │   ├── ticket_status_history.py # Status change tracking
+│   │   └── user.py             # User accounts with roles
+│   ├── schemas/                # 📝 Data Validation (Pydantic)
 │   ├── services/               # 🛠️ Decoupled Business Handlers
-│   │   ├── email_service       # Template-based SMTP management
-│   │   ├── pdf_service         # High-fidelity PDF reporting
-│   │   └── notification        # System-wide alert triggers
+│   │   ├── auth_service.py     # Authentication logic
+│   │   ├── email_service.py    # SMTP email sending
+│   │   ├── email_templates.py  # HTML email templates
+│   │   ├── notification_service.py # Push notifications
+│   │   ├── pdf_service.py      # PDF generation with ReportLab
+│   │   ├── sla_service.py      # SLA management
+│   │   ├── ticket_pdf_service.py # Ticket-specific PDF reports
+│   │   └── ticket_service.py   # Core ticket operations
 │   ├── static/                 # 🎨 UI Assets
-│   │   ├── css/                # main.css (Theme variables), dashboard.css
-│   │   └── js/                 # Component logic (admin-dashboard.js, theme.js)
-│   ├── templates/              # 🖼️ Presentation Layer (Jinja2)
+│   │   ├── css/                # Theme-aware styling (auth, dashboard, tickets, landing)
+│   │   └── js/                 # Client-side logic (theme, dashboards, notifications)
+│   ├── templates/              # 🖼️ Presentation Layer (Jinja2 HTML)
+│   ├── utils/                  # 🔧 Utility Functions
+│   │   ├── jwt.py              # JWT token handling
+│   │   ├── password.py         # Password hashing
+│   │   ├── pdf_generator.py   # PDF generation utilities
+│   │   ├── time_utils.py       # Date/time helpers
+│   │   └── token.py            # Token management
 │   ├── websocket/              # 📡 Real-time Push Handlers
+│   │   └── ticket_socket.py   # Socket.io event handlers
+│   ├── __init__.py            # App factory setup
 │   ├── main.py                 # Application Factory (create_app)
 │   └── web_routes.py           # Page View Controller
-├── migrations/                 # 📜 Versioned DB Schema Evolution
+├── migrations/                 # 📜 Versioned DB Schema Evolution (Alembic)
+├── tests/                      # 🧪 Unit Tests
 ├── instance/                   # 📁 Local Storage (SQLite)
 ├── run.py                      # ⚡ Entry Point (0.0.0.0:5000)
 ├── requirements.txt            # 📦 External Dependencies
@@ -117,13 +152,16 @@ Ticket-Tally provides a comprehensive REST API for managing IT service tickets. 
 
 ### Authentication Endpoints
 - `POST /api/v1/auth/login` - User authentication
-- `POST /api/v1/auth/register` - User registration
+- `POST /api/v1/auth/signup` - User registration
 - `POST /api/v1/auth/logout` - User logout
+- `POST /api/v1/auth/demo-login` - Demo user login (for testing)
+- `POST /api/v1/auth/forgot-password` - Initiate password reset
+- `POST /api/v1/auth/reset-password` - Complete password reset
 
 ### Ticket Management
 - `GET /api/v1/tickets` - List tickets (filtered by user role)
 - `POST /api/v1/tickets` - Create new ticket
-- `GET /api/v1/tickets/{id}` - Get ticket details
+- `GET /api/v1/tickets/{id}` - Get ticket details with comments and timeline
 - `PUT /api/v1/tickets/{id}` - Update ticket
 - `PATCH /api/v1/tickets/{id}` - Partially update ticket
 - `POST /api/v1/tickets/{id}/comments` - Add comment to ticket
@@ -131,6 +169,13 @@ Ticket-Tally provides a comprehensive REST API for managing IT service tickets. 
 - `POST /api/v1/tickets/{id}/withdraw` - Withdraw ticket (creator only)
 - `POST /api/v1/tickets/{id}/claim` - Claim ticket (IT staff)
 - `POST /api/v1/tickets/check-duplicate` - Check for duplicate tickets
+
+### Project Management
+- `GET /api/v1/projects` - List all projects
+- `POST /api/v1/projects` - Create new project (Admin only)
+- `GET /api/v1/projects/{id}` - Get project details
+- `PATCH /api/v1/projects/{id}` - Update project (Admin only)
+- `DELETE /api/v1/projects/{id}` - Delete project (Admin only)
 
 ### User Management
 - `GET /api/v1/users` - List users (admin only)
@@ -142,6 +187,8 @@ Ticket-Tally provides a comprehensive REST API for managing IT service tickets. 
 - `GET /api/v1/admin/users` - User management
 - `POST /api/v1/admin/users` - Create user
 - `DELETE /api/v1/admin/users/{id}` - Delete user
+- `GET /api/v1/admin/messages` - Get contact form messages
+- `PATCH /api/v1/admin/messages/{id}/read` - Mark message as read
 
 ### Notification Endpoints
 - `GET /api/v1/notifications` - Get user notifications
@@ -162,13 +209,15 @@ For detailed API specifications, visit `/api/docs` when the application is runni
 - Git (for cloning the repository)
 
 ### 1. Clone the Repository
-```bash
+```
+bash
 git clone https://github.com/your-username/Ticket-Tally.git
 cd Ticket-Tally
 ```
 
 ### 2. Environment Setup
-```bash
+```
+bash
 # Create virtual environment
 python -m venv venv
 
@@ -180,12 +229,14 @@ source venv/bin/activate
 ```
 
 ### 3. Install Dependencies
-```bash
+```
+bash
 pip install -r requirements.txt
 ```
 
 ### 4. Database Initialization
-```bash
+```
+bash
 # Run database migrations
 python run.py db upgrade
 
@@ -195,7 +246,8 @@ python create_admin.py
 ```
 
 ### 5. Run the Application
-```bash
+```
+bash
 python run.py
 ```
 
@@ -204,9 +256,13 @@ The application will be available at `http://localhost:5000`
 ### 6. Access the Application
 - **Web Interface:** Navigate to `http://localhost:5000`
 - **API Documentation:** Visit `http://localhost:5000/api/docs`
-- **Default Admin:** Use credentials created during setup
+
 > [!TIP]
-> **Default Admin Access:** Navigate to `/login` and use the admin credentials provided during installation.
+> **Demo Login:** Use the demo login feature to explore the application with pre-configured test accounts.
+> 
+> **Demo Credentials:** 
+> - Email: `demo@tickettally.com`
+> - Password: `demo_password_secure_2026`
 
 ---
 
@@ -243,16 +299,6 @@ We welcome contributions to Ticket-Tally! Here's how you can get involved:
 ## 📄 License
 
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
-
-### MIT License Summary
-- ✅ **Commercial Use:** You can use this software for commercial purposes
-- ✅ **Modification:** You can modify the software
-- ✅ **Distribution:** You can distribute the software
-- ✅ **Private Use:** You can use the software privately
-- ❌ **Liability:** The software is provided "as is" without warranty
-- ❌ **Trademark:** This license does not grant trademark rights
-
-For the full license text, please see the [LICENSE](LICENSE) file.
 
 ---
 
