@@ -443,6 +443,13 @@ function showUpdateModal(ticketId) {
     const ticket = cachedTickets.find(t => t.id == ticketId);
     if (!ticket) return;
 
+    // Check if already closed
+    if (ticket.status === 'Closed') {
+        const modal = getModal('alreadyClosedModal');
+        modal.show();
+        return;
+    }
+
     // Check if already resolved
     if (ticket.status === 'Resolved') {
         const modal = getModal('alreadyResolvedModal');

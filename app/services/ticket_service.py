@@ -81,6 +81,8 @@ class TicketService:
         old_status = ticket.status
         
         if data.status and data.status != ticket.status:
+            if ticket.status == TicketStatus.CLOSED:
+                raise ValueError("Cannot change the status of a closed ticket")
             ticket.status = data.status
             # Add History
             history = TicketStatusHistory(
