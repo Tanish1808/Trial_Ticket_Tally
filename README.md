@@ -20,7 +20,6 @@
 ## 📋 Table of Contents
 
 - [🚀 Vision & Key Features](#-vision--key-features)
-- [📸 Screenshots](#-screenshots)
 - [🏗️ System Architecture](#️-system-architecture)
 - [📂 Project Structure Map](#-project-structure-map)
 - [🛠️ Stack Analysis](#️-stack-analysis)
