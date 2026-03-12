@@ -12,6 +12,8 @@ if (!user || (user.role !== 'itstaff' && user.role !== 'it_staff')) {
 }
 
 let cachedTickets = [];
+let currentViewMode = 'list'; // 'list' or 'kanban'
+let currentFilter = 'all'; // 'all' or 'my-assignments' or specific status
 
 document.addEventListener('DOMContentLoaded', async function () {
     await initializeDashboard();
@@ -241,7 +243,289 @@ function displayTickets(tickets, viewMode = 'all') {
             </td>
         </tr>
     `}).join('');
+
+    // Also render kanban
+    if (currentViewMode === 'kanban') {
+        renderKanbanBoard();
+    }
 }
+
+/**
+ * View Toggling Logic
+ */
+function toggleViewMode(mode) {
+    currentViewMode = mode;
+    const listContainer = document.getElementById('listViewContainer');
+    const kanbanContainer = document.getElementById('kanbanViewContainer');
+    const listBtn = document.getElementById('listViewToggle');
+    const kanbanBtn = document.getElementById('kanbanViewToggle');
+
+    if (mode === 'kanban') {
+        listContainer.style.display = 'none';
+        kanbanContainer.style.display = 'block';
+        if (kanbanBtn) kanbanBtn.checked = true;
+        renderKanbanBoard();
+        initKanbanBoard();
+    } else {
+        listContainer.style.display = 'block';
+        kanbanContainer.style.display = 'none';
+        if (listBtn) listBtn.checked = true;
+    }
+    localStorage.setItem('itDashboardView', mode);
+}
+
+/**
+ * Kanban Board Logic
+ */
+function initKanbanBoard() {
+    const columns = ['kanban-list-open', 'kanban-list-inprogress', 'kanban-list-resolved'];
+    columns.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.sortable) {
+            el.sortable = new Sortable(el, {
+                group: 'tickets',
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                onEnd: handleKanbanDrop
+            });
+        }
+    });
+}
+
+function renderKanbanBoard() {
+    const openList = document.getElementById('kanban-list-open');
+    const progressList = document.getElementById('kanban-list-inprogress');
+    const resolvedList = document.getElementById('kanban-list-resolved');
+
+    if (!openList || !progressList || !resolvedList) return;
+
+    // Clear current lists
+    openList.innerHTML = '';
+    progressList.innerHTML = '';
+    resolvedList.innerHTML = '';
+
+    let counts = { 'Open': 0, 'In Progress': 0, 'Resolved': 0 };
+
+    cachedTickets.forEach(ticket => {
+        const card = createKanbanCard(ticket);
+        // Map 'New' to 'Open' for Kanban display if needed
+        let status = ticket.status === 'New' ? 'Open' : ticket.status;
+
+        if (status === 'Open') {
+            openList.appendChild(card);
+            counts['Open']++;
+        } else if (status === 'In Progress') {
+            progressList.appendChild(card);
+            counts['In Progress']++;
+        } else if (status === 'Resolved') {
+            resolvedList.appendChild(card);
+            counts['Resolved']++;
+        }
+    });
+
+    // Update badges
+    const openCountEl = document.getElementById('kanban-count-open');
+    const inProgressCountEl = document.getElementById('kanban-count-inprogress');
+    const resolvedCountEl = document.getElementById('kanban-count-resolved');
+
+    if (openCountEl) openCountEl.textContent = counts['Open'];
+    if (inProgressCountEl) inProgressCountEl.textContent = counts['In Progress'];
+    if (resolvedCountEl) resolvedCountEl.textContent = counts['Resolved'];
+
+    // Handle column visibility for "My Assignments"
+    const openCol = document.getElementById('kanban-col-open');
+    if (openCol) {
+        if (currentFilter === 'my-assignments') {
+            openCol.style.display = 'none';
+            // Adjust other columns to fill space
+            document.querySelectorAll('.kanban-column').forEach(col => {
+                if (col.id !== 'kanban-col-open') col.style.flex = '1';
+            });
+        } else {
+            openCol.style.display = 'flex';
+            document.querySelectorAll('.kanban-column').forEach(col => {
+                col.style.flex = ''; // Reset to default
+            });
+        }
+    }
+}
+
+function createKanbanCard(ticket) {
+    const card = document.createElement('div');
+    card.className = 'kanban-card';
+    card.dataset.id = ticket.id;
+    // Map 'New' to 'Open' for Kanban display if needed
+    card.dataset.status = (ticket.status === 'New' || ticket.status === 'Open') ? 'Open' : ticket.status;
+
+    const initials = (ticket.createdByName || ticket.createdBy || 'U').split(' ').map(n => n[0]).join('').toUpperCase();
+    const priority = ticket.priority || 'Medium';
+    const category = ticket.category || 'General';
+    const createdAt = timeAgo(ticket.createdAt);
+
+    card.innerHTML = `
+        <div class="kanban-card-header">
+            <span class="kanban-ticket-id">#${ticket.id}</span>
+            <div class="priority-indicator">
+                <span class="priority-dot priority-${priority.toLowerCase()}-dot" title="${priority} Priority"></span>
+                <span class="priority-badge priority-${priority.toLowerCase()}">${priority}</span>
+            </div>
+        </div>
+        <div class="kanban-card-title">${ticket.subject || ticket.title}</div>
+        <div class="kanban-card-tags">
+            <span class="kanban-tag">${category}</span>
+        </div>
+        <div class="kanban-card-footer">
+            <div class="kanban-assignee">
+                <div class="kanban-avatar" title="Created by ${ticket.createdByName || ticket.createdBy}">${initials}</div>
+                <span class="kanban-due-date"><i class="far fa-clock"></i> ${createdAt}</span>
+            </div>
+        </div>
+    `;
+
+    card.onclick = () => window.location.href = `/ticket/${ticket.id}`;
+    return card;
+}
+
+function getPriorityColor(priority) {
+    switch (priority) {
+        case 'Critical': return 'danger';
+        case 'High': return 'warning';
+        case 'Medium': return 'info';
+        case 'Low': return 'success';
+        default: return 'secondary';
+    }
+}
+
+async function handleKanbanDrop(evt) {
+    const itemEl = evt.item;  // dragged HTMLElement
+    const ticketId = itemEl.dataset.id;
+    const oldStatus = itemEl.dataset.status;
+    const newColumnParams = evt.to.closest('.kanban-column');
+    const newStatus = newColumnParams ? newColumnParams.dataset.status : null;
+
+    if (!newStatus || oldStatus === newStatus) {
+        return; // No change
+    }
+
+    // Helper to show error modal and revert
+    const showKanbanError = (msg) => {
+        document.getElementById('kanbanErrorMessage').textContent = msg;
+        const modal = new bootstrap.Modal(document.getElementById('kanbanErrorModal'));
+        modal.show();
+        loadTickets(); // Revert board
+    };
+
+    // 1. Moving to In Progress (Claiming the ticket)
+    if (oldStatus === 'Open' && newStatus === 'In Progress') {
+        const ticket = cachedTickets.find(t => t.id == ticketId);
+        if (ticket && ticket.assignedToId) {
+            showKanbanError("This ticket is already approached by someone else.");
+            return;
+        }
+
+        // Show Confirmation Modal
+        const confirmModal = new bootstrap.Modal(document.getElementById('kanbanConfirmProgressModal'));
+
+        // Remove old event listeners if any (by replacing the clone)
+        const btnConfirm = document.getElementById('kanbanBtnConfirmProgress');
+        const newBtnConfirm = btnConfirm.cloneNode(true);
+        btnConfirm.parentNode.replaceChild(newBtnConfirm, btnConfirm);
+
+        newBtnConfirm.addEventListener('click', async () => {
+            confirmModal.hide();
+
+            try {
+                const token = getAuthToken();
+                const response = await fetch(`/api/v1/tickets/${ticketId}/claim`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    showToast('Ticket moved to In Progress', 'success');
+                    loadTickets();
+                } else {
+                    const data = await response.json();
+                    showKanbanError(data.error || "Failed to claim ticket.");
+                }
+            } catch (e) {
+                console.error(e);
+                showKanbanError("An error occurred while claiming the ticket.");
+            }
+        });
+
+        // Handle Cancel (revert)
+        document.getElementById('kanbanConfirmProgressModal').addEventListener('hidden.bs.modal', function onHide(e) {
+            loadTickets();
+            this.removeEventListener('hidden.bs.modal', onHide);
+        });
+
+        confirmModal.show();
+        return;
+    }
+
+    // 2. Moving to Resolved
+    if (newStatus === 'Resolved') {
+        if (oldStatus === 'Open') {
+            showKanbanError("Please approach the ticket (Move to In Progress) before resolving it.");
+            return;
+        }
+
+        const confirmModal = new bootstrap.Modal(document.getElementById('kanbanConfirmResolveModal'));
+
+        const btnConfirm = document.getElementById('kanbanBtnConfirmResolve');
+        const newBtnConfirm = btnConfirm.cloneNode(true);
+        btnConfirm.parentNode.replaceChild(newBtnConfirm, btnConfirm);
+
+        newBtnConfirm.addEventListener('click', async () => {
+            confirmModal.hide();
+
+            try {
+                const token = getAuthToken();
+                const response = await fetch(`/api/v1/tickets/${ticketId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status: 'Resolved' })
+                });
+
+                if (response.ok) {
+                    showToast('Ticket Resolved via Kanban!', 'success');
+                    await fetch(`/api/v1/tickets/${ticketId}/comments`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ text: "[System] Ticket resolved via Kanban board drag-and-drop." })
+                    });
+                    loadTickets();
+                } else {
+                    showToast('Failed to resolve ticket', 'error');
+                    loadTickets(); // Revert
+                }
+            } catch (e) {
+                console.error(e);
+                loadTickets(); // Revert
+            }
+        });
+
+        document.getElementById('kanbanConfirmResolveModal').addEventListener('hidden.bs.modal', function onHide(e) {
+            loadTickets();
+            this.removeEventListener('hidden.bs.modal', onHide);
+        });
+
+        confirmModal.show();
+        return;
+    }
+
+    // 3. Prevent backwards or invalid moves
+    showKanbanError(`Moving from ${oldStatus} to ${newStatus} directly on the board is not allowed.`);
+}
+
+
 
 // Helper to safely get or create modal instance
 function getModal(id) {
@@ -398,6 +682,7 @@ async function confirmApproachAction() {
 function filterTickets(status) {
     const user = getCurrentUser();
     let filtered;
+    currentFilter = status;
     let viewMode = 'all';
 
     if (status === 'all') {
@@ -420,6 +705,21 @@ function filterTickets(status) {
 
     // Pass viewMode to displayTickets
     displayTickets(filtered, viewMode);
+
+    // Hide Kanban toggle for specific statuses
+    const toggleContainer = document.getElementById('viewToggleContainer');
+    if (toggleContainer) {
+        const lowerStatus = status.toLowerCase();
+        if (lowerStatus === 'in progress' || lowerStatus === 'resolved') {
+            toggleContainer.style.display = 'none';
+            // Force List view if we were in Kanban mode but it's now forbidden
+            if (currentViewMode === 'kanban') {
+                toggleViewMode('list');
+            }
+        } else {
+            toggleContainer.style.display = 'flex';
+        }
+    }
 
     if (window.event && window.event.target) {
         document.querySelectorAll('.nav-link-item').forEach(link => link.classList.remove('active'));
@@ -450,20 +750,24 @@ function showUpdateModal(ticketId) {
         return;
     }
 
-    // Check if already resolved
-    if (ticket.status === 'Resolved') {
-        const modal = getModal('alreadyResolvedModal');
-        modal.show();
-        return;
-    }
+    // Check if resolved, if so, we might allow closing it
+    const isResolved = ticket.status === 'Resolved';
 
     document.getElementById('updateTicketId').value = ticketId;
     document.getElementById('updateTicketTitle').textContent = `Update ${formatTicketId(ticketId)}`;
 
-    // Strict requirement: Only show "Resolved" option
     const select = document.getElementById('updateStatus');
-    select.innerHTML = '<option value="Resolved">Resolved</option>';
-    select.value = 'Resolved';
+    if (isResolved) {
+        select.innerHTML = '<option value="Closed">Closed</option>';
+        select.value = 'Closed';
+    } else {
+        select.innerHTML = `
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+            <option value="Closed">Closed</option>
+        `;
+        select.value = ticket.status === 'Open' || ticket.status === 'New' ? 'In Progress' : ticket.status;
+    }
 
     const modal = getModal('updateTicketModal');
     modal.show();
@@ -539,7 +843,7 @@ function showToast(message, type = 'info') {
             display: flex;
             flex-direction: column;
             gap: 12px;
-        `;
+            `;
         document.body.appendChild(container);
     }
 
@@ -555,25 +859,25 @@ function showToast(message, type = 'info') {
     const style = colors[type] || colors.info;
 
     toast.style.cssText = `
-        background: ${style.bg};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        transform: translateX(120%);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        backdrop-filter: blur(8px);
-        min-width: 300px;
-    `;
+            background: ${style.bg};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            min-width: 300px;
+            `;
 
     toast.innerHTML = `
-        <i class="fas fa-${style.icon}"></i>
-        <span>${message}</span>
-    `;
+                <i class="fas fa-${style.icon}" ></i>
+                    <span>${message}</span>
+            `;
 
     container.appendChild(toast);
 

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ticket Board | Ticket-Tally</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <!-- SortableJS library for Drag and Drop -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+</head>
+
+<body>
+  <div class="dashboard-container">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="sidebar-brand">
+          <div class="brand-icon"><i class="fas fa-ticket-alt"></i></div>
+          <span class="brand-text">Ticket-Tally</span>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Main</div>
+        <ul class="nav flex-column">
+          <li class="nav-item" id="sidebar-dashboard-link">
+             <!-- Dynamically updated by JS based on role -->
+            <a href="/dashboard/it-staff" class="nav-link-item"><i class="fas fa-home"></i><span>Dashboard</span></a>
+          </li>
+          <li class="nav-item">
+            <a href="/ticket-board" class="nav-link-item active"><i class="fas fa-columns"></i><span>Ticket Board</span></a>
+          </li>
+        </ul>
+        <div class="nav-section-title">Settings</div>
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <a href="/profile" class="nav-link-item"><i class="fas fa-user-circle"></i><span>Profile</span></a>
+          </li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-profile">
+          <div class="user-avatar" id="userAvatar"></div>
+          <div class="user-info">
+            <p class="user-name" id="userName">Loading...</p>
+            <p class="user-role" id="userRole">...</p>
+          </div>
+          <button class="logout-btn" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <main class="main-content">
+      <header class="dashboard-header">
+        <div class="header-title-section">
+          <button class="sidebar-toggle" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1>Ticket Board</h1>
+          <p class="header-subtitle">Manage and track your tickets across columns.</p>
+        </div>
+        <div class="header-actions">
+           <div class="dropdown d-inline-block me-2">
+            <button class="btn btn-icon-only position-relative" type="button" id="notificationDropdownToggle"
+              data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-bell"></i>
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                id="notificationBadge" style="display: none;">
+                0
+              </span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end p-0" id="notificationList" style="width: 320px; max-height: 400px; overflow-y: auto;">
+              <li class="dropdown-item text-muted text-center small p-3">Loading...</li>
+            </ul>
+          </div>
+          <button id="darkModeToggle" class="btn btn-icon-only">
+            <i class="fas fa-moon"></i>
+          </button>
+        </div>
+      </header>
+      <div class="dashboard-content kanban-awesome-theme">
+        <div class="kanban-board-container enhanced-container">
+          <div class="kanban-board advanced-layout">
+            
+            <!-- To Do Column -->
+            <div class="kanban-column kb-col-todo" id="kanban-col-todo" data-status="Open">
+              <div class="kanban-column-header">
+                <h3 class="kanban-column-title"><i class="fas fa-inbox me-2 text-primary"></i>To Do</h3>
+                <span class="kb-badge kb-badge-todo" id="kanban-count-todo">0</span>
+              </div>
+              <div class="kanban-column-body" id="kanban-list-todo">
+                <!-- Cards injected by JS -->
+              </div>
+            </div>
+
+            <!-- In Progress Column -->
+            <div class="kanban-column kb-col-inprogress" id="kanban-col-inprogress" data-status="In Progress">
+              <div class="kanban-column-header">
+                <h3 class="kanban-column-title"><i class="fas fa-bolt me-2 text-warning"></i>In Progress</h3>
+                <span class="kb-badge kb-badge-inprogress" id="kanban-count-inprogress">0</span>
+              </div>
+              <div class="kanban-column-body" id="kanban-list-inprogress">
+                <!-- Cards injected by JS -->
+              </div>
+            </div>
+
+            <!-- Done Column -->
+            <div class="kanban-column kb-col-done" id="kanban-col-done" data-status="Closed">
+              <div class="kanban-column-header">
+                <h3 class="kanban-column-title"><i class="fas fa-check-double me-2 text-success"></i>Done</h3>
+                <span class="kb-badge kb-badge-done" id="kanban-count-done">0</span>
+              </div>
+              <div class="kanban-column-body" id="kanban-list-done">
+                <!-- Cards injected by JS -->
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Error Modal -->
+  <div class="modal fade" id="kanbanErrorModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-danger">
+        <div class="modal-header border-0">
+          <h5 class="modal-title text-danger-emphasis"><i class="fas fa-exclamation-triangle me-2"></i>Invalid Move</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-danger-emphasis">
+          <p id="kanbanErrorMessage">Moving directly to this state is not allowed.</p>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/js/theme.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/notifications.js"></script>
+  <script src="/static/js/kanban-board.js?v=1"></script>
+</body>
+
+</html>

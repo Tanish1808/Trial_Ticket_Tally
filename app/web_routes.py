@@ -140,6 +140,10 @@ def itstaff_dashboard():
 def profile():
     return render_template('profile.html')
 
+@web_bp.route('/ticket-board')
+def ticket_board():
+    return render_template('kanban-board.html')
+
 @web_bp.route('/projects')
 def projects():
     return render_template('projects.html')

@@ -71,6 +71,15 @@ def create_app():
             return e
         return jsonify({"error": str(e)}), 500
 
+    # Trigger once on startup to process existing old tickets
+    # Doing this at the very end ensures all models and blueprints are loaded
+    with app.app_context():
+        try:
+            from app.services.ticket_service import TicketService
+            print("Pre-starting auto-close job on application startup...")
+            TicketService.auto_close_resolved_tickets()
+        except Exception as e:
+            print(f"Failed to run startup auto-close: {e}")
 
     return app
 

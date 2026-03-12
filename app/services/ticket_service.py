@@ -222,30 +222,39 @@ class TicketService:
         from app.core.database import db
         from app.models.ticket_status_history import TicketStatusHistory
 
+        print(f"[{datetime.utcnow()}] Starting auto-close check for Resolved tickets (7 days cutoff)...")
         cutoff_date = datetime.utcnow() - timedelta(days=7)
         
-        # scalability note: for very large datasets, this should be done in batches
+        # Batch processing recommended for large datasets
         resolved_tickets = Ticket.query.filter(
-            Ticket.status == TicketStatus.RESOLVED,
-            Ticket.updated_at <= cutoff_date
+            Ticket.status == TicketStatus.RESOLVED
         ).all()
         
+        print(f"Found {len(resolved_tickets)} tickets in Resolved status.")
         count = 0
+        now = datetime.utcnow()
         for ticket in resolved_tickets:
-            old_status = ticket.status
-            ticket.status = TicketStatus.CLOSED
-            ticket.updated_at = datetime.utcnow()
+            # Use updated_at if available, otherwise createdAt
+            last_activity = ticket.updated_at if ticket.updated_at else ticket.created_at
             
-            # Add History - System Action
-            history = TicketStatusHistory(
-                ticket_id=ticket.id,
-                old_status=old_status,
-                new_status=TicketStatus.CLOSED,
-                changed_by_id=None # System
-            )
-            db.session.add(history)
-            count += 1
+            if last_activity <= cutoff_date:
+                print(f"Auto-closing Ticket #{ticket.id} (Last activity: {last_activity})")
+                old_status = ticket.status
+                ticket.status = TicketStatus.CLOSED
+                ticket.updated_at = now
+                
+                # Add History - System Action
+                history = TicketStatusHistory(
+                    ticket_id=ticket.id,
+                    old_status=old_status,
+                    new_status=TicketStatus.CLOSED,
+                    changed_by_id=None # System
+                )
+                db.session.add(history)
+                count += 1
+            else:
+                print(f"Skipping Ticket #{ticket.id} - too recent ({last_activity})")
             
         db.session.commit()
-        print(f"Auto-closed {count} resolved tickets.")
+        print(f"Auto-close task finished. Closed {count} tickets.")
 
