@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ticket_tally_app
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount named volume to /app/instance where SQLite DB will reside
+      - ticket_tally_data:/app/instance
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  ticket_tally_data:
+    name: ticket_tally_data
