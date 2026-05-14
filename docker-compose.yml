@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:15-alpine
+    container_name: ticket_tally_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ticket_tally_user
+      POSTGRES_PASSWORD: ticket_tally_password
+      POSTGRES_DB: ticket_tally
+    volumes:
+      - ticket_tally_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticket_tally_user -d ticket_tally"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     build:
       context: .
@@ -9,11 +25,15 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      # Mount named volume to /app/instance where SQLite DB will reside
       - ticket_tally_data:/app/instance
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=postgresql://ticket_tally_user:ticket_tally_password@db:5432/ticket_tally
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/"]
       interval: 30s
@@ -21,6 +41,20 @@ services:
       retries: 3
       start_period: 10s
 
+  nginx:
+    image: nginx:alpine
+    container_name: ticket_tally_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./app/static:/usr/share/nginx/html/static:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+
 volumes:
   ticket_tally_data:
     name: ticket_tally_data
+  ticket_tally_pg_data:
+    name: ticket_tally_pg_data

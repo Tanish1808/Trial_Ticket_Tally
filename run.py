@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 import sys
 print(f"DEBUG: Python Executable: {sys.executable}")
 print(f"DEBUG: Python Path: {sys.path}")

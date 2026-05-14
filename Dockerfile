@@ -48,6 +48,10 @@ COPY --from=builder /opt/venv /opt/venv
 # Copy the rest of the application code
 COPY . .
 
+# Copy the entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Ensure the instance directory exists for SQLite and has the correct permissions
 RUN mkdir -p /app/instance && chown -R appuser:appuser /app
 
@@ -61,5 +65,7 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:5000/ || exit 1
 
-# Start the application using Gunicorn with 4 workers
-CMD ["gunicorn", "--workers=4", "--bind=0.0.0.0:5000", "run:app"]
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+# Start the application using Gunicorn with 1 eventlet worker
+CMD ["gunicorn", "--worker-class", "eventlet", "--workers=1", "--bind=0.0.0.0:5000", "run:app"]
