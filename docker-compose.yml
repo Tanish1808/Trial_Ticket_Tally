@@ -17,6 +17,20 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: ticket_tally_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ticket_tally_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     build:
       context: .
@@ -33,6 +47,8 @@ services:
     restart: unless-stopped
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/"]
@@ -58,3 +74,5 @@ volumes:
     name: ticket_tally_data
   ticket_tally_pg_data:
     name: ticket_tally_pg_data
+  ticket_tally_redis_data:
+    name: ticket_tally_redis_data
