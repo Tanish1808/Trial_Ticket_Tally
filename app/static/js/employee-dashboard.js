@@ -130,7 +130,8 @@ async function getTickets() {
             }
         });
         if (response.ok) {
-            return await response.json();
+            let data = await response.json();
+            return data.items || data;
         }
     } catch (e) {
         console.error("Failed to fetch tickets", e);

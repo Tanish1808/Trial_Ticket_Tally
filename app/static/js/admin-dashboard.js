@@ -124,7 +124,8 @@ async function fetchTickets() {
             headers: { 'Authorization': `Bearer ${getAuthToken()}` }
         });
         if (response.ok) {
-            allTicketsCache = await response.json();
+            let data = await response.json();
+            allTicketsCache = data.items || data;
             return allTicketsCache;
         }
     } catch (e) {

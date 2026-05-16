@@ -68,9 +68,14 @@ async function getTickets() {
     try {
         // Add timestamp to prevent caching
         const response = await fetch(`/api/v1/tickets?ts=${Date.now()}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
-        if (response.ok) return await response.json();
+        if (response.ok) {
+            let data = await response.json();
+            return data.items || data;
+        }
     } catch (e) {
         console.error("Failed to fetch tickets", e);
     }

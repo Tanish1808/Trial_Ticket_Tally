@@ -47,7 +47,8 @@ async function loadTickets() {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
-            cachedTickets = await response.json();
+            let data = await response.json();
+            cachedTickets = data.items || data;
             renderKanbanBoard();
         }
     } catch (e) {

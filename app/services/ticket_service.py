@@ -5,6 +5,9 @@ from app.models.ticket_status_history import TicketStatusHistory
 from app.schemas.ticket_schema import TicketCreate, TicketUpdate
 from app.services.notification_service import NotificationService
 from app.core.constants import TicketStatus
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TicketService:
     @staticmethod
@@ -63,7 +66,7 @@ class TicketService:
                 email_body
             )
         except Exception as e:
-            print(f"Failed to send ticket confirmation email: {e}")
+            logger.error(f"Failed to send ticket confirmation email: {e}")
         
         return new_ticket
 
@@ -115,7 +118,7 @@ class TicketService:
         return ticket
 
     @staticmethod
-    def get_tickets(user):
+    def get_tickets(user, page=1, per_page=20):
         from app.core.constants import UserRole
         from app.core.config import Config
         
@@ -133,8 +136,11 @@ class TicketService:
         else:
             query = query.filter_by(is_demo=False)
         
+        # Add a default sort (newest first) for consistent pagination
+        query = query.order_by(Ticket.created_at.desc())
+        
         if user.role == UserRole.EMPLOYEE:
-             return query.filter_by(created_by_id=user.id).all()
+             return query.filter_by(created_by_id=user.id).paginate(page=page, per_page=per_page, error_out=False)
              
         if user.role == UserRole.IT_STAFF:
             # IT Staff should see tickets for their team OR tickets specifically assigned to them
@@ -142,11 +148,11 @@ class TicketService:
                 return query.filter(
                     (Ticket.team_id == user.team_id) | 
                     (Ticket.assigned_to_id == user.id)
-                ).all()
+                ).paginate(page=page, per_page=per_page, error_out=False)
             # If no team assigned, show all tickets (scoped by demo filter)
-            return query.all()
+            return query.paginate(page=page, per_page=per_page, error_out=False)
 
-        return query.all()
+        return query.paginate(page=page, per_page=per_page, error_out=False)
 
     @staticmethod
     def claim_ticket(ticket_id: int, user_id: int) -> Ticket:
@@ -207,7 +213,7 @@ class TicketService:
                 email_body
             )
         except Exception as e:
-            print(f"Failed to send approach email: {e}")
+            logger.error(f"Failed to send approach email: {e}")
 
         return ticket
 
@@ -222,7 +228,7 @@ class TicketService:
         from app.core.database import db
         from app.models.ticket_status_history import TicketStatusHistory
 
-        print(f"[{datetime.utcnow()}] Starting auto-close check for Resolved tickets (7 days cutoff)...")
+        logger.info(f"[{datetime.utcnow()}] Starting auto-close check for Resolved tickets (7 days cutoff)...")
         cutoff_date = datetime.utcnow() - timedelta(days=7)
         
         # Batch processing recommended for large datasets
@@ -230,7 +236,7 @@ class TicketService:
             Ticket.status == TicketStatus.RESOLVED
         ).all()
         
-        print(f"Found {len(resolved_tickets)} tickets in Resolved status.")
+        logger.info(f"Found {len(resolved_tickets)} tickets in Resolved status.")
         count = 0
         now = datetime.utcnow()
         for ticket in resolved_tickets:
@@ -238,7 +244,7 @@ class TicketService:
             last_activity = ticket.updated_at if ticket.updated_at else ticket.created_at
             
             if last_activity <= cutoff_date:
-                print(f"Auto-closing Ticket #{ticket.id} (Last activity: {last_activity})")
+                logger.info(f"Auto-closing Ticket #{ticket.id} (Last activity: {last_activity})")
                 old_status = ticket.status
                 ticket.status = TicketStatus.CLOSED
                 ticket.updated_at = now
@@ -253,8 +259,8 @@ class TicketService:
                 db.session.add(history)
                 count += 1
             else:
-                print(f"Skipping Ticket #{ticket.id} - too recent ({last_activity})")
+                logger.info(f"Skipping Ticket #{ticket.id} - too recent ({last_activity})")
             
         db.session.commit()
-        print(f"Auto-close task finished. Closed {count} tickets.")
+        logger.info(f"Auto-close task finished. Closed {count} tickets.")
 

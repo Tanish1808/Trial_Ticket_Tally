@@ -11,13 +11,23 @@ from app.core.extensions import socketio
 
 def create_app():
     import os
+    import logging
+
+    # Configure Logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=[logging.StreamHandler()]
+    )
+    logger = logging.getLogger(__name__)
+
     base_dir = os.path.dirname(os.path.abspath(__file__))
     template_dir = os.path.join(base_dir, 'templates')
     static_dir = os.path.join(base_dir, 'static')
     
-    print(f" * Template Dir: {template_dir}")
-    print(f" * Static Dir: {static_dir}")
-    print(f" * Template Dir Exists? {os.path.exists(template_dir)}")
+    logger.info(f"Template Dir: {template_dir}")
+    logger.info(f"Static Dir: {static_dir}")
+    logger.info(f"Template Dir Exists? {os.path.exists(template_dir)}")
 
     app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
     app.config.from_object(Config)
@@ -27,7 +37,8 @@ def create_app():
     migrate.init_app(app, db)
     CORS(app)
     socketio.init_app(app)
-    from app.core.extensions import scheduler
+    from app.core.extensions import scheduler, limiter
+    limiter.init_app(app)
     scheduler.init_app(app)
     scheduler.start()
     
@@ -76,10 +87,10 @@ def create_app():
     with app.app_context():
         try:
             from app.services.ticket_service import TicketService
-            print("Pre-starting auto-close job on application startup...")
+            logger.info("Pre-starting auto-close job on application startup...")
             TicketService.auto_close_resolved_tickets()
         except Exception as e:
-            print(f"Failed to run startup auto-close: {e}")
+            logger.error(f"Failed to run startup auto-close: {e}")
 
     return app
 

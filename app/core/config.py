@@ -25,3 +25,7 @@ class Config:
     # Demo User Configuration
     DEMO_EMAIL = "demo@tickettally.com"
     DEMO_PASSWORD = "demo_password_secure_2026"
+
+    # Redis and Rate Limiting
+    REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+    RATELIMIT_STORAGE_URI = REDIS_URL

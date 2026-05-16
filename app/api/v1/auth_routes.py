@@ -2,10 +2,12 @@ from flask import Blueprint, request, jsonify
 from app.services.auth_service import AuthService
 from app.schemas.auth_schema import SignupRequest, LoginRequest
 from pydantic import ValidationError
+from app.core.extensions import limiter
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
 @auth_bp.route('/signup', methods=['POST'])
+@limiter.limit("5 per minute")
 def signup():
     try:
         data = SignupRequest(**request.json)
@@ -33,6 +35,7 @@ def signup():
         return jsonify({"error": "Internal Server Error"}), 500
 
 @auth_bp.route('/login', methods=['POST'])
+@limiter.limit("5 per minute")
 def login():
     try:
         data = LoginRequest(**request.json)
@@ -52,6 +55,7 @@ def login():
         return jsonify({"error": str(e)}), 401
 
 @auth_bp.route('/forgot-password', methods=['POST'])
+@limiter.limit("3 per minute")
 def forgot_password():
     data = request.get_json()
     email = data.get('email')
@@ -64,6 +68,7 @@ def forgot_password():
     return jsonify({"message": "If an account exists with this email, a password reset link has been sent."})
 
 @auth_bp.route('/reset-password', methods=['POST'])
+@limiter.limit("3 per minute")
 def reset_password():
     data = request.get_json()
     token = data.get('token')

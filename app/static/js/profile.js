@@ -503,19 +503,11 @@ window.confirmExport = async function (format) {
 
     try {
         const token = getAuthToken();
-        const response = await fetch(`/api/v1/users/export?format=${format}`, {
+        const response = await fetch('/api/v1/tickets', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
-
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ticket_tally_data_${currentUser.id}_${Date.now()}.${format}`;
-            document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             a.remove();

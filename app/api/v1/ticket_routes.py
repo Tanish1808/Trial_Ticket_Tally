@@ -7,6 +7,9 @@ from pydantic import ValidationError
 
 from app.models.comment import Comment
 from app.core.database import db
+import logging
+
+logger = logging.getLogger(__name__)
 
 ticket_bp = Blueprint('tickets', __name__, url_prefix='/api/v1/tickets')
 
@@ -68,27 +71,39 @@ def get_ticket(ticket_id):
 @ticket_bp.route('', methods=['GET'])
 @token_required
 def get_tickets():
-    # TODO: Add filtering/pagination
-    tickets = TicketService.get_tickets(g.user)
-    # Serialize manually or use schema
-    return jsonify([{
-        "id": t.id, 
-        "title": t.title, 
-        "description": t.description,
-        "category": t.category,
-        "status": t.status.value, 
-        "priority": t.priority.value,
-        "createdAt": t.created_at.isoformat(),
-        "updatedAt": t.updated_at.isoformat() if t.updated_at else t.created_at.isoformat(),
-        "createdByName": t.creator.full_name if t.creator else "Unknown",
-        "createdById": t.created_by_id,
-        "assignedToId": t.assigned_to_id,
-        "assignedTo": (
-            f"{t.team.name} : {t.assignee.full_name}" 
-            if t.assignee and t.team 
-            else (t.assignee.full_name if t.assignee else (t.team.name if t.team else None))
-        )
-    } for t in tickets]), 200
+    page = request.args.get('page', 1, type=int)
+    # The frontend currently requests all tickets without pagination, so we temporarily set a high per_page 
+    # to avoid breaking the UI until we update the frontend logic.
+    per_page = request.args.get('per_page', 1000, type=int)
+    
+    paginated_tickets = TicketService.get_tickets(g.user, page=page, per_page=per_page)
+    
+    return jsonify({
+        "items": [{
+            "id": t.id, 
+            "title": t.title, 
+            "description": t.description,
+            "category": t.category,
+            "status": t.status.value, 
+            "priority": t.priority.value,
+            "createdAt": t.created_at.isoformat(),
+            "updatedAt": t.updated_at.isoformat() if t.updated_at else t.created_at.isoformat(),
+            "createdByName": t.creator.full_name if t.creator else "Unknown",
+            "createdById": t.created_by_id,
+            "assignedToId": t.assigned_to_id,
+            "assignedTo": (
+                f"{t.team.name} : {t.assignee.full_name}" 
+                if t.assignee and t.team 
+                else (t.assignee.full_name if t.assignee else (t.team.name if t.team else None))
+            )
+        } for t in paginated_tickets.items],
+        "meta": {
+            "page": paginated_tickets.page,
+            "per_page": paginated_tickets.per_page,
+            "total_pages": paginated_tickets.pages,
+            "total_items": paginated_tickets.total
+        }
+    }), 200
 
 @ticket_bp.route('/<int:ticket_id>', methods=['PUT', 'PATCH'])
 @token_required
@@ -166,9 +181,9 @@ def download_pdf(ticket_id):
         
         return response
     except Exception as e:
-        print(f"PDF Generation Error: {str(e)}") # Debug Log
+        logger.error(f"PDF Generation Error: {str(e)}") # Debug Log
         import traceback
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
 @ticket_bp.route('/check-duplicate', methods=['POST'])
@@ -211,7 +226,7 @@ def check_duplicate():
         return jsonify({"exists": False}), 200
 
     except Exception as e:
-        print(f"Duplicate Check Error: {e}")
+        logger.error(f"Duplicate Check Error: {e}")
         return jsonify({"error": str(e)}), 500
 
 @ticket_bp.route('/<int:ticket_id>/withdraw', methods=['POST'])
@@ -251,7 +266,7 @@ def withdraw_ticket(ticket_id):
 
     except Exception as e:
         db.session.rollback()
-        print(f"Withdraw Error: {e}")
+        logger.error(f"Withdraw Error: {e}")
         return jsonify({"error": str(e)}), 500
 
 @ticket_bp.route('/<int:ticket_id>/claim', methods=['POST'])
