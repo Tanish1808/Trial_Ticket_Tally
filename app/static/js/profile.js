@@ -508,6 +508,18 @@ window.confirmExport = async function (format) {
                 'Authorization': `Bearer ${token}`
             }
         });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const tickets = data.items || data;
+            
+            // Basic mock export logic
+            const blob = new Blob([JSON.stringify(tickets, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ticket_export_${format}.${format}`;
+            document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             a.remove();
