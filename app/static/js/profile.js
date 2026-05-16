@@ -131,7 +131,8 @@ async function loadStats(userRole) {
             });
 
             if (response.ok) {
-                const tickets = await response.json();
+                const data = await response.json();
+                const tickets = data.items || data;
 
                 if (userRole === 'employee') {
                     // Employee stats - tickets created by me
@@ -195,7 +196,8 @@ async function loadRecentActivity() {
         });
 
         if (response.ok) {
-            const tickets = await response.json();
+            const data = await response.json();
+            const tickets = data.items || data;
 
             // Sort by date desc
             tickets.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
