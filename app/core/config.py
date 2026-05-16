@@ -27,5 +27,5 @@ class Config:
     DEMO_PASSWORD = "demo_password_secure_2026"
 
     # Redis and Rate Limiting
-    REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-    RATELIMIT_STORAGE_URI = REDIS_URL
+    REDIS_URL = os.getenv('REDIS_URL')
+    RATELIMIT_STORAGE_URI = REDIS_URL if REDIS_URL else 'memory://'
