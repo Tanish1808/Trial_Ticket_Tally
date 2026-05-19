@@ -29,3 +29,12 @@ class Config:
     # Redis and Rate Limiting
     REDIS_URL = os.getenv('REDIS_URL')
     RATELIMIT_STORAGE_URI = REDIS_URL if REDIS_URL else 'memory://'
+
+
+class TestingConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    RATELIMIT_ENABLED = False
+    REDIS_URL = None
+    RATELIMIT_STORAGE_URI = 'memory://'
+

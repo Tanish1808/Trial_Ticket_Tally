@@ -9,7 +9,7 @@ from app.core.extensions import socketio
 # Global Extensions
 # socketio moved to app.core.extensions
 
-def create_app():
+def create_app(config_class=Config):
     import os
     import logging
 
@@ -30,7 +30,7 @@ def create_app():
     logger.info(f"Template Dir Exists? {os.path.exists(template_dir)}")
 
     app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
-    app.config.from_object(Config)
+    app.config.from_object(config_class)
 
     # Initialize Extensions
     db.init_app(app)
@@ -40,15 +40,17 @@ def create_app():
     from app.core.extensions import scheduler, limiter
     limiter.init_app(app)
     scheduler.init_app(app)
-    scheduler.start()
+    if not app.config.get('TESTING'):
+        scheduler.start()
     
     # Register Scheduled Jobs
     from app.services.ticket_service import TicketService
     
-    @scheduler.task('interval', id='auto_close_tickets', days=1, misfire_grace_time=900)
-    def auto_close_job():
-        with app.app_context():
-            TicketService.auto_close_resolved_tickets()
+    if not app.config.get('TESTING'):
+        @scheduler.task('interval', id='auto_close_tickets', days=1, misfire_grace_time=900)
+        def auto_close_job():
+            with app.app_context():
+                TicketService.auto_close_resolved_tickets()
     from app.api.v1.auth_routes import auth_bp
     from app.api.v1.ticket_routes import ticket_bp
     from app.api.v1.user_routes import user_bp
@@ -84,13 +86,14 @@ def create_app():
 
     # Trigger once on startup to process existing old tickets
     # Doing this at the very end ensures all models and blueprints are loaded
-    with app.app_context():
-        try:
-            from app.services.ticket_service import TicketService
-            logger.info("Pre-starting auto-close job on application startup...")
-            TicketService.auto_close_resolved_tickets()
-        except Exception as e:
-            logger.error(f"Failed to run startup auto-close: {e}")
+    if not app.config.get('TESTING'):
+        with app.app_context():
+            try:
+                from app.services.ticket_service import TicketService
+                logger.info("Pre-starting auto-close job on application startup...")
+                TicketService.auto_close_resolved_tickets()
+            except Exception as e:
+                logger.error(f"Failed to run startup auto-close: {e}")
 
     return app
 
