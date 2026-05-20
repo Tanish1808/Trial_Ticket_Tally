@@ -72,9 +72,9 @@ def get_ticket(ticket_id):
 @token_required
 def get_tickets():
     page = request.args.get('page', 1, type=int)
-    # The frontend currently requests all tickets without pagination, so we temporarily set a high per_page 
-    # to avoid breaking the UI until we update the frontend logic.
-    per_page = request.args.get('per_page', 1000, type=int)
+    per_page = request.args.get('per_page', 100, type=int)
+    if per_page > 100:
+        per_page = 100
     
     paginated_tickets = TicketService.get_tickets(g.user, page=page, per_page=per_page)
     
