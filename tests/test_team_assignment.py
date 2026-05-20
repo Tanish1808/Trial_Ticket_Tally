@@ -32,16 +32,14 @@ def make_request(url, method='GET', data=None, token=None):
         print(f"Error: {e}")
         return None, None
 
-def test():
+def test_team_assignment():
     print("Logging in...")
     status, body = make_request(f"{BASE_URL}/auth/login", method='POST', data={
         "email": ADMIN_EMAIL,
         "password": ADMIN_PASSWORD
     })
     
-    if status != 200:
-        print(f"Login failed: {body}")
-        return
+    assert status == 200, f"Login failed: {body}"
 
     token = body['token']
     print("Login successful.")
@@ -50,11 +48,9 @@ def test():
     print("Testing User Search...")
     # Assuming 'Admin' exists
     status, body = make_request(f"{BASE_URL}/users?search=Admin", token=token)
-    if status == 200 and len(body) > 0:
-        print(f"SUCCESS: Search found {len(body)} users.")
-        print(f"First match: {body[0]['full_name']} ({body[0]['email']})")
-    else:
-        print(f"FAILURE: Search failed. Status: {status}, Body: {body}")
+    assert status == 200, f"Search failed. Status: {status}, Body: {body}"
+    assert len(body) > 0, f"Search returned empty list: {body}"
+    print(f"SUCCESS: Search found {len(body)} users. First match: {body[0]['full_name']} ({body[0]['email']})")
 
     # 2. Test Assignment by Name
     print("Testing Assignment by Name...")
@@ -67,34 +63,30 @@ def test():
         "startDate": "2026-02-01",
         "deadline": "2026-03-01",
         "team": [
-            {"name": "Admin User"} # Assuming Admin User is the name of admin
+            {"name": "Admin User"}
         ]
     }
     
-    # We need to know a valid user name. Admin is usually "Admin User"? 
-    # Let's check who we logged in as.
     status, me = make_request(f"{BASE_URL}/users/me", token=token)
+    assert status == 200, f"Failed to get profile: {me}"
     my_name = me['full_name']
     print(f"Targeting user: {my_name}")
     
     project_data['team'] = [{"name": my_name}]
 
     status, body = make_request(f"{BASE_URL}/projects", method='POST', data=project_data, token=token)
+    assert status == 201, f"Project creation failed. Status: {status}, Body: {body}"
     
-    if status == 201:
-        project = body
-        team = project.get('team', [])
-        found = any(m['email'] == ADMIN_EMAIL for m in team)
-        if found:
-            print(f"SUCCESS: Project created and user assigned by Name ({my_name}).")
-        else:
-            print("FAILURE: Project created but user NOT assigned.")
-            print(f"Team members: {team}")
-            
+    project = body
+    team = project.get('team', [])
+    found = any(m['email'] == ADMIN_EMAIL for m in team)
+    
+    try:
+        assert found, f"Project created but user NOT assigned. Team members: {team}"
+        print(f"SUCCESS: Project created and user assigned by Name ({my_name}).")
+    finally:
         # Cleanup
         make_request(f"{BASE_URL}/projects/{project['id']}", method='DELETE', token=token)
-    else:
-        print(f"FAILURE: Project creation failed. Status: {status}, Body: {body}")
 
 if __name__ == "__main__":
-    test()
+    test_team_assignment()

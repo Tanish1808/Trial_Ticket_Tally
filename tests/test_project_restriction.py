@@ -40,9 +40,7 @@ def test_restriction():
         "password": ADMIN_PASSWORD
     })
     
-    if status != 200:
-        print(f"Login failed: {body}")
-        return
+    assert status == 200, f"Login failed: {body}"
 
     token = body['token']
     print("Login successful.")
@@ -59,9 +57,7 @@ def test_restriction():
     }
     status, body = make_request(f"{BASE_URL}/projects", method='POST', data=project_data, token=token)
     
-    if status != 201:
-        print(f"Failed to create project: {body}")
-        return
+    assert status == 201, f"Failed to create project: {body}"
         
     project_id = body['id']
     print(f"Created Project ID: {project_id}")
@@ -69,21 +65,15 @@ def test_restriction():
     # 2. Mark as Completed
     print("Marking as Completed...")
     status, body = make_request(f"{BASE_URL}/projects/{project_id}", method='PATCH', data={"status": "Completed"}, token=token)
-    if status != 200:
-        print(f"Failed to mark completed: {body}")
-        return
+    assert status == 200, f"Failed to mark completed: {body}"
     print("Project marked as Completed.")
 
     # 3. Attempt Edit
     print("Attempting to edit description (Should Fail)...")
     status, body = make_request(f"{BASE_URL}/projects/{project_id}", method='PATCH', data={"description": "Hacked"}, token=token)
     
-    if status == 400:
-        print("SUCCESS: Edit blocked with 400 Bad Request")
-        print(f"Response: {body}")
-    else:
-        print(f"FAILURE: Edit allowed! Status: {status}")
-        print(f"Response: {body}")
+    assert status == 400, f"FAILURE: Edit allowed/failed! Status: {status}, Response: {body}"
+    print("SUCCESS: Edit blocked with 400 Bad Request")
 
     # Cleanup
     print("Cleaning up...")
