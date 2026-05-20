@@ -35,7 +35,13 @@ def create_app(config_class=Config):
     # Initialize Extensions
     db.init_app(app)
     migrate.init_app(app, db)
-    CORS(app)
+    
+    allowed_origins = app.config.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5000,http://127.0.0.1:5000')
+    if allowed_origins != '*':
+        if isinstance(allowed_origins, str):
+            allowed_origins = [orig.strip() for orig in allowed_origins.split(',') if orig.strip()]
+    CORS(app, origins=allowed_origins)
+    
     socketio.init_app(app)
     from app.core.extensions import scheduler, limiter
     limiter.init_app(app)

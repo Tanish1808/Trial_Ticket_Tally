@@ -22,6 +22,9 @@ class Config:
 
     BASE_URL = os.getenv('BASE_URL', 'http://localhost:5000')
 
+    # CORS Allowed Origins (comma-separated string)
+    CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5000,http://127.0.0.1:5000')
+
     # Demo User Configuration
     DEMO_EMAIL = "demo@tickettally.com"
     DEMO_PASSWORD = "demo_password_secure_2026"
