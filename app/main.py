@@ -42,7 +42,12 @@ def create_app(config_class=Config):
             allowed_origins = [orig.strip() for orig in allowed_origins.split(',') if orig.strip()]
     CORS(app, origins=allowed_origins)
     
-    socketio.init_app(app)
+    redis_url = app.config.get('REDIS_URL')
+    socketio.init_app(
+        app,
+        cors_allowed_origins=allowed_origins,
+        message_queue=redis_url if redis_url else None
+    )
     from app.core.extensions import scheduler, limiter
     limiter.init_app(app)
     scheduler.init_app(app)
