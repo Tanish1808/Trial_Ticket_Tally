@@ -72,7 +72,16 @@ class TicketService:
 
     @staticmethod
     def get_ticket_by_id(ticket_id: int) -> Ticket:
-        return Ticket.query.get(ticket_id)
+        from sqlalchemy.orm import joinedload, selectinload
+        from app.models.comment import Comment
+        
+        return Ticket.query.options(
+            joinedload(Ticket.creator),
+            joinedload(Ticket.team),
+            joinedload(Ticket.assignee),
+            selectinload(Ticket.comments).joinedload(Comment.author),
+            selectinload(Ticket.status_history).joinedload(TicketStatusHistory.changed_by)
+        ).filter_by(id=ticket_id).first()
 
     @staticmethod
     def update_ticket(ticket_id: int, data: TicketUpdate, user_id: int) -> Ticket:
