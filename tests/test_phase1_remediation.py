@@ -109,3 +109,59 @@ def test_get_ticket_by_id_eager_loading(app, auth_headers):
     assert fetched.comments[0].author.full_name == "Test User"
     assert len(fetched.status_history) == 1
     assert fetched.status_history[0].changed_by.full_name == "Test User"
+
+def test_pdf_download_authorization(app, client, auth_headers):
+    employee_user = User.query.filter_by(email="test_user@tt.com").first()
+    
+    admin_user = User(
+        email="admin_user@tt.com",
+        password_hash="test",
+        full_name="Admin User",
+        role=UserRole.ADMIN
+    )
+    it_user = User(
+        email="it_user@tt.com",
+        password_hash="test",
+        full_name="IT User",
+        role=UserRole.IT_STAFF
+    )
+    other_employee = User(
+        email="other_employee@tt.com",
+        password_hash="test",
+        full_name="Other Employee",
+        role=UserRole.EMPLOYEE
+    )
+    db.session.add_all([admin_user, it_user, other_employee])
+    db.session.commit()
+    
+    admin_token = create_access_token(identity=str(admin_user.id))
+    it_token = create_access_token(identity=str(it_user.id))
+    other_token = create_access_token(identity=str(other_employee.id))
+    
+    t = Ticket(
+        title="PDF Auth Test Ticket",
+        description="Desc",
+        category="Software Issue",
+        priority=TicketPriority.LOW,
+        created_by_id=employee_user.id,
+        assigned_to_id=it_user.id
+    )
+    db.session.add(t)
+    db.session.commit()
+    
+    # Test creator (employee_user) can download (should be 200)
+    res_creator = client.get(f'/api/v1/tickets/{t.id}/pdf', headers=auth_headers)
+    assert res_creator.status_code == 200
+    
+    # Test assignee (it_user) can download (should be 200)
+    res_assignee = client.get(f'/api/v1/tickets/{t.id}/pdf', headers={"Authorization": f"Bearer {it_token}"})
+    assert res_assignee.status_code == 200
+    
+    # Test admin can download (should be 200)
+    res_admin = client.get(f'/api/v1/tickets/{t.id}/pdf', headers={"Authorization": f"Bearer {admin_token}"})
+    assert res_admin.status_code == 200
+    
+    # Test unauthorized user (other_employee) cannot download (should be 403)
+    res_unauth = client.get(f'/api/v1/tickets/{t.id}/pdf', headers={"Authorization": f"Bearer {other_token}"})
+    assert res_unauth.status_code == 403
+

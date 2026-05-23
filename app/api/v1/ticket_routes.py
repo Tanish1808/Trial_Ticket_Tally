@@ -168,9 +168,13 @@ def download_pdf(ticket_id):
         if not ticket:
             return jsonify({"error": "Ticket not found"}), 404
             
-        # Check permissions (creator, assignee, or admin)
-        # For simplicity in this step, allowing authenticated users for now
-        # Ideally: if ticket.created_by_id != g.user.id and g.user.role != 'admin' ...
+        # Check permissions (creator, assignee, team members, or admin)
+        from app.core.constants import UserRole
+        if (g.user.role != UserRole.ADMIN and 
+            ticket.created_by_id != g.user.id and 
+            ticket.assigned_to_id != g.user.id and 
+            (ticket.team_id is None or g.user.team_id != ticket.team_id)):
+            return jsonify({"error": "Unauthorized"}), 403
         
         pdf_buffer = PDFService.generate_ticket_pdf(ticket)
         
