@@ -21,14 +21,17 @@ class SoftDeleteMixin:
         self.deleted_at = datetime.utcnow()
         db.session.add(self)
 
-@event.listens_for(Query, "before_compile", retval=True)
-def no_deleted(query):
-    for desc in query.column_descriptions:
-        if desc['type'] is None:
-            continue
-        entity = desc['type']
-        if hasattr(entity, 'is_deleted'):
-            if not query._execution_options.get('include_deleted', False):
-                query = query.filter(entity.is_deleted == False)
-    return query
+from sqlalchemy.orm import with_loader_criteria
+
+@event.listens_for(db.Session, "do_orm_execute")
+def _do_orm_execute(orm_execute_state):
+    if not orm_execute_state.execution_options.get("include_deleted", False):
+        orm_execute_state.statement = orm_execute_state.statement.options(
+            with_loader_criteria(
+                SoftDeleteMixin,
+                lambda cls: cls.is_deleted == False,
+                include_aliases=True,
+                propagate_to_loaders=True
+            )
+        )
 
