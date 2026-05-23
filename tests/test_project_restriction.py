@@ -42,7 +42,7 @@ def test_restriction():
     
     assert status == 200, f"Login failed: {body}"
 
-    token = body['token']
+    token = body['access_token']
     print("Login successful.")
 
     # 1. Create Project

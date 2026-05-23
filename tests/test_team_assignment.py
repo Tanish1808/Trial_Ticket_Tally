@@ -41,7 +41,7 @@ def test_team_assignment():
     
     assert status == 200, f"Login failed: {body}"
 
-    token = body['token']
+    token = body['access_token']
     print("Login successful.")
 
     # 1. Test Search
