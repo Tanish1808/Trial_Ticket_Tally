@@ -165,3 +165,33 @@ def test_pdf_download_authorization(app, client, auth_headers):
     res_unauth = client.get(f'/api/v1/tickets/{t.id}/pdf', headers={"Authorization": f"Bearer {other_token}"})
     assert res_unauth.status_code == 403
 
+def test_json_logging(monkeypatch, capsys):
+    import json
+    import logging
+    
+    # Set JSON_LOGGING environment variable to force JSON formatted logs
+    monkeypatch.setenv("JSON_LOGGING", "True")
+    
+    # Import create_app and initialize with TestingConfig to configure logging
+    from app.main import create_app
+    app = create_app(CustomTestConfig)
+    
+    # Log a message
+    logger = logging.getLogger("test_json_logger")
+    logger.info("Test JSON Log Message")
+    
+    # Read captured stdout and stderr outputs
+    captured = capsys.readouterr()
+    log_lines = captured.err.splitlines() + captured.out.splitlines()
+    
+    json_log = None
+    for line in log_lines:
+        if "Test JSON Log Message" in line:
+            json_log = json.loads(line.strip())
+            break
+            
+    assert json_log is not None, f"Could not find JSON log in output lines: {log_lines}"
+    assert json_log["level"] == "INFO"
+    assert json_log["message"] == "Test JSON Log Message"
+
+

@@ -12,13 +12,35 @@ from app.core.extensions import socketio
 def create_app(config_class=Config):
     import os
     import logging
+    import json
+
+    class JSONFormatter(logging.Formatter):
+        def format(self, record):
+            log_record = {
+                "timestamp": self.formatTime(record, self.datefmt),
+                "level": record.levelname,
+                "message": record.getMessage(),
+                "name": record.name,
+                "filename": record.filename,
+                "lineno": record.lineno,
+            }
+            if record.exc_info:
+                log_record["exc_info"] = self.formatException(record.exc_info)
+            return json.dumps(log_record)
 
     # Configure Logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        handlers=[logging.StreamHandler()]
-    )
+    handler = logging.StreamHandler()
+    if os.getenv('FLASK_ENV') == 'production' or os.getenv('JSON_LOGGING') == 'True':
+        handler.setFormatter(JSONFormatter())
+    else:
+        handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    for h in root.handlers[:]:
+        root.removeHandler(h)
+    root.addHandler(handler)
+
     logger = logging.getLogger(__name__)
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
