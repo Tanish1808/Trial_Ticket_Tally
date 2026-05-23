@@ -1,8 +1,8 @@
 from datetime import datetime
-from app.core.database import db
+from app.core.database import db, SoftDeleteMixin
 from app.core.constants import TicketStatus, TicketPriority
 
-class Ticket(db.Model):
+class Ticket(db.Model, SoftDeleteMixin):
     __tablename__ = "tickets"
 
     id = db.Column(db.Integer, primary_key=True)

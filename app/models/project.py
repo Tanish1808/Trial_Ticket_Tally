@@ -1,5 +1,5 @@
 from datetime import datetime
-from app.core.database import db
+from app.core.database import db, SoftDeleteMixin
 from app.core.constants import ProjectStatus, TicketPriority
 
 # Association table for Project Team Members (Many-to-Many)
@@ -8,7 +8,7 @@ project_team = db.Table('project_team',
     db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True)
 )
 
-class Project(db.Model):
+class Project(db.Model, SoftDeleteMixin):
     __tablename__ = "projects"
 
     id = db.Column(db.Integer, primary_key=True)
