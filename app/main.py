@@ -70,11 +70,58 @@ def create_app(config_class=Config):
         cors_allowed_origins=allowed_origins,
         message_queue=redis_url if redis_url else None
     )
+    # Configure Swagger UI Options
+    app.config['SWAGGER'] = {
+        'title': 'Ticket-Tally API Documentation',
+        'uiversion': 3,
+        'specs_route': '/api/docs',
+        'static_url_path': '/flasgger_static'
+    }
+
     from app.core.extensions import scheduler, limiter
     limiter.init_app(app)
     scheduler.init_app(app)
     if not app.config.get('TESTING'):
         scheduler.start()
+
+    swagger_config = {
+        "headers": [],
+        "specs": [
+            {
+                "endpoint": 'apispec_v1',
+                "route": '/api/docs/spec.json',
+                "rule_filter": lambda rule: True,
+                "model_filter": lambda model: True,
+            }
+        ],
+        "static_folder": "static",
+        "swagger_ui": True,
+        "specs_route": "/api/docs"
+    }
+
+    swagger_template = {
+        "swagger": "2.0",
+        "info": {
+            "title": "Ticket-Tally API",
+            "description": "Comprehensive REST API for Ticket-Tally ITSM Platform.",
+            "version": "1.0.0"
+        },
+        "securityDefinitions": {
+            "Bearer": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "description": "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\""
+            }
+        },
+        "security": [
+            {
+                "Bearer": []
+            }
+        ]
+    }
+    from flasgger import Swagger
+    Swagger(app, config=swagger_config, template=swagger_template)
     
     # Register Scheduled Jobs
     from app.services.ticket_service import TicketService

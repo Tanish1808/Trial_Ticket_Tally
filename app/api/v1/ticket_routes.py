@@ -16,6 +16,56 @@ ticket_bp = Blueprint('tickets', __name__, url_prefix='/api/v1/tickets')
 @ticket_bp.route('', methods=['POST'])
 @token_required
 def create_ticket():
+    """
+    Create a new IT support ticket
+    ---
+    tags:
+      - Tickets
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - title
+            - description
+            - category
+          properties:
+            title:
+              type: string
+              example: VPN Connection Failure
+            description:
+              type: string
+              example: Cannot connect to home VPN, getting timeout error.
+            category:
+              type: string
+              example: Network Issue
+            priority:
+              type: string
+              enum: [LOW, MEDIUM, HIGH, CRITICAL]
+              default: MEDIUM
+              example: HIGH
+            team_id:
+              type: integer
+              example: 1
+    responses:
+      201:
+        description: Ticket created successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            ticket_id:
+              type: integer
+      400:
+        description: Validation error
+      401:
+        description: Unauthorized
+    """
     try:
         data = TicketCreate(**request.json)
         ticket = TicketService.create_ticket(data, g.user.id)
@@ -28,6 +78,27 @@ def create_ticket():
 @ticket_bp.route('/<int:ticket_id>', methods=['GET'])
 @token_required
 def get_ticket(ticket_id):
+    """
+    Get ticket details by ID (including comments and history)
+    ---
+    tags:
+      - Tickets
+    security:
+      - Bearer: []
+    parameters:
+      - name: ticket_id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the ticket to retrieve
+    responses:
+      200:
+        description: Ticket details retrieved successfully
+      401:
+        description: Unauthorized
+      404:
+        description: Ticket not found
+    """
     ticket = TicketService.get_ticket_by_id(ticket_id)
     if not ticket:
         return jsonify({"error": "Ticket not found"}), 404
@@ -71,6 +142,31 @@ def get_ticket(ticket_id):
 @ticket_bp.route('', methods=['GET'])
 @token_required
 def get_tickets():
+    """
+    List tickets with pagination (filtered by user role)
+    ---
+    tags:
+      - Tickets
+    security:
+      - Bearer: []
+    parameters:
+      - name: page
+        in: query
+        type: integer
+        default: 1
+        description: Page number
+      - name: per_page
+        in: query
+        type: integer
+        default: 20
+        maximum: 100
+        description: Items per page (capped at 100)
+    responses:
+      200:
+        description: List of tickets and pagination metadata
+      401:
+        description: Unauthorized
+    """
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 100, type=int)
     if per_page > 100:
@@ -108,6 +204,50 @@ def get_tickets():
 @ticket_bp.route('/<int:ticket_id>', methods=['PUT', 'PATCH'])
 @token_required
 def update_ticket(ticket_id):
+    """
+    Update an existing ticket (status, priority, category, assignee, team)
+    ---
+    tags:
+      - Tickets
+    security:
+      - Bearer: []
+    parameters:
+      - name: ticket_id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the ticket to update
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [OPEN, IN_PROGRESS, RESOLVED, CLOSED, WITHDRAWN]
+              example: RESOLVED
+            priority:
+              type: string
+              enum: [LOW, MEDIUM, HIGH, CRITICAL]
+              example: HIGH
+            category:
+              type: string
+              example: Software Issue
+            assigned_to_id:
+              type: integer
+              example: 2
+            team_id:
+              type: integer
+              example: 1
+    responses:
+      200:
+        description: Ticket updated successfully
+      401:
+        description: Unauthorized
+      404:
+        description: Ticket not found or value error
+    """
     try:
         data = TicketUpdate(**request.json)
         TicketService.update_ticket(ticket_id, data, g.user.id)
@@ -120,6 +260,43 @@ def update_ticket(ticket_id):
 @ticket_bp.route('/<int:ticket_id>/comments', methods=['POST'])
 @token_required
 def add_comment(ticket_id):
+    """
+    Add a comment to a ticket
+    ---
+    tags:
+      - Tickets
+    security:
+      - Bearer: []
+    parameters:
+      - name: ticket_id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the ticket
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - text
+          properties:
+            text:
+              type: string
+              example: Working on a fix now.
+            parent_id:
+              type: integer
+              description: Optional ID of the parent comment for nesting
+    responses:
+      201:
+        description: Comment added successfully
+      400:
+        description: Missing comment text
+      401:
+        description: Unauthorized
+      404:
+        description: Ticket not found
+    """
     try:
         data = request.json
         if not data or 'text' not in data:
@@ -161,6 +338,29 @@ def add_comment(ticket_id):
 @ticket_bp.route('/<int:ticket_id>/pdf', methods=['GET'])
 @token_required
 def download_pdf(ticket_id):
+    """
+    Download ticket report as PDF (restricted access)
+    ---
+    tags:
+      - Tickets
+    security:
+      - Bearer: []
+    parameters:
+      - name: ticket_id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the ticket
+    responses:
+      200:
+        description: PDF binary file
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (no permissions to access this ticket's PDF)
+      404:
+        description: Ticket not found
+    """
     try:
         from app.services.pdf_service import PDFService
         
@@ -193,6 +393,33 @@ def download_pdf(ticket_id):
 @ticket_bp.route('/check-duplicate', methods=['POST'])
 @token_required
 def check_duplicate():
+    """
+    Check for existing similar active tickets by the current user
+    ---
+    tags:
+      - Tickets
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - title
+          properties:
+            title:
+              type: string
+              example: VPN down again
+    responses:
+      200:
+        description: Duplicate check result
+      400:
+        description: Title required
+      401:
+        description: Unauthorized
+    """
     try:
         data = request.json
         if not data or 'title' not in data:
@@ -236,6 +463,31 @@ def check_duplicate():
 @ticket_bp.route('/<int:ticket_id>/withdraw', methods=['POST'])
 @token_required
 def withdraw_ticket(ticket_id):
+    """
+    Withdraw a ticket (Creator only, must be in OPEN status)
+    ---
+    tags:
+      - Tickets
+    security:
+      - Bearer: []
+    parameters:
+      - name: ticket_id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the ticket to withdraw
+    responses:
+      200:
+        description: Ticket withdrawn successfully
+      400:
+        description: Ticket not open or withdrawal validation failed
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (not the creator of the ticket)
+      404:
+        description: Ticket not found
+    """
     try:
         from app.models.ticket import Ticket
         from app.core.constants import TicketStatus
@@ -276,6 +528,31 @@ def withdraw_ticket(ticket_id):
 @ticket_bp.route('/<int:ticket_id>/claim', methods=['POST'])
 @token_required
 def claim_ticket(ticket_id):
+    """
+    Claim a ticket (IT staff only)
+    ---
+    tags:
+      - Tickets
+    security:
+      - Bearer: []
+    parameters:
+      - name: ticket_id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the ticket to claim
+    responses:
+      200:
+        description: Ticket claimed successfully
+      400:
+        description: Bad request (workload limit reached, etc.)
+      401:
+        description: Unauthorized
+      404:
+        description: Ticket not found
+      409:
+        description: Ticket already claimed or in progress
+    """
     try:
         TicketService.claim_ticket(ticket_id, g.user.id)
         return jsonify({"message": "Ticket claimed successfully"}), 200

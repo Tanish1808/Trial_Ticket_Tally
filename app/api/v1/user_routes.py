@@ -12,6 +12,19 @@ user_bp = Blueprint('users', __name__, url_prefix='/api/v1/users')
 @user_bp.route('/me', methods=['GET'])
 @token_required
 def get_me():
+    """
+    Get current logged-in user profile
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: User profile retrieved successfully
+      401:
+        description: Unauthorized
+    """
     return jsonify({
         "id": g.user.id,
         "full_name": g.user.full_name,
@@ -26,6 +39,35 @@ def get_me():
 @user_bp.route('/me', methods=['PATCH'])
 @token_required
 def update_my_profile():
+    """
+    Update current user profile (full name, department, preferences)
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            full_name:
+              type: string
+              example: John Doe
+            department:
+              type: string
+              example: Operations
+            preferences:
+              type: object
+              example: {"theme": "dark"}
+    responses:
+      200:
+        description: Profile updated successfully
+      401:
+        description: Unauthorized
+    """
     data = request.get_json()
     
     # Only allow updating specific fields
@@ -59,6 +101,38 @@ def update_my_profile():
 @user_bp.route('/me/password', methods=['POST'])
 @token_required
 def change_my_password():
+    """
+    Change current user password
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - current_password
+            - new_password
+          properties:
+            current_password:
+              type: string
+              example: oldsecurepassword
+            new_password:
+              type: string
+              minLength: 6
+              example: newsecurepassword
+    responses:
+      200:
+        description: Password changed successfully
+      400:
+        description: Missing parameters or password too short
+      401:
+        description: Incorrect current password or unauthorized
+    """
     data = request.get_json()
     
     current_password = data.get('current_password')
@@ -83,6 +157,34 @@ def change_my_password():
 @user_bp.route('', methods=['GET'])
 @role_required([UserRole.ADMIN])
 def get_all_users():
+    """
+    Get list of all users (Admin only)
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - name: role
+        in: query
+        type: string
+        description: Filter users by role name
+      - name: exclude_role
+        in: query
+        type: string
+        description: Exclude users of specific role
+      - name: search
+        in: query
+        type: string
+        description: Search query matching name or email
+    responses:
+      200:
+        description: List of users retrieved successfully
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (Admin only)
+    """
     role_filter = request.args.get('role')
     exclude_role = request.args.get('exclude_role')
     search_query = request.args.get('search')
@@ -132,6 +234,52 @@ def get_all_users():
 @user_bp.route('', methods=['POST'])
 @role_required([UserRole.ADMIN])
 def create_user():
+    """
+    Create a new user account (Admin only)
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - email
+            - full_name
+          properties:
+            email:
+              type: string
+              format: email
+              example: newuser@tt.com
+            password:
+              type: string
+              default: password123
+              example: custompass123
+            full_name:
+              type: string
+              example: Jane Smith
+            role:
+              type: string
+              enum: [employee, it_staff, admin]
+              default: employee
+              example: it_staff
+            team:
+              type: string
+              example: IT Support
+    responses:
+      201:
+        description: User created successfully
+      400:
+        description: Missing fields, duplicate email, or invalid role
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (Admin only)
+    """
     data = request.get_json()
     
     email = data.get('email', '').lower().strip()
@@ -215,6 +363,38 @@ def create_user():
 @user_bp.route('/<int:user_id>', methods=['PATCH'])
 @role_required([UserRole.ADMIN])
 def update_user(user_id):
+    """
+    Toggle user active status (Admin only)
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - name: user_id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the user to update
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            is_active:
+              type: boolean
+              example: false
+    responses:
+      200:
+        description: User active status updated successfully
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (Admin only)
+      404:
+        description: User not found
+    """
     user = User.query.get_or_404(user_id)
     data = request.get_json()
     
@@ -227,6 +407,26 @@ def update_user(user_id):
 @user_bp.route('/export', methods=['GET'])
 @token_required
 def export_user_data():
+    """
+    Export current user data (tickets, profile, comments) as JSON, CSV, or PDF
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - name: format
+        in: query
+        type: string
+        enum: [json, csv, pdf]
+        default: json
+        description: Export format
+    responses:
+      200:
+        description: Exported data in requested format
+      401:
+        description: Unauthorized
+    """
     format_type = request.args.get('format', 'json')
     user = g.user
     

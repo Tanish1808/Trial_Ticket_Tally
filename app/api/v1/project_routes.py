@@ -11,12 +11,90 @@ project_bp = Blueprint('projects', __name__, url_prefix='/api/v1/projects')
 @project_bp.route('', methods=['GET'])
 @token_required
 def get_projects():
+    """
+    List all projects
+    ---
+    tags:
+      - Projects
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: List of projects retrieved successfully
+      401:
+        description: Unauthorized
+    """
     projects = Project.query.all()
     return jsonify([p.to_dict() for p in projects])
 
 @project_bp.route('', methods=['POST'])
 @role_required([UserRole.ADMIN])
 def create_project():
+    """
+    Create a new project (Admin only)
+    ---
+    tags:
+      - Projects
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - name
+            - status
+            - priority
+          properties:
+            name:
+              type: string
+              example: Project Apollo
+            description:
+              type: string
+              example: Migration of legacy billing system.
+            status:
+              type: string
+              enum: [Active, Completed, On Hold]
+              example: Active
+            priority:
+              type: string
+              enum: [LOW, MEDIUM, HIGH, CRITICAL]
+              example: HIGH
+            startDate:
+              type: string
+              format: date
+              example: "2026-06-01"
+            deadline:
+              type: string
+              format: date
+              example: "2026-12-31"
+            progress:
+              type: integer
+              minimum: 0
+              maximum: 100
+              example: 10
+            team:
+              type: array
+              items:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  name:
+                    type: string
+              example: [{"email": "it_staff@tt.com"}]
+    responses:
+      201:
+        description: Project created successfully
+      400:
+        description: Validation or missing fields error
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (Admin only)
+    """
     data = request.get_json()
     
     try:
@@ -100,12 +178,95 @@ def create_project():
 @project_bp.route('/<int:project_id>', methods=['GET'])
 @token_required
 def get_project(project_id):
+    """
+    Get project details by ID
+    ---
+    tags:
+      - Projects
+    security:
+      - Bearer: []
+    parameters:
+      - name: project_id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the project to retrieve
+    responses:
+      200:
+        description: Project details retrieved successfully
+      401:
+        description: Unauthorized
+      404:
+        description: Project not found
+    """
     project = Project.query.get_or_404(project_id)
     return jsonify(project.to_dict())
 
 @project_bp.route('/<int:project_id>', methods=['PATCH'])
 @role_required([UserRole.ADMIN])
 def update_project(project_id):
+    """
+    Update project details (Admin only, blocked if already Completed)
+    ---
+    tags:
+      - Projects
+    security:
+      - Bearer: []
+    parameters:
+      - name: project_id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the project to update
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              example: New Project Name
+            description:
+              type: string
+            status:
+              type: string
+              enum: [Active, Completed, On Hold]
+              example: Completed
+            priority:
+              type: string
+              enum: [LOW, MEDIUM, HIGH, CRITICAL]
+            startDate:
+              type: string
+              format: date
+            deadline:
+              type: string
+              format: date
+            progress:
+              type: integer
+              minimum: 0
+              maximum: 100
+            team:
+              type: array
+              items:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  name:
+                    type: string
+    responses:
+      200:
+        description: Project updated successfully
+      400:
+        description: Validation error or project is already Completed
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (Admin only)
+      404:
+        description: Project not found
+    """
     project = Project.query.get_or_404(project_id)
     data = request.get_json()
     
@@ -191,6 +352,29 @@ def update_project(project_id):
 @project_bp.route('/<int:project_id>', methods=['DELETE'])
 @role_required([UserRole.ADMIN])
 def delete_project(project_id):
+    """
+    Delete a project (Admin only)
+    ---
+    tags:
+      - Projects
+    security:
+      - Bearer: []
+    parameters:
+      - name: project_id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the project to delete
+    responses:
+      200:
+        description: Project deleted successfully
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (Admin only)
+      404:
+        description: Project not found
+    """
     project = Project.query.get_or_404(project_id)
     db.session.delete(project)
     db.session.commit()
