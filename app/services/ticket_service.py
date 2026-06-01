@@ -14,16 +14,35 @@ class TicketService:
     def create_ticket(data: TicketCreate, creator_id: int) -> Ticket:
         # Automatic Team Assignment
         from app.models.team import Team
+        from app.models.team_mapping import TeamMapping
+
+        # Self-healing auto-seed if mapping table is empty (e.g. test environment)
+        try:
+            if TeamMapping.query.count() == 0:
+                default_mappings = {
+                    'Software Issue': 'Software Team',
+                    'Hardware Issue': 'Hardware Team',
+                    'Network Issue': 'Network Team',
+                    'Email Issue': 'IT Support'
+                }
+                for cat, team_name in default_mappings.items():
+                    team = Team.query.filter_by(name=team_name).first()
+                    if not team:
+                        team = Team(name=team_name)
+                        db.session.add(team)
+                        db.session.commit()
+                    mapping = TeamMapping(category=cat, team_id=team.id)
+                    db.session.add(mapping)
+                db.session.commit()
+        except Exception as e:
+            logger.warning(f"Failed to auto-seed team mappings: {e}")
+            db.session.rollback()
         
-        team_mapping = {
-            'Software Issue': 'Software Team',
-            'Hardware Issue': 'Hardware Team',
-            'Network Issue': 'Network Team',
-            'Email Issue': 'IT Support'
-        }
-        
-        target_team_name = team_mapping.get(data.category, 'IT Support')
-        team = Team.query.filter_by(name=target_team_name).first()
+        mapping = TeamMapping.query.filter_by(category=data.category).first()
+        if mapping:
+            team = mapping.team
+        else:
+            team = Team.query.filter_by(name='IT Support').first()
         
         new_ticket = Ticket(
             title=data.title,
