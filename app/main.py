@@ -131,6 +131,11 @@ def create_app(config_class=Config):
         def auto_close_job():
             with app.app_context():
                 TicketService.auto_close_resolved_tickets()
+
+        @scheduler.task('interval', id='archive_and_purge_tickets', days=1, misfire_grace_time=900)
+        def archive_and_purge_job():
+            with app.app_context():
+                TicketService.archive_and_purge_old_tickets()
     from app.api.v1.auth_routes import auth_bp
     from app.api.v1.ticket_routes import ticket_bp
     from app.api.v1.user_routes import user_bp
@@ -172,8 +177,10 @@ def create_app(config_class=Config):
                 from app.services.ticket_service import TicketService
                 logger.info("Pre-starting auto-close job on application startup...")
                 TicketService.auto_close_resolved_tickets()
+                logger.info("Pre-starting data retention purge job on application startup...")
+                TicketService.archive_and_purge_old_tickets()
             except Exception as e:
-                logger.error(f"Failed to run startup auto-close: {e}")
+                logger.error(f"Failed to run startup jobs: {e}")
 
     return app
 

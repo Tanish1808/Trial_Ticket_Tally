@@ -332,3 +332,37 @@ def delete_team_mapping(mapping_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@admin_bp.route('/purge', methods=['POST'])
+@role_required([UserRole.ADMIN])
+def trigger_purge():
+    """
+    Manually trigger data retention archiving and purging (Admin only)
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Purge operation completed successfully
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (Admin only)
+      500:
+        description: Internal server error
+    """
+    from app.services.ticket_service import TicketService
+    try:
+        count = TicketService.archive_and_purge_old_tickets()
+        return jsonify({
+            "status": "success",
+            "message": f"Successfully archived and purged {count} tickets.",
+            "count": count
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+

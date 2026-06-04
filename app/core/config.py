@@ -33,6 +33,10 @@ class Config:
     REDIS_URL = os.getenv('REDIS_URL')
     RATELIMIT_STORAGE_URI = REDIS_URL if REDIS_URL else 'memory://'
 
+    # Data Retention (in days)
+    RETENTION_DAYS = int(os.getenv('RETENTION_DAYS', 365))
+    ARCHIVE_FOLDER = os.getenv('ARCHIVE_FOLDER', os.path.join(os.getcwd(), 'archive'))
+
 
 class TestingConfig(Config):
     TESTING = True
@@ -40,4 +44,5 @@ class TestingConfig(Config):
     RATELIMIT_ENABLED = False
     REDIS_URL = None
     RATELIMIT_STORAGE_URI = 'memory://'
+    RETENTION_DAYS = 30
 

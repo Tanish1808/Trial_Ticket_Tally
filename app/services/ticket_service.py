@@ -362,3 +362,101 @@ class TicketService:
         db.session.commit()
         logger.info(f"Auto-close task finished. Closed {count} tickets.")
 
+    @staticmethod
+    def archive_and_purge_old_tickets() -> int:
+        """Archives and permanently purges tickets older than the configured retention period.
+
+        Tickets in terminal states (CLOSED or WITHDRAWN) or soft-deleted (is_deleted=True)
+        that have not been updated since the cutoff date are serialized to JSON files in the
+        configured archive folder, and then permanently deleted from the database along with
+        their comments and status history.
+
+        Returns:
+            int: The number of tickets archived and purged.
+        """
+        import os
+        import json
+        from datetime import datetime, timedelta
+        from flask import current_app
+        from app.core.database import db
+        from app.models.ticket import Ticket
+        from app.core.constants import TicketStatus
+
+        retention_days = current_app.config.get('RETENTION_DAYS', 365)
+        cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
+        archive_dir = current_app.config.get('ARCHIVE_FOLDER', os.path.join(os.getcwd(), 'archive'))
+
+        logger.info(f"[{datetime.utcnow()}] Starting data retention purge (cutoff date: {cutoff_date}, retention: {retention_days} days)...")
+
+        # Ensure archive directory exists
+        os.makedirs(archive_dir, exist_ok=True)
+
+        # Query all tickets matching terminal states or soft-deleted, and updated_at <= cutoff_date
+        query = Ticket.query.execution_options(include_deleted=True).filter(
+            (Ticket.status.in_([TicketStatus.CLOSED, TicketStatus.WITHDRAWN])) | (Ticket.is_deleted == True)
+        ).filter(
+            Ticket.updated_at <= cutoff_date
+        )
+        old_tickets = query.all()
+
+        logger.info(f"Found {len(old_tickets)} tickets eligible for archiving and purging.")
+        count = 0
+        for ticket in old_tickets:
+            # Construct dictionary
+            archive_data = {
+                "id": ticket.id,
+                "title": ticket.title,
+                "description": ticket.description,
+                "category": ticket.category,
+                "status": ticket.status.value if hasattr(ticket.status, 'value') else str(ticket.status),
+                "priority": ticket.priority.value if hasattr(ticket.priority, 'value') else str(ticket.priority),
+                "is_demo": ticket.is_demo,
+                "created_by_id": ticket.created_by_id,
+                "assigned_to_id": ticket.assigned_to_id,
+                "team_id": ticket.team_id,
+                "created_at": ticket.created_at.isoformat() if ticket.created_at else None,
+                "updated_at": ticket.updated_at.isoformat() if ticket.updated_at else None,
+                "is_deleted": ticket.is_deleted,
+                "deleted_at": ticket.deleted_at.isoformat() if ticket.deleted_at else None,
+                "comments": [
+                    {
+                        "id": comment.id,
+                        "text": comment.text,
+                        "user_id": comment.user_id,
+                        "author_name": comment.author.full_name if comment.author else "Unknown",
+                        "created_at": comment.created_at.isoformat() if comment.created_at else None
+                    }
+                    for comment in ticket.comments
+                ],
+                "status_history": [
+                    {
+                        "id": h.id,
+                        "old_status": h.old_status.value if (h.old_status and hasattr(h.old_status, 'value')) else str(h.old_status) if h.old_status else None,
+                        "new_status": h.new_status.value if hasattr(h.new_status, 'value') else str(h.new_status),
+                        "changed_by_id": h.changed_by_id,
+                        "changed_at": h.changed_at.isoformat() if h.changed_at else None
+                    }
+                    for h in ticket.status_history
+                ]
+            }
+
+            archive_file_path = os.path.join(archive_dir, f"ticket_archive_{ticket.id}.json")
+            try:
+                with open(archive_file_path, 'w', encoding='utf-8') as f:
+                    json.dump(archive_data, f, indent=4)
+                
+                db.session.delete(ticket)
+                count += 1
+            except Exception as e:
+                logger.error(f"Failed to archive ticket #{ticket.id}: {e}")
+                db.session.rollback()
+                raise e
+
+        if count > 0:
+            db.session.commit()
+            logger.info(f"Successfully archived and purged {count} tickets.")
+        else:
+            logger.info("No tickets met the retention criteria for purging.")
+
+        return count
+
