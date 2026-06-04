@@ -8,19 +8,23 @@ from app.core.database import db
 class SLAService:
     @staticmethod
     def set_sla_deadlines(ticket: Ticket):
-        """
-        Calculates and sets deadline based on priority.
-        Note: Currently Ticket model doesn't explicitly store 'deadline' column in my previous step.
-        I should have checked this. The User prompt didn't strictly list columns but 'SLA targets & breach tracking'.
-        I'll assume I need to calculate it dynamically or I should have added a deadline column. 
-        For now, I'll calculate it on the fly or if I need to store it, I might need a migration (which I won't do now).
-        Actually, SLA model tracks the configurations. 
-        Breaches are usually tracked by checking Ticket.created_at + SLA.hours vs Now.
+        """Calculates and sets the SLA deadlines on a ticket based on its priority.
+
+        Args:
+            ticket (Ticket): The Ticket database model instance.
         """
         pass
 
     @staticmethod
     def get_deadline(ticket: Ticket) -> datetime:
+        """Retrieves the SLA deadline for a ticket by fetching the corresponding SLA configuration.
+
+        Args:
+            ticket (Ticket): The Ticket database model instance.
+
+        Returns:
+            datetime: The calculated SLA resolution deadline timestamp.
+        """
         sla_config = SLA.query.filter_by(priority=ticket.priority).first()
         if not sla_config:
             # Fallback or default
@@ -31,6 +35,14 @@ class SLAService:
 
     @staticmethod
     def check_sla_status(ticket: Ticket) -> SLAStatus:
+        """Checks the current SLA status of a ticket (ACHIEVED, BREACHED, or PENDING).
+
+        Args:
+            ticket (Ticket): The Ticket database model instance.
+
+        Returns:
+            SLAStatus: The current SLA status of the ticket.
+        """
         if ticket.status in ["Resolved", "Closed"]:
             # Check if it was resolved within time?
             # We need to look at history when it was resolved.

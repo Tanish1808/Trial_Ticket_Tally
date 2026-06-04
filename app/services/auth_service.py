@@ -9,6 +9,17 @@ from datetime import datetime
 class AuthService:
     @staticmethod
     def register_user(data: SignupRequest) -> User:
+        """Registers a new user in the system and sends a welcome email.
+
+        Args:
+            data (SignupRequest): User signup details (email, password, full_name, role, etc.).
+
+        Returns:
+            User: The newly created User database model instance.
+
+        Raises:
+            ValueError: If the email address is already registered.
+        """
         # Normalize email
         normalized_email = data.email.lower().strip()
         
@@ -43,6 +54,17 @@ class AuthService:
 
     @staticmethod
     def login_user(data: LoginRequest) -> dict:
+        """Authenticates a user and generates a JWT access token.
+
+        Args:
+            data (LoginRequest): User login credentials (email, password).
+
+        Returns:
+            dict: A dictionary containing the 'access_token' and 'user' object.
+
+        Raises:
+            ValueError: If credentials are invalid or if the account is deactivated.
+        """
         normalized_email = data.email.lower().strip()
         user = User.query.filter_by(email=normalized_email).first()
         
@@ -62,6 +84,14 @@ class AuthService:
 
     @staticmethod
     def initiate_password_reset(email: str):
+        """Initiates a password reset process by generating a token and sending an email.
+
+        Args:
+            email (str): The email address of the user requesting password reset.
+
+        Returns:
+            bool: True in all cases to prevent email/account enumeration attacks.
+        """
         user = User.query.filter_by(email=email).first()
         if user:
             from app.utils.token import generate_reset_token
@@ -75,6 +105,18 @@ class AuthService:
 
     @staticmethod
     def complete_password_reset(token: str, new_password: str):
+        """Resets the password of a user using a valid password reset token.
+
+        Args:
+            token (str): The password reset token.
+            new_password (str): The new password to set.
+
+        Returns:
+            bool: True if the password reset succeeds.
+
+        Raises:
+            ValueError: If the token is invalid/expired or if the user is not found.
+        """
         from app.utils.token import verify_reset_token
         
         email = verify_reset_token(token)
@@ -92,6 +134,11 @@ class AuthService:
 
     @staticmethod
     def get_or_create_demo_user() -> User:
+        """Retrieves the system-wide demo employee user, creating it and seeding sample tickets if absent.
+
+        Returns:
+            User: The demo User database model instance.
+        """
         from app.core.config import Config
         from app.core.constants import UserRole
         
@@ -184,6 +231,11 @@ class AuthService:
 
     @staticmethod
     def login_demo_user() -> dict:
+        """Authenticates and logins the demo user, returning a JWT token.
+
+        Returns:
+            dict: A dictionary containing the 'access_token' and 'user' object.
+        """
         user = AuthService.get_or_create_demo_user()
         token = create_access_token(identity=str(user.id))
         return {

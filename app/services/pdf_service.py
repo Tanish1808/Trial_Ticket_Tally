@@ -7,6 +7,14 @@ from io import BytesIO
 class PDFService:
     @staticmethod
     def generate_ticket_pdf(ticket):
+        """Generates a detailed PDF report for a single ticket, including comments and timeline.
+
+        Args:
+            ticket (Ticket): The Ticket database model instance.
+
+        Returns:
+            BytesIO: A binary stream containing the generated PDF report.
+        """
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
         story = []
@@ -92,6 +100,16 @@ class PDFService:
         return buffer
     @staticmethod
     def generate_user_report(user, tickets, comments):
+        """Generates a comprehensive PDF report summarizing a user's profile, tickets, and comments.
+
+        Args:
+            user (User): The User database model instance.
+            tickets (list): A list of Ticket database model instances.
+            comments (list): A list of Comment database model instances.
+
+        Returns:
+            BytesIO: A binary stream containing the generated PDF report.
+        """
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
         story = []

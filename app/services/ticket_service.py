@@ -12,6 +12,19 @@ logger = logging.getLogger(__name__)
 class TicketService:
     @staticmethod
     def create_ticket(data: TicketCreate, creator_id: int) -> Ticket:
+        """Creates a new ticket, assigns it to a team, and triggers notifications.
+
+        This method handles team assignment automatically based on the ticket category.
+        If no team mapping is found, it defaults to 'IT Support'. It also records the
+        initial status history and schedules notifications and email confirmations.
+
+        Args:
+            data (TicketCreate): The schema containing the ticket creation details.
+            creator_id (int): The ID of the user creating the ticket.
+
+        Returns:
+            Ticket: The newly created ticket instance.
+        """
         # Automatic Team Assignment
         from app.models.team import Team
         from app.models.team_mapping import TeamMapping
@@ -91,6 +104,14 @@ class TicketService:
 
     @staticmethod
     def get_ticket_by_id(ticket_id: int) -> Ticket:
+        """Retrieves a ticket by its ID with all related relations eagerly loaded.
+
+        Args:
+            ticket_id (int): The ID of the ticket to retrieve.
+
+        Returns:
+            Ticket: The ticket instance, or None if not found.
+        """
         from sqlalchemy.orm import joinedload, selectinload
         from app.models.comment import Comment
         
@@ -104,6 +125,23 @@ class TicketService:
 
     @staticmethod
     def update_ticket(ticket_id: int, data: TicketUpdate, user_id: int) -> Ticket:
+        """Updates a ticket's status, priority, category, or assignee.
+
+        If the status is changed, a status history record is created and a status change
+        notification is sent.
+
+        Args:
+            ticket_id (int): The ID of the ticket to update.
+            data (TicketUpdate): The schema containing update values.
+            user_id (int): The ID of the user performing the update.
+
+        Returns:
+            Ticket: The updated ticket instance.
+
+        Raises:
+            ValueError: If the ticket is not found or if the status of a closed ticket
+                is modified.
+        """
         ticket = Ticket.query.get(ticket_id)
         if not ticket:
             raise ValueError("Ticket not found")
@@ -147,6 +185,20 @@ class TicketService:
 
     @staticmethod
     def get_tickets(user, page=1, per_page=20):
+        """Retrieves a paginated list of tickets tailored to the user's role and type.
+
+        Demo users can only see demo tickets, while normal users can only see non-demo tickets.
+        Employees see only their created tickets. IT Staff see tickets for their team or
+        specifically assigned to them. Admins see all tickets (scoped by the demo filter).
+
+        Args:
+            user (User): The user requesting the tickets.
+            page (int, optional): The page number for pagination. Defaults to 1.
+            per_page (int, optional): The number of tickets per page. Defaults to 20.
+
+        Returns:
+            Pagination: A Flask-SQLAlchemy Pagination object containing the tickets.
+        """
         from app.core.constants import UserRole
         from app.core.config import Config
         
@@ -184,6 +236,23 @@ class TicketService:
 
     @staticmethod
     def claim_ticket(ticket_id: int, user_id: int) -> Ticket:
+        """Allows an IT staff member to claim a ticket for progression.
+
+        Changes the status to IN_PROGRESS and assigns the ticket to the claiming user.
+        Validates workload limits (max 3 active tickets), ticket existence, status, and
+        potential concurrency issues. Sends an approach email to the ticket creator.
+
+        Args:
+            ticket_id (int): The ID of the ticket to claim.
+            user_id (int): The ID of the IT staff member claiming the ticket.
+
+        Returns:
+            Ticket: The claimed and updated ticket instance.
+
+        Raises:
+            ValueError: If the ticket is not found, has been withdrawn, is already claimed/in progress,
+                or if the user's active ticket workload limit has been reached.
+        """
         ticket = Ticket.query.get(ticket_id)
         if not ticket:
             raise ValueError("Ticket not found")
@@ -247,8 +316,9 @@ class TicketService:
 
     @staticmethod
     def auto_close_resolved_tickets():
-        """
-        Automatically closes tickets that have been in 'Resolved' status for more than 7 days.
+        """Automatically closes tickets that have been in 'Resolved' status for more than 7 days.
+
+        Processes all tickets in batch. Records status history changes under the system account (None).
         """
         from datetime import datetime, timedelta
         from app.core.constants import TicketStatus

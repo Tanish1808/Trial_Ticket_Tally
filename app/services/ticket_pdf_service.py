@@ -9,6 +9,14 @@ from html import escape
 class TicketPdfService:
     @staticmethod
     def generate_ticket_pdf(ticket):
+        """Generates a PDF ticket summary report including status history and description.
+
+        Args:
+            ticket (Ticket): The Ticket database model instance.
+
+        Returns:
+            bytes: Binary content of the generated PDF document.
+        """
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
         styles = getSampleStyleSheet()

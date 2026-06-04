@@ -9,6 +9,16 @@ logger = logging.getLogger(__name__)
 class EmailService:
     @staticmethod
     def send_email(to_email: str, subject: str, body: str, attachments=None, reply_to=None, sender_name=None):
+        """Sends an HTML email with optional attachments and custom headers.
+
+        Args:
+            to_email (str): The recipient's email address.
+            subject (str): The subject line of the email.
+            body (str): The HTML body of the email.
+            attachments (list, optional): A list of tuples containing (filename, content) for attachments.
+            reply_to (str, optional): A custom Reply-To email address.
+            sender_name (str, optional): A custom display name for the sender.
+        """
         if not Config.MAIL_SERVER or not Config.MAIL_USERNAME:
             logger.warning("Email configuration missing. Skipping email send.")
             logger.info(f"Would have sent email to {to_email}: {subject}")
