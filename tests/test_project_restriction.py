@@ -1,52 +1,39 @@
+import pytest
+from app.main import create_app
+from app.core.config import TestingConfig
+from app.core.database import db
+from app.models.user import User
+from app.core.constants import UserRole
+from app.utils.jwt import create_access_token
 
-import urllib.request
-import urllib.error
-import json
-import ssl
+@pytest.fixture
+def app():
+    app = create_app(TestingConfig)
+    with app.app_context():
+        db.create_all()
+        yield app
+        db.session.remove()
+        db.drop_all()
 
-# Configuration
-BASE_URL = "http://127.0.0.1:5000/api/v1"
-ADMIN_EMAIL = "admin@tt.com"
-ADMIN_PASSWORD = "admin"
+@pytest.fixture
+def client(app):
+    return app.test_client()
 
-def make_request(url, method='GET', data=None, token=None):
-    req = urllib.request.Request(url, method=method)
-    req.add_header('Content-Type', 'application/json')
-    if token:
-        req.add_header('Authorization', f'Bearer {token}')
-    
-    if data:
-        json_data = json.dumps(data).encode('utf-8')
-        req.data = json_data
+@pytest.fixture
+def admin_headers(app):
+    admin = User(
+        email="admin_test@tt.com",
+        password_hash="test",
+        full_name="Admin Test",
+        role=UserRole.ADMIN
+    )
+    db.session.add(admin)
+    db.session.commit()
+    token = create_access_token(identity=str(admin.id))
+    return {"Authorization": f"Bearer {token}"}
 
-    try:
-        # Ignore SSL for localhost
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        
-        with urllib.request.urlopen(req, context=ctx) as response:
-            return response.status, json.loads(response.read().decode())
-    except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read().decode())
-    except Exception as e:
-        print(f"Error: {e}")
-        return None, None
-
-def test_restriction():
-    print("Logging in...")
-    status, body = make_request(f"{BASE_URL}/auth/login", method='POST', data={
-        "email": ADMIN_EMAIL,
-        "password": ADMIN_PASSWORD
-    })
-    
-    assert status == 200, f"Login failed: {body}"
-
-    token = body['access_token']
-    print("Login successful.")
-
+def test_restriction(client, admin_headers):
     # 1. Create Project
-    print("Creating test project...")
     project_data = {
         "name": "Test Restriction Project",
         "description": "Testing locked status",
@@ -55,30 +42,23 @@ def test_restriction():
         "startDate": "2026-01-01",
         "deadline": "2026-12-31"
     }
-    status, body = make_request(f"{BASE_URL}/projects", method='POST', data=project_data, token=token)
-    
-    assert status == 201, f"Failed to create project: {body}"
-        
+    response = client.post('/api/v1/projects', json=project_data, headers=admin_headers)
+    assert response.status_code == 201, f"Failed to create project: {response.get_json()}"
+    body = response.get_json()
     project_id = body['id']
-    print(f"Created Project ID: {project_id}")
 
     # 2. Mark as Completed
-    print("Marking as Completed...")
-    status, body = make_request(f"{BASE_URL}/projects/{project_id}", method='PATCH', data={"status": "Completed"}, token=token)
-    assert status == 200, f"Failed to mark completed: {body}"
-    print("Project marked as Completed.")
+    response = client.patch(f'/api/v1/projects/{project_id}', json={"status": "Completed"}, headers=admin_headers)
+    assert response.status_code == 200, f"Failed to mark completed: {response.get_json()}"
 
-    # 3. Attempt Edit
-    print("Attempting to edit description (Should Fail)...")
-    status, body = make_request(f"{BASE_URL}/projects/{project_id}", method='PATCH', data={"description": "Hacked"}, token=token)
+    # 3. Attempt Edit (should fail with 400 Bad Request)
+    response = client.patch(f'/api/v1/projects/{project_id}', json={"description": "Hacked"}, headers=admin_headers)
+    assert response.status_code == 400, f"FAILURE: Edit allowed! Status: {response.status_code}, Response: {response.get_json()}"
     
-    assert status == 400, f"FAILURE: Edit allowed/failed! Status: {status}, Response: {body}"
-    print("SUCCESS: Edit blocked with 400 Bad Request")
+    # 4. Cleanup (Soft Delete)
+    response = client.delete(f'/api/v1/projects/{project_id}', headers=admin_headers)
+    assert response.status_code == 200, f"Failed to delete project: {response.get_json()}"
 
-    # Cleanup
-    print("Cleaning up...")
-    make_request(f"{BASE_URL}/projects/{project_id}", method='DELETE', token=token)
-    print("Done.")
-
-if __name__ == "__main__":
-    test_restriction()
+    # 5. Verify Soft Delete (should return 404 Not Found since it is soft-deleted)
+    response_get = client.get(f'/api/v1/projects/{project_id}', headers=admin_headers)
+    assert response_get.status_code == 404, f"Project was not soft deleted (still queryable): {response_get.get_json()}"

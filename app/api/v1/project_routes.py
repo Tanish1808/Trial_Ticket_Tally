@@ -376,6 +376,6 @@ def delete_project(project_id):
         description: Project not found
     """
     project = Project.query.get_or_404(project_id)
-    db.session.delete(project)
+    project.soft_delete()
     db.session.commit()
     return jsonify({"message": "Project deleted successfully"})

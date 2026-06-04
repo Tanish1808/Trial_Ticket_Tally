@@ -35,4 +35,4 @@ jobs:
         SECRET_KEY: test-secret-key
         JWT_SECRET_KEY: test-jwt-secret-key
       run: |
-        python -m pytest tests/test_phase1_remediation.py
+        python -m pytest tests/

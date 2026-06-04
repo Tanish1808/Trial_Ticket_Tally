@@ -1,60 +1,53 @@
+import pytest
+from app.main import create_app
+from app.core.config import TestingConfig
+from app.core.database import db
+from app.models.user import User
+from app.core.constants import UserRole
+from app.utils.jwt import create_access_token
 
-import urllib.request
-import urllib.error
-import json
-import ssl
+@pytest.fixture
+def app():
+    app = create_app(TestingConfig)
+    with app.app_context():
+        db.create_all()
+        yield app
+        db.session.remove()
+        db.drop_all()
 
-# Configuration
-BASE_URL = "http://127.0.0.1:5000/api/v1"
-ADMIN_EMAIL = "admin@tt.com"
-ADMIN_PASSWORD = "admin"
+@pytest.fixture
+def client(app):
+    return app.test_client()
 
-def make_request(url, method='GET', data=None, token=None):
-    req = urllib.request.Request(url, method=method)
-    req.add_header('Content-Type', 'application/json')
-    if token:
-        req.add_header('Authorization', f'Bearer {token}')
-    
-    if data:
-        json_data = json.dumps(data).encode('utf-8')
-        req.data = json_data
+@pytest.fixture
+def admin_headers(app):
+    admin = User(
+        email="admin_test@tt.com",
+        password_hash="test",
+        full_name="Admin Test",
+        role=UserRole.ADMIN
+    )
+    db.session.add(admin)
+    db.session.commit()
+    token = create_access_token(identity=str(admin.id))
+    return {"Authorization": f"Bearer {token}"}
 
-    try:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        
-        with urllib.request.urlopen(req, context=ctx) as response:
-            return response.status, json.loads(response.read().decode())
-    except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read().decode())
-    except Exception as e:
-        print(f"Error: {e}")
-        return None, None
-
-def test_team_assignment():
-    print("Logging in...")
-    status, body = make_request(f"{BASE_URL}/auth/login", method='POST', data={
-        "email": ADMIN_EMAIL,
-        "password": ADMIN_PASSWORD
-    })
-    
-    assert status == 200, f"Login failed: {body}"
-
-    token = body['access_token']
-    print("Login successful.")
-
+def test_team_assignment(client, admin_headers):
     # 1. Test Search
-    print("Testing User Search...")
-    # Assuming 'Admin' exists
-    status, body = make_request(f"{BASE_URL}/users?search=Admin", token=token)
-    assert status == 200, f"Search failed. Status: {status}, Body: {body}"
-    assert len(body) > 0, f"Search returned empty list: {body}"
-    print(f"SUCCESS: Search found {len(body)} users. First match: {body[0]['full_name']} ({body[0]['email']})")
+    response = client.get('/api/v1/users?search=Admin', headers=admin_headers)
+    assert response.status_code == 200, f"Search failed: {response.get_json()}"
+    users = response.get_json()
+    assert len(users) > 0, f"Search returned empty list: {users}"
+    assert users[0]['full_name'] == "Admin Test"
 
-    # 2. Test Assignment by Name
-    print("Testing Assignment by Name...")
-    # Create a dummy project
+    # 2. Get profile
+    response_me = client.get('/api/v1/users/me', headers=admin_headers)
+    assert response_me.status_code == 200, f"Failed to get profile: {response_me.get_json()}"
+    me = response_me.get_json()
+    my_name = me['full_name']
+    assert my_name == "Admin Test"
+
+    # 3. Create project with team assignment by name
     project_data = {
         "name": "Team Assign Test",
         "description": "Testing Name Assignment",
@@ -63,30 +56,18 @@ def test_team_assignment():
         "startDate": "2026-02-01",
         "deadline": "2026-03-01",
         "team": [
-            {"name": "Admin User"}
+            {"name": my_name}
         ]
     }
-    
-    status, me = make_request(f"{BASE_URL}/users/me", token=token)
-    assert status == 200, f"Failed to get profile: {me}"
-    my_name = me['full_name']
-    print(f"Targeting user: {my_name}")
-    
-    project_data['team'] = [{"name": my_name}]
+    response_create = client.post('/api/v1/projects', json=project_data, headers=admin_headers)
+    assert response_create.status_code == 201, f"Project creation failed: {response_create.get_json()}"
+    project = response_create.get_json()
 
-    status, body = make_request(f"{BASE_URL}/projects", method='POST', data=project_data, token=token)
-    assert status == 201, f"Project creation failed. Status: {status}, Body: {body}"
-    
-    project = body
+    # 4. Verify assignment
     team = project.get('team', [])
-    found = any(m['email'] == ADMIN_EMAIL for m in team)
-    
-    try:
-        assert found, f"Project created but user NOT assigned. Team members: {team}"
-        print(f"SUCCESS: Project created and user assigned by Name ({my_name}).")
-    finally:
-        # Cleanup
-        make_request(f"{BASE_URL}/projects/{project['id']}", method='DELETE', token=token)
+    found = any(m['email'] == "admin_test@tt.com" for m in team)
+    assert found, f"Project created but user NOT assigned. Team members: {team}"
 
-if __name__ == "__main__":
-    test_team_assignment()
+    # 5. Cleanup
+    response_del = client.delete(f'/api/v1/projects/{project["id"]}', headers=admin_headers)
+    assert response_del.status_code == 200, f"Failed to delete project: {response_del.get_json()}"
