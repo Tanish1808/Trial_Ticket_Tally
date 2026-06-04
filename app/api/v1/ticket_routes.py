@@ -196,8 +196,11 @@ def get_tickets():
         "meta": {
             "page": paginated_tickets.page,
             "per_page": paginated_tickets.per_page,
+            "perPage": paginated_tickets.per_page,
             "total_pages": paginated_tickets.pages,
-            "total_items": paginated_tickets.total
+            "totalPages": paginated_tickets.pages,
+            "total_items": paginated_tickets.total,
+            "totalItems": paginated_tickets.total
         }
     }), 200
 

@@ -84,6 +84,7 @@ def signup():
         return jsonify({
             "message": "User registered successfully", 
             "access_token": login_result['access_token'],
+            "accessToken": login_result['access_token'],
             "user": {
                 "id": login_result['user'].id,
                 "email": login_result['user'].email,
@@ -152,6 +153,7 @@ def login():
         result = AuthService.login_user(data)
         return jsonify({
             "access_token": result['access_token'],
+            "accessToken": result['access_token'],
             "user": {
                 "id": result['user'].id,
                 "email": result['user'].email,
@@ -291,6 +293,7 @@ def demo_login():
         result = AuthService.login_demo_user()
         return jsonify({
             "access_token": result['access_token'],
+            "accessToken": result['access_token'],
             "user": {
                 "id": result['user'].id,
                 "email": result['user'].email,

@@ -31,8 +31,11 @@ def get_analytics():
     
     return jsonify({
         "total_tickets": total_tickets,
+        "totalTickets": total_tickets,
         "open_tickets": open_tickets,
-        "total_users": users_count
+        "openTickets": open_tickets,
+        "total_users": users_count,
+        "totalUsers": users_count
     })
 
 @admin_bp.route('/messages', methods=['GET'])
@@ -63,7 +66,9 @@ def get_messages():
         'subject': msg.subject,
         'message': msg.message,
         'created_at': msg.created_at.isoformat(),
-        'is_read': msg.is_read
+        'createdAt': msg.created_at.isoformat(),
+        'is_read': msg.is_read,
+        'isRead': msg.is_read
     } for msg in messages])
 
 @admin_bp.route('/messages/<int:message_id>/read', methods=['PATCH'])
@@ -126,7 +131,9 @@ def get_team_mappings():
         'id': m.id,
         'category': m.category,
         'team_id': m.team_id,
-        'team_name': m.team.name if m.team else None
+        'teamId': m.team_id,
+        'team_name': m.team.name if m.team else None,
+        'teamName': m.team.name if m.team else None
     } for m in mappings])
 
 
@@ -195,7 +202,9 @@ def create_team_mapping():
             'id': mapping.id,
             'category': mapping.category,
             'team_id': mapping.team_id,
-            'team_name': mapping.team.name if mapping.team else None
+            'teamId': mapping.team_id,
+            'team_name': mapping.team.name if mapping.team else None,
+            'teamName': mapping.team.name if mapping.team else None
         }), 201
     except ValidationError as e:
         return jsonify({'error': e.errors()}), 400
@@ -274,7 +283,9 @@ def update_team_mapping(mapping_id):
             'id': mapping.id,
             'category': mapping.category,
             'team_id': mapping.team_id,
-            'team_name': mapping.team.name if mapping.team else None
+            'teamId': mapping.team_id,
+            'team_name': mapping.team.name if mapping.team else None,
+            'teamName': mapping.team.name if mapping.team else None
         })
     except ValidationError as e:
         return jsonify({'error': e.errors()}), 400

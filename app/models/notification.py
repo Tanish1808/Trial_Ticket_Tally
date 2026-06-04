@@ -19,9 +19,12 @@ class Notification(db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
+            'userId': self.user_id,
             'title': self.title,
             'message': self.message,
             'type': self.type,
             'is_read': self.is_read,
-            'created_at': self.created_at.isoformat()
+            'isRead': self.is_read,
+            'created_at': self.created_at.isoformat(),
+            'createdAt': self.created_at.isoformat()
         }

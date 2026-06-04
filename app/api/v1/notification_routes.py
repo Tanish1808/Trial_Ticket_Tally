@@ -25,7 +25,8 @@ def get_notifications():
     unread_count = NotificationService.get_unread_count(user.id)
     return jsonify({
         'notifications': [n.to_dict() for n in notifications],
-        'unread_count': unread_count
+        'unread_count': unread_count,
+        'unreadCount': unread_count
     })
 
 @notification_bp.route('/<int:notification_id>/read', methods=['POST'])

@@ -28,12 +28,15 @@ def get_me():
     return jsonify({
         "id": g.user.id,
         "full_name": g.user.full_name,
+        "fullName": g.user.full_name,
         "email": g.user.email,
         "role": g.user.role.value,
         "department": g.user.department,
         "team_id": g.user.team_id,
+        "teamId": g.user.team_id,
         "preferences": g.user.preferences or {},
-        "created_at": g.user.created_at.isoformat() if g.user.created_at else None
+        "created_at": g.user.created_at.isoformat() if g.user.created_at else None,
+        "createdAt": g.user.created_at.isoformat() if g.user.created_at else None
     })
 
 @user_bp.route('/me', methods=['PATCH'])
@@ -92,6 +95,7 @@ def update_my_profile():
         "user": {
             "id": g.user.id,
             "full_name": g.user.full_name,
+            "fullName": g.user.full_name,
             "email": g.user.email,
             "role": g.user.role.value,
             "department": g.user.department
@@ -222,13 +226,18 @@ def get_all_users():
         "id": u.id,
         "email": u.email,
         "full_name": u.full_name,
+        "fullName": u.full_name,
         "role": u.role.value,
         "department": u.department,
         "team": u.team.name if u.team else None,
         "tickets_raised": len(u.created_tickets),
+        "ticketsRaised": len(u.created_tickets),
         "tickets_resolved": sum(1 for t in u.assigned_tickets if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED]),
+        "ticketsResolved": sum(1 for t in u.assigned_tickets if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED]),
         "is_active": u.is_active,
-        "created_at": u.created_at.isoformat() if u.created_at else None
+        "isActive": u.is_active,
+        "created_at": u.created_at.isoformat() if u.created_at else None,
+        "createdAt": u.created_at.isoformat() if u.created_at else None
     } for u in users])
 
 @user_bp.route('', methods=['POST'])
@@ -356,6 +365,7 @@ def create_user():
             "id": new_user.id,
             "email": new_user.email,
             "full_name": new_user.full_name,
+            "fullName": new_user.full_name,
             "role": new_user.role.value
         }
     }), 201
