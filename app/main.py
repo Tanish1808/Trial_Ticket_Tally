@@ -94,7 +94,6 @@ def create_app(config_class=Config):
                 "model_filter": lambda model: True,
             }
         ],
-        "static_folder": "static",
         "swagger_ui": True,
         "specs_route": "/api/docs"
     }
