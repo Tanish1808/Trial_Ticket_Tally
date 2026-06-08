@@ -6,10 +6,11 @@ def create_access_token(identity: dict, expires_in: int = None) -> str:
     if expires_in is None:
         expires_in = Config.JWT_ACCESS_TOKEN_EXPIRES
     
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     payload = {
         "sub": identity,
-        "iat": datetime.datetime.utcnow(),
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=expires_in)
+        "iat": now,
+        "exp": now + datetime.timedelta(seconds=expires_in)
     }
     
     return jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")

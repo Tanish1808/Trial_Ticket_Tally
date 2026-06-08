@@ -8,7 +8,7 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 migrate = Migrate()
 
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import event
 from sqlalchemy.orm import Query
 
@@ -18,7 +18,7 @@ class SoftDeleteMixin:
 
     def soft_delete(self):
         self.is_deleted = True
-        self.deleted_at = datetime.utcnow()
+        self.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
         db.session.add(self)
 
 from sqlalchemy.orm import with_loader_criteria

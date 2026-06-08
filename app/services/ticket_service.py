@@ -142,7 +142,7 @@ class TicketService:
             ValueError: If the ticket is not found or if the status of a closed ticket
                 is modified.
         """
-        ticket = Ticket.query.get(ticket_id)
+        ticket = db.session.get(Ticket, ticket_id)
         if not ticket:
             raise ValueError("Ticket not found")
         
@@ -253,7 +253,7 @@ class TicketService:
             ValueError: If the ticket is not found, has been withdrawn, is already claimed/in progress,
                 or if the user's active ticket workload limit has been reached.
         """
-        ticket = Ticket.query.get(ticket_id)
+        ticket = db.session.get(Ticket, ticket_id)
         if not ticket:
             raise ValueError("Ticket not found")
 

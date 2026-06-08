@@ -495,7 +495,7 @@ def withdraw_ticket(ticket_id):
         from app.models.ticket import Ticket
         from app.core.constants import TicketStatus
         
-        ticket = Ticket.query.get(ticket_id)
+        ticket = db.session.get(Ticket, ticket_id)
         if not ticket:
             return jsonify({"error": "Ticket not found"}), 404
             

@@ -3,6 +3,7 @@ from flask import request, jsonify, g
 from app.utils.jwt import decode_token
 from app.models.user import User
 from app.core.constants import UserRole
+from app.core.database import db
 
 def token_required(f):
     @wraps(f)
@@ -18,7 +19,7 @@ def token_required(f):
         
         try:
             payload = decode_token(token)
-            current_user = User.query.get(int(payload['sub']))
+            current_user = db.session.get(User, int(payload['sub']))
             if not current_user:
                 raise Exception("User not found")
             g.user = current_user

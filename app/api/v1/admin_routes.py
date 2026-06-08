@@ -184,7 +184,7 @@ def create_team_mapping():
         data = TeamMappingCreate(**request.json)
         
         # Verify team exists
-        team = Team.query.get(data.team_id)
+        team = db.session.get(Team, data.team_id)
         if not team:
             return jsonify({'error': 'Target team not found'}), 400
             
@@ -272,7 +272,7 @@ def update_team_mapping(mapping_id):
             mapping.category = data.category
             
         if data.team_id is not None:
-            team = Team.query.get(data.team_id)
+            team = db.session.get(Team, data.team_id)
             if not team:
                 return jsonify({'error': 'Target team not found'}), 400
             mapping.team_id = data.team_id
