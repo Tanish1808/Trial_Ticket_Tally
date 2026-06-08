@@ -9,3 +9,4 @@ venv/
 .vscode/
 *.log
 audit_report.md
+ROADMAP.md
