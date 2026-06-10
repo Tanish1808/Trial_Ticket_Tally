@@ -1168,6 +1168,7 @@
     font-size: 3rem;
     background: linear-gradient(135deg, var(--text-tertiary), var(--text-secondary));
     -webkit-background-clip: text;
+    background-clip: text; /* Standard property for compatibility */
     -webkit-text-fill-color: transparent;
     opacity: 0.7;
 }
@@ -1415,4 +1416,4 @@
 }
 
 
-
+
