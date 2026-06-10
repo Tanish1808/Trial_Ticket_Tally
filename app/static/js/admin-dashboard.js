@@ -24,8 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setupEventListeners();
     initializeCharts();
     showSection('dashboard');
-
-    showSection('dashboard');
+    loadAnnouncements();
 
     // Auto Refresh Logic
     const autoRefresh = localStorage.getItem('auto-refresh') !== 'false'; // Default true
@@ -112,6 +111,21 @@ function setupEventListeners() {
     const searchInput = document.getElementById('searchAllTickets');
     if (searchInput) {
         searchInput.addEventListener('input', handleSearch);
+    }
+
+    // Announcements toggle event listeners
+    const toggleBtn = document.getElementById('announcementsToggleBtn');
+    const closeBtn = document.getElementById('announcementsCloseBtn');
+    const overlay = document.getElementById('announcementsDrawerOverlay');
+
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => toggleAnnouncementsDrawer(true));
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => toggleAnnouncementsDrawer(false));
+    }
+    if (overlay) {
+        overlay.addEventListener('click', () => toggleAnnouncementsDrawer(false));
     }
 }
 
@@ -930,6 +944,7 @@ async function handleCreateAnnouncement(e) {
             document.getElementById('createAnnouncementForm').reset();
             
             loadAnnouncementsAdmin();
+            loadAnnouncements();
             showToast("Announcement broadcasted successfully");
         } else {
             const data = await response.json();
@@ -955,6 +970,7 @@ async function deleteAnnouncement(id) {
 
         if (response.ok) {
             loadAnnouncementsAdmin();
+            loadAnnouncements();
             showToast("Announcement deleted");
         } else {
             alert("Failed to delete announcement");
@@ -974,4 +990,101 @@ function timeAgo(dateString) {
     if (seconds < 3600) return `${Math.floor((seconds + 1) / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor((seconds + 1) / 3600)}h ago`;
     return `${Math.floor((seconds + 1) / 86400)}d ago`;
+}
+
+// Toggle Announcements Drawer
+function toggleAnnouncementsDrawer(show) {
+    const drawer = document.getElementById('announcementsDrawer');
+    const overlay = document.getElementById('announcementsDrawerOverlay');
+    if (!drawer || !overlay) return;
+
+    if (show) {
+        drawer.classList.add('active');
+        overlay.classList.add('active');
+    } else {
+        drawer.classList.remove('active');
+        overlay.classList.remove('active');
+    }
+}
+
+// Announcements Logic (User View)
+async function loadAnnouncements() {
+    try {
+        const token = getAuthToken();
+        const response = await fetch('/api/v1/announcements', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+            const announcements = await response.json();
+            displayAnnouncements(announcements);
+        }
+    } catch (e) {
+        console.error("Failed to load announcements", e);
+    }
+}
+
+function displayAnnouncements(announcements) {
+    const listContainer = document.getElementById('drawerAnnouncementsList');
+    const badge = document.getElementById('announcementsBadge');
+    if (!listContainer) return;
+
+    // Filter out dismissed announcements using localStorage
+    const dismissed = JSON.parse(localStorage.getItem('dismissedAnnouncements') || '[]');
+    const visible = announcements.filter(a => !dismissed.includes(a.id));
+
+    // Update Badge
+    if (badge) {
+        if (visible.length > 0) {
+            badge.textContent = visible.length;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    if (visible.length === 0) {
+        listContainer.innerHTML = `
+            <div class="announcements-empty-state">
+                <i class="fas fa-bullhorn mb-3"></i>
+                <p class="fw-semibold">No New Announcements</p>
+                <span class="small text-muted">You're all caught up on system updates.</span>
+            </div>
+        `;
+        return;
+    }
+
+    listContainer.innerHTML = visible.map(a => `
+        <div class="announcement-glass-card priority-${a.priority ? a.priority.toLowerCase() : 'medium'}" id="announcement-card-${a.id}">
+            <div class="announcement-card-header">
+                <h4 class="announcement-card-title">${a.title}</h4>
+                <button class="btn-dismiss-announcement" onclick="dismissAnnouncement(${a.id})" title="Dismiss Notice">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="announcement-card-body" style="white-space: pre-line;">${a.message}</div>
+            <div class="announcement-card-footer">
+                <span class="announcement-priority-badge ${a.priority ? a.priority.toLowerCase() : 'medium'}">${a.priority || 'MEDIUM'}</span>
+                <span class="announcement-time" title="${a.created_at}">${timeAgo(a.created_at)}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+window.dismissAnnouncement = function(id) {
+    const dismissed = JSON.parse(localStorage.getItem('dismissedAnnouncements') || '[]');
+    if (!dismissed.includes(id)) {
+        dismissed.push(id);
+        localStorage.setItem('dismissedAnnouncements', JSON.stringify(dismissed));
+    }
+
+    // Animate dismissal in the drawer UI
+    const card = document.getElementById(`announcement-card-${id}`);
+    if (card) {
+        card.classList.add('announcement-dismiss-animation');
+        card.addEventListener('animationend', () => {
+            loadAnnouncements();
+        });
+    } else {
+        loadAnnouncements();
+    }
 }

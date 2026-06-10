@@ -68,6 +68,21 @@ function setupEventListeners() {
     // Search tickets
     document.getElementById('searchTickets').addEventListener('input', handleSearch);
 
+    // Announcements toggle event listeners
+    const toggleBtn = document.getElementById('announcementsToggleBtn');
+    const closeBtn = document.getElementById('announcementsCloseBtn');
+    const overlay = document.getElementById('announcementsDrawerOverlay');
+
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => toggleAnnouncementsDrawer(true));
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => toggleAnnouncementsDrawer(false));
+    }
+    if (overlay) {
+        overlay.addEventListener('click', () => toggleAnnouncementsDrawer(false));
+    }
+
     // Duplicate Ticket Check
     const subjectInput = document.getElementById('ticketSubject');
     if (subjectInput) {
@@ -591,6 +606,21 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
+// Toggle Announcements Drawer
+function toggleAnnouncementsDrawer(show) {
+    const drawer = document.getElementById('announcementsDrawer');
+    const overlay = document.getElementById('announcementsDrawerOverlay');
+    if (!drawer || !overlay) return;
+
+    if (show) {
+        drawer.classList.add('active');
+        overlay.classList.add('active');
+    } else {
+        drawer.classList.remove('active');
+        overlay.classList.remove('active');
+    }
+}
+
 // Announcements Logic
 async function loadAnnouncements() {
     try {
@@ -608,33 +638,48 @@ async function loadAnnouncements() {
 }
 
 function displayAnnouncements(announcements) {
-    const container = document.getElementById('announcementsContainer');
-    if (!container) return;
+    const listContainer = document.getElementById('drawerAnnouncementsList');
+    const badge = document.getElementById('announcementsBadge');
+    if (!listContainer) return;
 
     // Filter out dismissed announcements using localStorage
     const dismissed = JSON.parse(localStorage.getItem('dismissedAnnouncements') || '[]');
     const visible = announcements.filter(a => !dismissed.includes(a.id));
 
+    // Update Badge
+    if (badge) {
+        if (visible.length > 0) {
+            badge.textContent = visible.length;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
     if (visible.length === 0) {
-        container.style.display = 'none';
-        container.innerHTML = '';
+        listContainer.innerHTML = `
+            <div class="announcements-empty-state">
+                <i class="fas fa-bullhorn mb-3"></i>
+                <p class="fw-semibold">No New Announcements</p>
+                <span class="small text-muted">You're all caught up on system updates.</span>
+            </div>
+        `;
         return;
     }
 
-    container.style.display = 'block';
-    container.innerHTML = visible.map(a => `
-        <div class="alert alert-info alert-dismissible fade show shadow-sm p-4 border-0 position-relative mb-3" role="alert" style="background: linear-gradient(135deg, var(--primary-900), var(--surface-elevated)); border-left: 5px solid var(--primary-500) !important; border-radius: var(--radius-lg); color: var(--text-main);">
-            <div class="d-flex align-items-start gap-3">
-                <div class="rounded-circle bg-primary bg-opacity-20 p-3" style="color: var(--primary-400); flex-shrink: 0;">
-                    <i class="fas fa-bullhorn fa-lg"></i>
-                </div>
-                <div>
-                    <h5 class="alert-heading fw-bold mb-1">${a.title}</h5>
-                    <p class="mb-2 text-muted" style="white-space: pre-line;">${a.message}</p>
-                    <small class="text-muted small">Broadcasted by <strong>${a.created_by}</strong> &bull; ${timeAgo(a.created_at)}</small>
-                </div>
+    listContainer.innerHTML = visible.map(a => `
+        <div class="announcement-glass-card priority-${a.priority ? a.priority.toLowerCase() : 'medium'}" id="announcement-card-${a.id}">
+            <div class="announcement-card-header">
+                <h4 class="announcement-card-title">${a.title}</h4>
+                <button class="btn-dismiss-announcement" onclick="dismissAnnouncement(${a.id})" title="Dismiss Notice">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close" onclick="dismissAnnouncement(${a.id})" style="position: absolute; top: 1.5rem; right: 1.5rem;"></button>
+            <div class="announcement-card-body" style="white-space: pre-line;">${a.message}</div>
+            <div class="announcement-card-footer">
+                <span class="announcement-priority-badge ${a.priority ? a.priority.toLowerCase() : 'medium'}">${a.priority || 'MEDIUM'}</span>
+                <span class="announcement-time" title="${a.created_at}">${timeAgo(a.created_at)}</span>
+            </div>
         </div>
     `).join('');
 }
@@ -644,5 +689,16 @@ window.dismissAnnouncement = function(id) {
     if (!dismissed.includes(id)) {
         dismissed.push(id);
         localStorage.setItem('dismissedAnnouncements', JSON.stringify(dismissed));
+    }
+
+    // Animate dismissal in the drawer UI
+    const card = document.getElementById(`announcement-card-${id}`);
+    if (card) {
+        card.classList.add('announcement-dismiss-animation');
+        card.addEventListener('animationend', () => {
+            loadAnnouncements();
+        });
+    } else {
+        loadAnnouncements();
     }
 }
