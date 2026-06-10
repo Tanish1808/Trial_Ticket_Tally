@@ -1310,4 +1310,109 @@
     animation: bounce 2s infinite;
 }
 
+/* Glassmorphic Modal styling for Announcement */
+.glass-modal-content {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: var(--radius-xl, 1.25rem) !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+[data-theme="dark"] .glass-modal-content {
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+/* Modal header accent top bar */
+.glass-modal-content::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--warning, #f59e0b), var(--danger, #ef4444));
+    z-index: 5;
+}
+
+.glass-modal-content .modal-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 1.5rem 1.75rem;
+    background: transparent;
+}
+
+[data-theme="dark"] .glass-modal-content .modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-modal-content .modal-title {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.glass-modal-content .modal-body {
+    padding: 1.75rem;
+}
+
+/* Glass Inputs styling */
+.glass-input-group {
+    margin-bottom: 1.25rem;
+}
+
+.glass-input-label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    display: inline-block;
+}
+
+.glass-input-field {
+    background: rgba(255, 255, 255, 0.45) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: var(--radius-md, 0.5rem) !important;
+    color: var(--text-primary) !important;
+    padding: 0.75rem 1rem !important;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+[data-theme="dark"] .glass-input-field {
+    background: rgba(15, 23, 42, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.glass-input-field:focus {
+    background: rgba(255, 255, 255, 0.75) !important;
+    border-color: var(--warning, #f59e0b) !important;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2) !important;
+    outline: none !important;
+}
+
+[data-theme="dark"] .glass-input-field:focus {
+    background: rgba(15, 23, 42, 0.7) !important;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.35) !important;
+}
+
+/* Custom fade zoom entrance for modal opening */
+.modal.fade .glass-modal-content {
+    transform: scale(0.9);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+}
+
+.modal.show .glass-modal-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+
 
