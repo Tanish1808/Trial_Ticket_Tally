@@ -160,6 +160,12 @@ def create_app(config_class=Config):
     # Register Socket Events
     register_socket_events(socketio)
 
+    # Rate Limit Error Handler
+    from flask_limiter.errors import RateLimitExceeded
+    @app.errorhandler(RateLimitExceeded)
+    def handle_rate_limit_exceeded(e):
+        return jsonify({"error": f"Too Many Requests: {e.description}"}), 429
+
     # Global Error Handler
     @app.errorhandler(Exception)
     def handle_exception(e):

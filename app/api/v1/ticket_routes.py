@@ -4,6 +4,7 @@ from app.services.ticket_service import TicketService
 from app.schemas.ticket_schema import TicketCreate, TicketUpdate
 from app.middleware.auth_middleware import token_required
 from pydantic import ValidationError
+from app.core.extensions import limiter
 
 from app.models.comment import Comment
 from app.core.database import db
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 ticket_bp = Blueprint('tickets', __name__, url_prefix='/api/v1/tickets')
 
 @ticket_bp.route('', methods=['POST'])
+@limiter.limit("10 per minute")
 @token_required
 def create_ticket():
     """
