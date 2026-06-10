@@ -6,3 +6,4 @@ from app.models.message import Message
 from app.models.sla import SLA
 from app.models.notification import Notification
 from app.models.team_mapping import TeamMapping
+from app.models.announcement import Announcement

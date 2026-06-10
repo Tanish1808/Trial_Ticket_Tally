@@ -45,6 +45,11 @@
             </a>
           </li>
           <li class="nav-item">
+            <a href="#" class="nav-link-item" id="nav-announcements" onclick="showSection('announcements'); return false;">
+              <i class="fas fa-bullhorn"></i><span>Announcements</span>
+            </a>
+          </li>
+          <li class="nav-item">
             <a href="#" class="nav-link-item" id="nav-messages" onclick="showSection('messages'); return false;">
               <i class="fas fa-envelope"></i><span>Messages</span>
             </a>
@@ -324,6 +329,31 @@
           </div>
         </div>
       </div>
+      <div id="announcementsSection" style="display: none">
+        <div class="content-card">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="content-card-title mb-0">System Announcements</h2>
+            <button class="btn btn-primary-custom" onclick="showCreateAnnouncementModal()">
+              <i class="fas fa-bullhorn me-2"></i>Create Announcement
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-custom">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Message</th>
+                  <th>Created By</th>
+                  <th>Created At</th>
+                  <th>Expires</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="announcementsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
       <div id="profileSection" style="display: none">
         <div class="content-card" style="max-width: 800px; margin: 0 auto;">
           <div class="text-center mb-5">
@@ -489,6 +519,36 @@
         </div>
         <div class="modal-footer" style="border-top: 1px solid var(--border)">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="createAnnouncementModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content" style="background: var(--surface); border: 1px solid var(--border)">
+        <div class="modal-header" style="border-bottom: 1px solid var(--border)">
+          <h5 class="modal-title">Create Announcement</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="createAnnouncementForm">
+            <div class="mb-3">
+              <label class="form-label">Title</label>
+              <input type="text" class="form-control" id="announcementTitle" required placeholder="Maintenance Window, System Update, etc." />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Message</label>
+              <textarea class="form-control" id="announcementMessage" rows="4" required placeholder="Detail the update or downtime schedule..."></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Expires At (Optional)</label>
+              <input type="datetime-local" class="form-control" id="announcementExpires" />
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary-custom">Broadcast</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

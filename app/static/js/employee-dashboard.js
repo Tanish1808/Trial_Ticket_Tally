@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeDashboard();
     loadTickets();
     setupEventListeners();
+    loadAnnouncements();
 });
 
 // Initialize dashboard
@@ -589,3 +590,59 @@ function showToast(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+// Announcements Logic
+async function loadAnnouncements() {
+    try {
+        const token = getAuthToken();
+        const response = await fetch('/api/v1/announcements', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+            const announcements = await response.json();
+            displayAnnouncements(announcements);
+        }
+    } catch (e) {
+        console.error("Failed to load announcements", e);
+    }
+}
+
+function displayAnnouncements(announcements) {
+    const container = document.getElementById('announcementsContainer');
+    if (!container) return;
+
+    // Filter out dismissed announcements using localStorage
+    const dismissed = JSON.parse(localStorage.getItem('dismissedAnnouncements') || '[]');
+    const visible = announcements.filter(a => !dismissed.includes(a.id));
+
+    if (visible.length === 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    container.style.display = 'block';
+    container.innerHTML = visible.map(a => `
+        <div class="alert alert-info alert-dismissible fade show shadow-sm p-4 border-0 position-relative mb-3" role="alert" style="background: linear-gradient(135deg, var(--primary-900), var(--surface-elevated)); border-left: 5px solid var(--primary-500) !important; border-radius: var(--radius-lg); color: var(--text-main);">
+            <div class="d-flex align-items-start gap-3">
+                <div class="rounded-circle bg-primary bg-opacity-20 p-3" style="color: var(--primary-400); flex-shrink: 0;">
+                    <i class="fas fa-bullhorn fa-lg"></i>
+                </div>
+                <div>
+                    <h5 class="alert-heading fw-bold mb-1">${a.title}</h5>
+                    <p class="mb-2 text-muted" style="white-space: pre-line;">${a.message}</p>
+                    <small class="text-muted small">Broadcasted by <strong>${a.created_by}</strong> &bull; ${timeAgo(a.created_at)}</small>
+                </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close" onclick="dismissAnnouncement(${a.id})" style="position: absolute; top: 1.5rem; right: 1.5rem;"></button>
+        </div>
+    `).join('');
+}
+
+window.dismissAnnouncement = function(id) {
+    const dismissed = JSON.parse(localStorage.getItem('dismissedAnnouncements') || '[]');
+    if (!dismissed.includes(id)) {
+        dismissed.push(id);
+        localStorage.setItem('dismissedAnnouncements', JSON.stringify(dismissed));
+    }
+}

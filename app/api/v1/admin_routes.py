@@ -366,3 +366,130 @@ def trigger_purge():
             "message": str(e)
         }), 500
 
+@admin_bp.route('/announcements', methods=['POST'])
+@role_required([UserRole.ADMIN])
+def create_announcement():
+    """
+    Create a new system announcement (Admin only)
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - title
+            - message
+          properties:
+            title:
+              type: string
+              example: Maintenance window scheduled
+            message:
+              type: string
+              example: The system will be down on Sunday at 2 AM.
+            expires_at:
+              type: string
+              format: date-time
+              example: 2026-06-12T02:00:00Z
+    responses:
+      201:
+        description: Announcement created successfully
+      400:
+        description: Validation error
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (Admin only)
+    """
+    from app.models.announcement import Announcement
+    from app.schemas.announcement_schema import AnnouncementCreate
+    from app.core.database import db
+    from flask import request, g
+    from pydantic import ValidationError
+
+    try:
+        data = AnnouncementCreate(**request.json)
+        announcement = Announcement(
+            title=data.title,
+            message=data.message,
+            expires_at=data.expires_at,
+            created_by_id=g.user.id
+        )
+        db.session.add(announcement)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Announcement created',
+            'announcement': announcement.to_dict()
+        }), 201
+    except ValidationError as e:
+        return jsonify({'error': e.errors()}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/announcements', methods=['GET'])
+@role_required([UserRole.ADMIN])
+def get_all_announcements():
+    """
+    Get all system announcements (Admin only)
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: List of all announcements
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (Admin only)
+    """
+    from app.models.announcement import Announcement
+    announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
+    return jsonify([a.to_dict() for a in announcements]), 200
+
+@admin_bp.route('/announcements/<int:announcement_id>', methods=['DELETE'])
+@role_required([UserRole.ADMIN])
+def delete_announcement(announcement_id):
+    """
+    Delete system announcement (Admin only)
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    parameters:
+      - name: announcement_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Announcement deleted successfully
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (Admin only)
+      404:
+        description: Announcement not found
+    """
+    from app.models.announcement import Announcement
+    from app.core.database import db
+
+    announcement = Announcement.query.get_or_404(announcement_id)
+    try:
+        db.session.delete(announcement)
+        db.session.commit()
+        return jsonify({'message': 'Announcement deleted'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+

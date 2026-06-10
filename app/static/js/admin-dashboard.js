@@ -103,6 +103,11 @@ async function loadProfile() {
 function setupEventListeners() {
     document.getElementById('addStaffForm').addEventListener('submit', handleAddStaff);
     document.getElementById('changePriorityForm').addEventListener('submit', handleChangePriority);
+    
+    const announceForm = document.getElementById('createAnnouncementForm');
+    if (announceForm) {
+        announceForm.addEventListener('submit', handleCreateAnnouncement);
+    }
 
     const searchInput = document.getElementById('searchAllTickets');
     if (searchInput) {
@@ -275,7 +280,7 @@ function initializeCharts() {
 // Show section
 function showSection(section) {
     // Hide all sections
-    const sections = ['dashboardSection', 'ticketsSection', 'usersSection', 'itstaffSection', 'messagesSection'];
+    const sections = ['dashboardSection', 'ticketsSection', 'usersSection', 'itstaffSection', 'messagesSection', 'announcementsSection', 'profileSection'];
     sections.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -307,6 +312,11 @@ function showSection(section) {
     } else if (section === 'messages') {
         document.getElementById('messagesSection').style.display = 'block';
         loadMessages();
+    } else if (section === 'announcements') {
+        document.getElementById('announcementsSection').style.display = 'block';
+        loadAnnouncementsAdmin();
+    } else if (section === 'profile') {
+        document.getElementById('profileSection').style.display = 'block';
     }
 }
 
@@ -835,3 +845,133 @@ function toggleSidebar() {
     sidebar.classList.toggle('active');
     overlay.classList.toggle('active');
 }
+
+// Announcements Admin Logic
+async function loadAnnouncementsAdmin() {
+    try {
+        const response = await fetch('/api/v1/admin/announcements', {
+            headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+        });
+
+        if (!response.ok) return;
+
+        const announcements = await response.json();
+        const tbody = document.getElementById('announcementsTableBody');
+
+        if (announcements.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5"><div class="text-muted"><i class="fas fa-bullhorn fa-3x mb-3"></i><p>No announcements broadcasted yet</p></div></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = announcements.map(a => {
+            const expires = a.expires_at ? new Date(a.expires_at).toLocaleString() : '<span class="text-muted">Never</span>';
+            const status = a.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+            
+            return `
+                <tr>
+                    <td><strong>${a.title}</strong></td>
+                    <td><div class="text-truncate" style="max-width: 300px;" title="${a.message}">${a.message}</div></td>
+                    <td>${a.created_by}</td>
+                    <td>${new Date(a.created_at).toLocaleString()}</td>
+                    <td>${expires}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAnnouncement(${a.id})" title="Delete Announcement">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        console.error("Failed to load admin announcements", e);
+    }
+}
+
+function showCreateAnnouncementModal() {
+    const modalEl = document.getElementById('createAnnouncementModal');
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+async function handleCreateAnnouncement(e) {
+    e.preventDefault();
+
+    const title = document.getElementById('announcementTitle').value.trim();
+    const message = document.getElementById('announcementMessage').value.trim();
+    const expiresVal = document.getElementById('announcementExpires').value;
+    
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Broadcasting...';
+
+    const payload = {
+        title: title,
+        message: message
+    };
+    if (expiresVal) {
+        payload.expires_at = new Date(expiresVal).toISOString();
+    }
+
+    try {
+        const response = await fetch('/api/v1/admin/announcements', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAuthToken()}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            const modalEl = document.getElementById('createAnnouncementModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            document.getElementById('createAnnouncementForm').reset();
+            
+            loadAnnouncementsAdmin();
+            showToast("Announcement broadcasted successfully");
+        } else {
+            const data = await response.json();
+            alert(data.error || "Failed to create announcement");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Error creating announcement");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function deleteAnnouncement(id) {
+    if (!confirm("Are you sure you want to delete this announcement?")) return;
+
+    try {
+        const response = await fetch(`/api/v1/admin/announcements/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+        });
+
+        if (response.ok) {
+            loadAnnouncementsAdmin();
+            showToast("Announcement deleted");
+        } else {
+            alert("Failed to delete announcement");
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function timeAgo(dateString) {
+    if (!dateString) return 'Unknown';
+    if (!dateString.endsWith('Z') && !dateString.includes('+')) dateString += 'Z';
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor((seconds + 1) / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor((seconds + 1) / 3600)}h ago`;
+    return `${Math.floor((seconds + 1) / 86400)}d ago`;
+}

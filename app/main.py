@@ -142,6 +142,7 @@ def create_app(config_class=Config):
     from app.api.v1.it_staff_routes import it_staff_bp
     from app.api.v1.analytics_routes import analytics_bp
     from app.web_routes import web_bp
+    from app.api.v1.announcement_routes import announcement_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(ticket_bp)
@@ -150,6 +151,7 @@ def create_app(config_class=Config):
     app.register_blueprint(it_staff_bp)
     app.register_blueprint(analytics_bp)
     app.register_blueprint(web_bp)
+    app.register_blueprint(announcement_bp)
     
     from app.api.v1.project_routes import project_bp
     app.register_blueprint(project_bp)
