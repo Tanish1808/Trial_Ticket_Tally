@@ -55,6 +55,20 @@ def test_restriction(client, admin_headers):
     response = client.patch(f'/api/v1/projects/{project_id}', json={"description": "Hacked"}, headers=admin_headers)
     assert response.status_code == 400, f"FAILURE: Edit allowed! Status: {response.status_code}, Response: {response.get_json()}"
     
+    # 3.5 Attempt Reopen by changing status to Active (should succeed)
+    response = client.patch(f'/api/v1/projects/{project_id}', json={"status": "Active"}, headers=admin_headers)
+    assert response.status_code == 200, f"Failed to reopen project: {response.get_json()}"
+    assert response.get_json()['status'] == "Active"
+
+    # 3.6 Edit description of reopened project (should succeed)
+    response = client.patch(f'/api/v1/projects/{project_id}', json={"description": "Reopened and edited"}, headers=admin_headers)
+    assert response.status_code == 200, f"Failed to edit reopened project: {response.get_json()}"
+    assert response.get_json()['description'] == "Reopened and edited"
+
+    # Mark completed again for consistency
+    response = client.patch(f'/api/v1/projects/{project_id}', json={"status": "Completed"}, headers=admin_headers)
+    assert response.status_code == 200
+
     # 4. Cleanup (Soft Delete)
     response = client.delete(f'/api/v1/projects/{project_id}', headers=admin_headers)
     assert response.status_code == 200, f"Failed to delete project: {response.get_json()}"

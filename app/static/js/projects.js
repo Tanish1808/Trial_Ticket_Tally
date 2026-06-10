@@ -670,25 +670,20 @@ function editProject(projectId) {
         // Set Status Options for Edit
         const statusSelect = document.getElementById('projectStatus');
 
-        if (project.status === 'Completed') {
-            // Looking at file content read in 472, the logic was:
-            statusSelect.innerHTML = `<option value="Completed" selected>Completed</option>`;
-            statusSelect.disabled = true;
-        } else {
-            let options = `
-            <option value="Active">Active</option>
-            <option value="On Hold">On Hold</option>
-            <option value="Completed">Completed</option>
-            `;
+        let options = `
+        <option value="Active">Active</option>
+        <option value="On Hold">On Hold</option>
+        <option value="Completed">Completed</option>
+        `;
 
-            // Allow keeping it in Planning if it is currently Planning
-            if (project.status === 'Planning') {
-                options = `<option value="Planning">Planning</option>` + options;
-            }
-
-            statusSelect.innerHTML = options;
-            statusSelect.disabled = false;
+        if (project.status === 'Planning') {
+            options = `<option value="Planning">Planning</option>` + options;
+        } else if (project.status === 'Completed') {
+            options = `<option value="Planning">Planning</option>` + options;
         }
+
+        statusSelect.innerHTML = options;
+        statusSelect.disabled = false;
 
         document.getElementById('projectStatus').value = project.status;
         document.getElementById('projectPriority').value = project.priority;
@@ -699,9 +694,9 @@ function editProject(projectId) {
         currentTeamMembers = project.team ? project.team.map(m => ({ email: m.email, name: m.name || m.email })) : [];
         renderChips();
 
-        // [NEW] Disable all fields if Completed
+        // Disable other content fields if Completed, but leave status dropdown enabled
         const isCompleted = project.status === 'Completed';
-        const fieldsToDisable = ['projectName', 'projectDescription', 'projectPriority', 'projectStartDate', 'projectDeadline', 'projectStatus'];
+        const fieldsToDisable = ['projectName', 'projectDescription', 'projectPriority', 'projectStartDate', 'projectDeadline'];
         const submitBtn = document.querySelector('#addProjectForm button[type="submit"]');
 
         fieldsToDisable.forEach(id => {
@@ -709,10 +704,13 @@ function editProject(projectId) {
             if (el) el.disabled = isCompleted;
         });
 
-        // Handle Edit Button/Submit Button visibility/state
+        // Keep status select enabled even if completed
+        if (statusSelect) statusSelect.disabled = false;
+
+        // Allow submitting status change for completed projects
         if (submitBtn) {
-            submitBtn.disabled = isCompleted;
-            submitBtn.textContent = isCompleted ? "Project Completed (Read-Only)" : "Update Project";
+            submitBtn.disabled = false;
+            submitBtn.textContent = isCompleted ? "Reopen / Update Status" : "Update Project";
         }
 
         // Change form to edit mode

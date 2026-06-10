@@ -270,17 +270,36 @@ def update_project(project_id):
     project = Project.query.get_or_404(project_id)
     data = request.get_json()
     
-    # [NEW] Prevent editing completed projects
+    # Prevent editing completed projects unless reopening
     if project.status == ProjectStatus.COMPLETED:
-        # Check if we are reopening the project (changing status away from COMPLETED)
-        # If the user allows reopening, we might check 'status' in data.
-        # But strictly following "cannot change a single field", we block it.
-        # However, to avoid "stuck" projects, we usually allow waiting to Active.
-        # For this request, I will strictly block ALL content updates.
-        # If 'status' is changing TO something else, we allow it?
-        # The user said "Admin can not Change a Single field in Edit Peoject".
-        # This implies the state is "Frozen".
-        return jsonify({"error": "Cannot edit a completed project"}), 400
+        new_status_str = data.get('status')
+        if not new_status_str or ProjectStatus(new_status_str) == ProjectStatus.COMPLETED:
+            return jsonify({"error": "Cannot edit a completed project"}), 400
+        
+        # Enforce that only the status field can change when reopening
+        for key, val in data.items():
+            if key != 'status':
+                if key == 'name' and val != project.name:
+                    return jsonify({"error": "Cannot edit fields other than status of a completed project"}), 400
+                elif key == 'description' and val != project.description:
+                    return jsonify({"error": "Cannot edit fields other than status of a completed project"}), 400
+                elif key == 'priority' and TicketPriority(val) != project.priority:
+                    return jsonify({"error": "Cannot edit fields other than status of a completed project"}), 400
+                elif key == 'startDate':
+                    new_date = datetime.strptime(val, '%Y-%m-%d').date() if val else None
+                    if new_date != project.start_date:
+                        return jsonify({"error": "Cannot edit fields other than status of a completed project"}), 400
+                elif key == 'deadline':
+                    new_date = datetime.strptime(val, '%Y-%m-%d').date() if val else None
+                    if new_date != project.deadline:
+                        return jsonify({"error": "Cannot edit fields other than status of a completed project"}), 400
+                elif key == 'progress' and int(val) != project.progress:
+                    return jsonify({"error": "Cannot edit fields other than status of a completed project"}), 400
+                elif key == 'team':
+                    new_emails = {m.get('email') for m in val if m.get('email')}
+                    curr_emails = {m.email for m in project.team}
+                    if new_emails != curr_emails:
+                        return jsonify({"error": "Cannot edit fields other than status of a completed project"}), 400
 
     if 'name' in data:
         project.name = data['name']
@@ -288,9 +307,6 @@ def update_project(project_id):
         project.description = data['description']
     if 'status' in data:
         new_status = ProjectStatus(data['status'])
-        # Prevent reverting completed projects
-        if project.status == ProjectStatus.COMPLETED and new_status != ProjectStatus.COMPLETED:
-            return jsonify({"error": "Cannot change status of a completed project"}), 400
         project.status = new_status
     if 'priority' in data:
         project.priority = TicketPriority(data['priority'])

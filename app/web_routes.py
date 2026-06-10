@@ -148,6 +148,10 @@ def ticket_board():
 def projects():
     return render_template('projects.html')
 
+@web_bp.route('/calendar')
+def calendar():
+    return render_template('calendar.html')
+
 @web_bp.route('/ticket/<int:ticket_id>')
 def ticket_details(ticket_id):
     # Pass ID to template, JS will fetch details
