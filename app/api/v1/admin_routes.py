@@ -452,7 +452,18 @@ def get_all_announcements():
         description: Forbidden (Admin only)
     """
     from app.models.announcement import Announcement
-    announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
+    from app.core.config import Config
+    from app.models.user import User
+
+    query = Announcement.query
+    
+    # Exclude demo announcements for real administrators
+    if g.user.email != Config.DEMO_EMAIL:
+        demo_user = User.query.filter_by(email=Config.DEMO_EMAIL).first()
+        if demo_user:
+            query = query.filter(Announcement.created_by_id != demo_user.id)
+
+    announcements = query.order_by(Announcement.created_at.desc()).all()
     return jsonify([a.to_dict() for a in announcements]), 200
 
 @admin_bp.route('/announcements/<int:announcement_id>', methods=['DELETE'])
