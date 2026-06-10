@@ -226,6 +226,36 @@ class AuthService:
         ]
         db.session.add_all(sample_tickets)
         db.session.commit()
+
+        # Seed sample announcements for demo context
+        from app.models.announcement import Announcement
+        from datetime import timedelta
+
+        # Clear existing announcements by the demo user to prevent duplication
+        existing_announcements = Announcement.query.filter_by(created_by_id=user.id).all()
+        for a in existing_announcements:
+            db.session.delete(a)
+        db.session.commit()
+
+        # Add fresh sample announcements
+        sample_announcements = [
+            Announcement(
+                title="Scheduled Database Maintenance ⚠️",
+                message="The primary ticketing database will undergo scheduled maintenance this Sunday from 02:00 AM to 04:00 AM UTC. Some services might experience brief latency.",
+                is_active=True,
+                expires_at=datetime.utcnow() + timedelta(days=5),
+                created_by_id=user.id
+            ),
+            Announcement(
+                title="Welcome to Ticket-Tally! 🎉",
+                message="Welcome to the demo environment of the Ticket-Tally ITSM Platform. Explore ticket creation, the Kanban board, and calendar features. Share your feedback via the Contact form!",
+                is_active=True,
+                expires_at=None,
+                created_by_id=user.id
+            )
+        ]
+        db.session.add_all(sample_announcements)
+        db.session.commit()
             
         return user
 
