@@ -15,6 +15,7 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     preferences = db.Column(db.JSON, default={})
+    specializations = db.Column(db.JSON, default=[])
 
     # Relationships
     team = db.relationship("Team", back_populates="members")

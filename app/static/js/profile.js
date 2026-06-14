@@ -9,6 +9,7 @@ if (!requireAuth()) {
 }
 
 const currentUser = getCurrentUser();
+let userProfileData = null;
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function () {
@@ -32,6 +33,7 @@ async function loadProfile() {
 
         if (response.ok) {
             const userData = await response.json();
+            userProfileData = userData;
 
             // Set avatar initials
             const initials = userData.full_name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -78,6 +80,15 @@ async function loadProfile() {
                 document.getElementById('infoTeamContainer').style.display = 'block';
             } else {
                 document.getElementById('infoTeamContainer').style.display = 'none';
+            }
+
+            // Show specializations for IT staff / admin
+            if (userData.role === 'it_staff' || userData.role === 'admin') {
+                const specs = userData.specializations || [];
+                document.getElementById('infoSpecializations').textContent = specs.length > 0 ? specs.join(', ') : 'None specified';
+                document.getElementById('infoSpecializationsContainer').style.display = 'block';
+            } else {
+                document.getElementById('infoSpecializationsContainer').style.display = 'none';
             }
 
             // Member since
@@ -354,17 +365,26 @@ function updateThemeIcon(theme) {
 
 // Edit profile
 function editProfile() {
-    document.getElementById('editFullName').value = currentUser.name || document.getElementById('profileName').textContent;
+    if (!userProfileData) return;
+
+    document.getElementById('editFullName').value = userProfileData.full_name;
 
     // Show department field only if applicable (e.g. employee)
     const deptDiv = document.getElementById('editDepartmentContainer');
-    const roleElem = document.getElementById('profileRole');
-    if (roleElem.textContent.trim() === 'Employee') {
+    if (userProfileData.role === 'employee') {
         deptDiv.style.display = 'block';
-        document.getElementById('editDepartment').value = document.getElementById('infoDepartment').textContent !== '-' ?
-            document.getElementById('infoDepartment').textContent : '';
+        document.getElementById('editDepartment').value = userProfileData.department || '';
     } else {
         deptDiv.style.display = 'none';
+    }
+
+    // Show specializations field if agent
+    const specsDiv = document.getElementById('editSpecializationsContainer');
+    if (userProfileData.role === 'it_staff' || userProfileData.role === 'admin') {
+        specsDiv.style.display = 'block';
+        document.getElementById('editSpecializations').value = userProfileData.specializations ? userProfileData.specializations.join(', ') : '';
+    } else {
+        specsDiv.style.display = 'none';
     }
 
     const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
@@ -377,11 +397,24 @@ document.getElementById('editProfileForm').addEventListener('submit', async func
 
     const fullName = document.getElementById('editFullName').value;
     const department = document.getElementById('editDepartment').value;
+    const specializationsInput = document.getElementById('editSpecializations');
+    const specsArray = specializationsInput && specializationsInput.value ? 
+        specializationsInput.value.split(',').map(s => s.trim()).filter(s => s) : [];
+
     const btn = e.target.querySelector('button[type="submit"]');
 
     const originalText = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+    const requestBody = {
+        full_name: fullName,
+        department: department
+    };
+
+    if (userProfileData && (userProfileData.role === 'it_staff' || userProfileData.role === 'admin')) {
+        requestBody.specializations = specsArray;
+    }
 
     try {
         const response = await fetch('/api/v1/users/me', {
@@ -390,10 +423,7 @@ document.getElementById('editProfileForm').addEventListener('submit', async func
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${getAuthToken()}`
             },
-            body: JSON.stringify({
-                full_name: fullName,
-                department: department
-            })
+            body: JSON.stringify(requestBody)
         });
 
         const data = await response.json();

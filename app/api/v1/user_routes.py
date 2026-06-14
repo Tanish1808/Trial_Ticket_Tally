@@ -25,7 +25,7 @@ def get_me():
       401:
         description: Unauthorized
     """
-    return jsonify({
+    response_data = {
         "id": g.user.id,
         "full_name": g.user.full_name,
         "fullName": g.user.full_name,
@@ -37,7 +37,11 @@ def get_me():
         "preferences": g.user.preferences or {},
         "created_at": g.user.created_at.isoformat() if g.user.created_at else None,
         "createdAt": g.user.created_at.isoformat() if g.user.created_at else None
-    })
+    }
+    if g.user.role in [UserRole.IT_STAFF, UserRole.ADMIN]:
+        response_data["specializations"] = g.user.specializations or []
+
+    return jsonify(response_data)
 
 @user_bp.route('/me', methods=['PATCH'])
 @token_required
@@ -80,6 +84,11 @@ def update_my_profile():
     if 'department' in data and g.user.role == UserRole.EMPLOYEE:
         g.user.department = data['department']
 
+    if 'specializations' in data:
+        if g.user.role in [UserRole.IT_STAFF, UserRole.ADMIN]:
+            if isinstance(data['specializations'], list):
+                g.user.specializations = [str(s).strip() for s in data['specializations'] if str(s).strip()]
+
     if 'preferences' in data:
         # Ensure it's a dict
         if isinstance(data['preferences'], dict):
@@ -90,16 +99,20 @@ def update_my_profile():
 
     db.session.commit()
     
+    user_data = {
+        "id": g.user.id,
+        "full_name": g.user.full_name,
+        "fullName": g.user.full_name,
+        "email": g.user.email,
+        "role": g.user.role.value,
+        "department": g.user.department
+    }
+    if g.user.role in [UserRole.IT_STAFF, UserRole.ADMIN]:
+        user_data["specializations"] = g.user.specializations or []
+
     return jsonify({
         "message": "Profile updated successfully",
-        "user": {
-            "id": g.user.id,
-            "full_name": g.user.full_name,
-            "fullName": g.user.full_name,
-            "email": g.user.email,
-            "role": g.user.role.value,
-            "department": g.user.department
-        }
+        "user": user_data
     })
 
 @user_bp.route('/me/password', methods=['POST'])
@@ -296,6 +309,7 @@ def create_user():
     full_name = data.get('full_name')
     role_str = data.get('role', 'employee')
     team_name = data.get('team')
+    specializations = data.get('specializations', [])
     
     if not email or not full_name:
         return jsonify({"error": "Email and Full Name are required"}), 400
@@ -322,7 +336,8 @@ def create_user():
         role=role,
         password_hash=generate_password_hash(password),
         team_id=team_id,
-        is_active=True
+        is_active=True,
+        specializations=specializations if isinstance(specializations, list) else []
     )
     
     db.session.add(new_user)
@@ -531,3 +546,93 @@ def export_user_data():
         )
 
     return jsonify(export_data)
+
+@user_bp.route('/agents', methods=['GET'])
+@token_required
+def get_agents():
+    """
+    Get list of active IT support agents
+    """
+    search_query = request.args.get('search')
+    specialty_filter = request.args.get('specialty')
+    
+    from app.core.config import Config
+    query = User.query.filter(
+        User.role.in_([UserRole.IT_STAFF, UserRole.ADMIN]),
+        User.is_active == True,
+        User.email != Config.DEMO_EMAIL
+    )
+    
+    agents = query.all()
+    
+    filtered_agents = []
+    for agent in agents:
+        specs = agent.specializations or []
+        
+        # Match specialty filter
+        if specialty_filter:
+            if specialty_filter.lower() not in [s.lower() for s in specs]:
+                continue
+                
+        # Match search query (searches name, email, team name, and specializations)
+        if search_query:
+            search_lower = search_query.lower()
+            team_name = agent.team.name.lower() if agent.team else ""
+            match_name = search_lower in agent.full_name.lower()
+            match_email = search_lower in agent.email.lower()
+            match_team = search_lower in team_name
+            match_spec = any(search_lower in s.lower() for s in specs)
+            
+            if not (match_name or match_email or match_team or match_spec):
+                continue
+                
+        filtered_agents.append(agent)
+        
+    return jsonify([{
+        "id": a.id,
+        "email": a.email,
+        "fullName": a.full_name,
+        "full_name": a.full_name,
+        "role": a.role.value,
+        "department": a.department,
+        "team": {
+            "id": a.team.id,
+            "name": a.team.name
+        } if a.team else None,
+        "specializations": specs
+    } for a in filtered_agents])
+
+@user_bp.route('/specialties', methods=['GET'])
+@token_required
+def get_all_specialties():
+    """
+    Get list of all unique specialties/specializations across all active agents
+    """
+    from app.core.config import Config
+    agents = User.query.filter(
+        User.role.in_([UserRole.IT_STAFF, UserRole.ADMIN]),
+        User.is_active == True,
+        User.email != Config.DEMO_EMAIL
+    ).all()
+    
+    specialties_set = set()
+    for agent in agents:
+        if agent.specializations:
+            for s in agent.specializations:
+                if s.strip():
+                    specialties_set.add(s.strip())
+                    
+    return jsonify(sorted(list(specialties_set)))
+
+@user_bp.route('/teams', methods=['GET'])
+@token_required
+def get_all_teams():
+    """
+    Get list of all teams in the system (for directory dropdown)
+    """
+    from app.models.team import Team
+    teams = Team.query.all()
+    return jsonify([{
+        "id": t.id,
+        "name": t.name
+    } for t in teams])

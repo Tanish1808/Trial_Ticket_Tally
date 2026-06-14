@@ -156,3 +156,7 @@ def calendar():
 def ticket_details(ticket_id):
     # Pass ID to template, JS will fetch details
     return render_template('ticket-details.html', ticket_id=ticket_id)
+
+@web_bp.route('/agent-directory')
+def agent_directory():
+    return render_template('agent-directory.html')

@@ -10,6 +10,7 @@ class TicketCreate(BaseModel):
     category: str
     priority: TicketPriority = TicketPriority.MEDIUM
     team_id: Optional[int] = None # If creating for specific team
+    assigned_to_id: Optional[int] = None # If directing ticket to specific agent
 
 class TicketUpdate(BaseModel):
     status: Optional[TicketStatus] = None

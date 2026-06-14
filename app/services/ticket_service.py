@@ -57,13 +57,23 @@ class TicketService:
         else:
             team = Team.query.filter_by(name='IT Support').first()
         
+        assigned_to_id = None
+        if hasattr(data, 'assigned_to_id') and data.assigned_to_id:
+            from app.models.user import User, UserRole
+            agent = User.query.filter_by(id=data.assigned_to_id).first()
+            if agent and agent.role in [UserRole.IT_STAFF, UserRole.ADMIN]:
+                assigned_to_id = agent.id
+                if agent.team_id:
+                    team = agent.team
+
         new_ticket = Ticket(
             title=data.title,
             description=data.description,
             category=data.category,
             priority=data.priority,
             created_by_id=creator_id,
-            team_id=team.id if team else None
+            team_id=team.id if team else None,
+            assigned_to_id=assigned_to_id
         )
         db.session.add(new_ticket)
         db.session.flush() # Get ID
