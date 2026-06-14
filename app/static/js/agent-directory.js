@@ -220,9 +220,7 @@ function displayAgents(agents) {
             ? agent.specializations.map(s => `<span class="spec-badge">${s}</span>`).join('')
             : '<span class="small text-muted italic">None declared</span>';
 
-        const actionButtons = currentUser.role === 'employee' 
-            ? `<button class="btn btn-primary-custom w-100 mt-auto" onclick="openDirectTicketModal(${agent.id}, '${agent.fullName}')"><i class="fas fa-paper-plane me-2"></i>Direct Ticket</button>`
-            : `<a href="mailto:${agent.email}" class="btn btn-outline-custom w-100 mt-auto"><i class="fas fa-envelope me-2"></i>Email Agent</a>`;
+        const actionButtons = `<a href="mailto:${agent.email}" class="btn btn-outline-custom w-100 mt-auto"><i class="fas fa-envelope me-2"></i>Email Agent</a>`;
 
         return `
             <div class="agent-card">
