@@ -119,6 +119,11 @@ def test_get_agents_and_filtering(client, employee_headers, app):
     agents = response.get_json()
     # Should contain Alice and Bob (plus the fixture agent if exists)
     assert len(agents) >= 2
+    
+    alice = next(ag for ag in agents if ag['fullName'] == "Alice Specialist")
+    bob = next(ag for ag in agents if ag['fullName'] == "Bob Networker")
+    assert alice['specializations'] == ["Laptops", "Printers", "Hardware"]
+    assert bob['specializations'] == ["VPN", "Routing", "Firewall"]
 
     # 2. Filter by specialty
     response_spec = client.get('/api/v1/users/agents?specialty=VPN', headers=employee_headers)

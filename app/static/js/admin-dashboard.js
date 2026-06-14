@@ -578,6 +578,9 @@ async function handleAddStaff(e) {
     const name = document.getElementById('staffName').value;
     const email = document.getElementById('staffEmail').value;
     const team = document.getElementById('staffTeam').value;
+    const specsInput = document.getElementById('staffSpecializations');
+    const specsArray = specsInput && specsInput.value ? 
+        specsInput.value.split(',').map(s => s.trim()).filter(s => s) : [];
     const btn = e.target.querySelector('button[type="submit"]');
     const originalText = btn.innerHTML;
 
@@ -599,7 +602,8 @@ async function handleAddStaff(e) {
                 email: email,
                 team: team,
                 role: 'it_staff',
-                password: 'itstaff@tt' // Default password
+                password: 'itstaff@tt', // Default password
+                specializations: specsArray
             })
         });
 

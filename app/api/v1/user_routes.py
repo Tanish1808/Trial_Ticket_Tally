@@ -599,7 +599,7 @@ def get_agents():
             "id": a.team.id,
             "name": a.team.name
         } if a.team else None,
-        "specializations": specs
+        "specializations": a.specializations or []
     } for a in filtered_agents])
 
 @user_bp.route('/specialties', methods=['GET'])
