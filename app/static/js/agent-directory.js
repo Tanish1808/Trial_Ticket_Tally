@@ -363,7 +363,30 @@ window.openDirectTicketModal = function (agentId, agentName) {
     document.getElementById('raiseTicketForm').reset();
     document.getElementById('duplicateWarning').classList.add('d-none');
     document.getElementById('directAgentId').value = agentId;
-    document.getElementById('directAgentName').value = agentName;
+
+    // Populate the custom specialist banner
+    const initials = agentName.split(' ').map(n => n[0]).join('').toUpperCase();
+    const avatarMini = document.getElementById('specialistAvatarMini');
+    const nameBanner = document.getElementById('specialistNameBanner');
+
+    // Choose avatar color dynamically matching agent cards
+    const colors = [
+        'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', // Blue
+        'linear-gradient(135deg, #10b981 0%, #047857 100%)', // Emerald
+        'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)', // Amber
+        'linear-gradient(135deg, #8b5cf6 0%, #5b21b6 100%)', // Violet
+        'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', // Pink
+        'linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)'  // Teal
+    ];
+    const color = colors[agentName.charCodeAt(0) % colors.length];
+
+    if (avatarMini) {
+        avatarMini.textContent = initials;
+        avatarMini.style.background = color;
+    }
+    if (nameBanner) {
+        nameBanner.textContent = agentName;
+    }
 
     const modal = new bootstrap.Modal(document.getElementById('raiseTicketModal'));
     modal.show();

@@ -158,6 +158,167 @@
     .search-input-group input {
       padding-left: 2.75rem;
     }
+
+    /* Custom Premium Modal Styles */
+    .custom-modal-content {
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius-lg) !important;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.3) !important;
+      overflow: hidden;
+    }
+
+    .custom-modal-header {
+      border-bottom: 1px solid var(--border) !important;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+      padding: 1.25rem 1.5rem !important;
+    }
+
+    .custom-modal-title {
+      font-weight: 700 !important;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--primary-500) 0%, #a855f7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .specialist-card-banner {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .specialist-card-banner::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--primary-500), #a855f7);
+    }
+
+    .specialist-avatar-mini {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: white;
+      background: var(--primary-500);
+      box-shadow: var(--shadow-sm);
+      font-size: 1.1rem;
+      text-transform: uppercase;
+    }
+
+    .specialist-details {
+      flex-grow: 1;
+    }
+
+    .specialist-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 0.15rem;
+    }
+
+    .specialist-name-banner {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .custom-form-group {
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+
+    .form-label-custom {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .form-label-custom i {
+      color: var(--primary-500);
+    }
+
+    .input-with-icon {
+      position: relative;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      transition: var(--transition-base);
+      font-size: 0.95rem;
+      pointer-events: none;
+    }
+
+    .form-control-custom {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      background: var(--surface-elevated) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius-md) !important;
+      color: var(--text-primary) !important;
+      font-size: 0.95rem;
+      transition: all 0.25s ease;
+    }
+
+    .form-control-custom:focus {
+      border-color: var(--primary-400) !important;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15) !important;
+      outline: none;
+    }
+
+    .form-control-custom:focus ~ .input-icon {
+      color: var(--primary-500);
+    }
+
+    textarea.form-control-custom {
+      padding-top: 0.75rem;
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    textarea.form-control-custom ~ .input-icon {
+      top: 1rem;
+      transform: none;
+    }
+
+    /* Custom dropdown style */
+    select.form-control-custom {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+      background-repeat: no-repeat !important;
+      background-position: right 1rem center !important;
+      background-size: 16px 12px !important;
+      padding-right: 2.5rem;
+    }
   </style>
 </head>
 
@@ -278,55 +439,71 @@
   <!-- Direct Raise Ticket Modal -->
   <div class="modal fade" id="raiseTicketModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
-      <div class="modal-content" style="background: var(--surface); border: 1px solid var(--border)">
-        <div class="modal-header" style="border-bottom: 1px solid var(--border)">
-          <h5 class="modal-title">Direct Ticket to Agent</h5>
+      <div class="modal-content custom-modal-content">
+        <div class="modal-header custom-modal-header">
+          <h5 class="modal-title custom-modal-title"><i class="fas fa-paper-plane me-2"></i>Direct Ticket to Agent</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body p-4">
           <form id="raiseTicketForm">
             <!-- Hidden Direct Agent ID -->
             <input type="hidden" id="directAgentId" />
 
-            <div class="mb-3">
-              <label for="directAgentName" class="form-label">Directed Specialist</label>
-              <input type="text" class="form-control" id="directAgentName" readonly disabled style="background: var(--surface-elevated); color: var(--text-primary); border-color: var(--border);" />
+            <!-- Specialist Banner -->
+            <div class="specialist-card-banner">
+              <div class="specialist-avatar-mini" id="specialistAvatarMini"></div>
+              <div class="specialist-details">
+                <div class="specialist-title">Assigned Specialist</div>
+                <h4 class="specialist-name-banner" id="specialistNameBanner">Loading...</h4>
+              </div>
             </div>
 
-            <div class="mb-3">
-              <label for="ticketSubject" class="form-label">Subject</label>
-              <input type="text" class="form-control" id="ticketSubject" placeholder="Brief description of the issue" required />
+            <div class="custom-form-group mb-3">
+              <label for="ticketSubject" class="form-label-custom"><i class="fas fa-pen-nib me-2"></i>Subject</label>
+              <div class="input-with-icon">
+                <input type="text" class="form-control-custom" id="ticketSubject" placeholder="What is the issue?" required />
+                <i class="fas fa-tag input-icon"></i>
+              </div>
               <div id="duplicateWarning" class="alert alert-warning mt-2 d-none" role="alert">
                 <i class="fas fa-exclamation-triangle me-2"></i>
                 <span></span>
               </div>
             </div>
 
-            <div class="mb-3">
-              <label for="ticketCategory" class="form-label">Category</label>
-              <select class="form-select" id="ticketCategory" required>
-                <option value="">Select category</option>
-                <option value="Software Issue">Software Issue</option>
-                <option value="Hardware Issue">Hardware Issue</option>
-                <option value="Network Issue">Network Issue</option>
-                <option value="Email Issue">Email Issue</option>
-                <option value="IT Support">IT Support</option>
-              </select>
+            <div class="custom-form-group mb-3">
+              <label for="ticketCategory" class="form-label-custom"><i class="fas fa-th-list me-2"></i>Category</label>
+              <div class="input-with-icon">
+                <select class="form-control-custom" id="ticketCategory" required>
+                  <option value="">Select category</option>
+                  <option value="Software Issue">Software Issue</option>
+                  <option value="Hardware Issue">Hardware Issue</option>
+                  <option value="Network Issue">Network Issue</option>
+                  <option value="Email Issue">Email Issue</option>
+                  <option value="IT Support">IT Support</option>
+                </select>
+                <i class="fas fa-folder input-icon"></i>
+              </div>
             </div>
 
-            <div class="mb-3">
-              <label for="ticketPriority" class="form-label">Priority</label>
-              <select class="form-select" id="ticketPriority" required>
-                <option value="Low">Low</option>
-                <option value="Medium" selected>Medium</option>
-                <option value="High">High</option>
-                <option value="Critical">Critical</option>
-              </select>
+            <div class="custom-form-group mb-3">
+              <label for="ticketPriority" class="form-label-custom"><i class="fas fa-triangle-exclamation me-2"></i>Priority</label>
+              <div class="input-with-icon">
+                <select class="form-control-custom" id="ticketPriority" required>
+                  <option value="Low">Low</option>
+                  <option value="Medium" selected>Medium</option>
+                  <option value="High">High</option>
+                  <option value="Critical">Critical</option>
+                </select>
+                <i class="fas fa-flag input-icon"></i>
+              </div>
             </div>
 
-            <div class="mb-3">
-              <label for="ticketDescription" class="form-label">Description</label>
-              <textarea class="form-control" id="ticketDescription" rows="5" placeholder="Provide detailed information about the issue..." required></textarea>
+            <div class="custom-form-group mb-4">
+              <label for="ticketDescription" class="form-label-custom"><i class="fas fa-align-left me-2"></i>Description</label>
+              <div class="input-with-icon">
+                <textarea class="form-control-custom" id="ticketDescription" rows="5" placeholder="Describe what went wrong in detail..." required></textarea>
+                <i class="fas fa-paragraph input-icon"></i>
+              </div>
             </div>
 
             <div class="d-flex justify-content-end gap-2">
