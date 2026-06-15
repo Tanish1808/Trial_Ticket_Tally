@@ -220,12 +220,19 @@ function displayAgents(agents) {
             ? agent.specializations.map(s => `<span class="spec-badge">${s}</span>`).join('')
             : '<span class="small text-muted italic">None declared</span>';
 
-        const actionButtons = `
-            <a href="mailto:${agent.email}" class="btn btn-outline-custom w-50 mt-auto"><i class="fas fa-envelope me-2"></i>Email</a>
-            <button onclick="window.openDirectTicketModal(${agent.id}, '${agent.fullName.replace(/'/g, "\\'")}')" class="btn btn-primary-custom w-50 mt-auto">
-                <i class="fas fa-ticket-alt me-2"></i>Direct Ticket
-            </button>
-        `;
+        const role = currentUser.role.toLowerCase().replace('_', '');
+        const isEmployee = (role === 'employee');
+
+        const actionButtons = isEmployee
+            ? `
+                <a href="mailto:${agent.email}" class="btn btn-outline-custom w-50 mt-auto"><i class="fas fa-envelope me-2"></i>Email</a>
+                <button onclick="window.openDirectTicketModal(${agent.id}, '${agent.fullName.replace(/'/g, "\\'")}')" class="btn btn-primary-custom w-50 mt-auto">
+                    <i class="fas fa-ticket-alt me-2"></i>Direct Ticket
+                </button>
+            `
+            : `
+                <a href="mailto:${agent.email}" class="btn btn-outline-custom w-100 mt-auto"><i class="fas fa-envelope me-2"></i>Email Agent</a>
+            `;
 
         return `
             <div class="agent-card">
