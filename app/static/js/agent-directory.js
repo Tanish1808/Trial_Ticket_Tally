@@ -173,6 +173,9 @@ async function loadAgents() {
 
         if (response.ok) {
             cachedAgents = await response.json();
+            if (currentUser && currentUser.id) {
+                cachedAgents = cachedAgents.filter(agent => agent.id !== currentUser.id);
+            }
             displayAgents(cachedAgents);
         } else {
             grid.innerHTML = '<div class="w-100 text-center py-5 text-danger"><p>Failed to load agent directory.</p></div>';
