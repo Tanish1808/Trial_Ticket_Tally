@@ -108,6 +108,11 @@ function setupEventListeners() {
         announceForm.addEventListener('submit', handleCreateAnnouncement);
     }
 
+    const mappingForm = document.getElementById('teamMappingForm');
+    if (mappingForm) {
+        mappingForm.addEventListener('submit', handleSaveTeamMapping);
+    }
+
     const searchInput = document.getElementById('searchAllTickets');
     if (searchInput) {
         searchInput.addEventListener('input', handleSearch);
@@ -294,7 +299,7 @@ function initializeCharts() {
 // Show section
 function showSection(section) {
     // Hide all sections
-    const sections = ['dashboardSection', 'ticketsSection', 'usersSection', 'itstaffSection', 'messagesSection', 'announcementsSection', 'profileSection'];
+    const sections = ['dashboardSection', 'ticketsSection', 'usersSection', 'itstaffSection', 'messagesSection', 'announcementsSection', 'profileSection', 'team-mappingsSection'];
     sections.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -331,6 +336,9 @@ function showSection(section) {
         loadAnnouncementsAdmin();
     } else if (section === 'profile') {
         document.getElementById('profileSection').style.display = 'block';
+    } else if (section === 'team-mappings') {
+        document.getElementById('team-mappingsSection').style.display = 'block';
+        loadTeamMappings();
     }
 }
 
@@ -1091,4 +1099,173 @@ window.dismissAnnouncement = function(id) {
     } else {
         loadAnnouncements();
     }
-}
+}
+
+// Load all Team Mappings
+async function loadTeamMappings() {
+    try {
+        const response = await fetch('/api/v1/admin/team-mappings', {
+            headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+        });
+
+        if (!response.ok) return;
+
+        const mappings = await response.json();
+        const tbody = document.getElementById('teamMappingsTableBody');
+
+        if (mappings.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center py-5"><div class="text-muted"><i class="fas fa-route fa-3x mb-3"></i><p>No team mappings found</p></div></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = mappings.map(m => `
+            <tr>
+                <td><strong>${m.category}</strong></td>
+                <td><span class="badge bg-primary">${m.team_name || m.teamName || 'Unassigned'}</span></td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-warning" onclick="showEditMappingModal(${m.id}, '${m.category.replace(/'/g, "\\'")}', ${m.team_id || m.teamId})" title="Edit Mapping">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteTeamMapping(${m.id})" title="Delete Mapping">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        console.error("Failed to load team mappings", e);
+    }
+}
+
+// Load all teams to populate dropdown
+async function loadTeamsDropdown(selectedTeamId = null) {
+    try {
+        const response = await fetch('/api/v1/users/teams', {
+            headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+        });
+
+        if (!response.ok) return;
+
+        const teams = await response.json();
+        const select = document.getElementById('mappingTeam');
+        if (!select) return;
+
+        select.innerHTML = '<option value="" disabled selected>Select Target Team</option>' + 
+            teams.map(t => `<option value="${t.id}" ${selectedTeamId && selectedTeamId == t.id ? 'selected' : ''}>${t.name}</option>`).join('');
+    } catch (e) {
+        console.error("Failed to load teams for dropdown", e);
+    }
+}
+
+// Show Create Modal
+window.showCreateMappingModal = function() {
+    const form = document.getElementById('teamMappingForm');
+    if (form) form.reset();
+
+    document.getElementById('mappingId').value = '';
+    document.getElementById('teamMappingModalTitle').innerHTML = '<i class="fas fa-route text-primary me-2"></i>Create Team Mapping';
+    
+    loadTeamsDropdown();
+
+    const modalEl = document.getElementById('teamMappingModal');
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    modal.show();
+};
+
+// Show Edit Modal
+window.showEditMappingModal = function(id, category, teamId) {
+    const form = document.getElementById('teamMappingForm');
+    if (form) form.reset();
+
+    document.getElementById('mappingId').value = id;
+    document.getElementById('mappingCategory').value = category;
+    document.getElementById('teamMappingModalTitle').innerHTML = '<i class="fas fa-edit text-warning me-2"></i>Edit Team Mapping';
+
+    loadTeamsDropdown(teamId);
+
+    const modalEl = document.getElementById('teamMappingModal');
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    modal.show();
+};
+
+// Save Mapping (Create or Update)
+async function handleSaveTeamMapping(e) {
+    e.preventDefault();
+
+    const id = document.getElementById('mappingId').value;
+    const category = document.getElementById('mappingCategory').value.trim();
+    const teamId = document.getElementById('mappingTeam').value;
+
+    if (!category || !teamId) {
+        alert("Please fill in all fields.");
+        return;
+    }
+
+    const payload = {
+        category: category,
+        team_id: parseInt(teamId)
+    };
+
+    const isEdit = !!id;
+    const url = isEdit ? `/api/v1/admin/team-mappings/${id}` : '/api/v1/admin/team-mappings';
+    const method = isEdit ? 'PATCH' : 'POST';
+
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAuthToken()}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            const modalEl = document.getElementById('teamMappingModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+
+            loadTeamMappings();
+            showToast(isEdit ? "Team mapping updated successfully" : "Team mapping created successfully");
+        } else {
+            const data = await response.json();
+            alert(data.error || "Failed to save team mapping");
+        }
+    } catch (err) {
+        console.error("Error saving team mapping", err);
+        alert("Error saving team mapping");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+// Delete Team Mapping
+window.deleteTeamMapping = async function(id) {
+    if (!confirm("Are you sure you want to delete this team mapping?")) return;
+
+    try {
+        const response = await fetch(`/api/v1/admin/team-mappings/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+        });
+
+        if (response.ok) {
+            loadTeamMappings();
+            showToast("Team mapping deleted successfully");
+        } else {
+            const data = await response.json();
+            alert(data.error || "Failed to delete team mapping");
+        }
+    } catch (e) {
+        console.error("Error deleting team mapping", e);
+        alert("Error deleting team mapping");
+    }
+};
