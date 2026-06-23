@@ -504,6 +504,64 @@ def delete_announcement(announcement_id):
         return jsonify({'error': str(e)}), 500
 
 
+def prepopulate_activities():
+    from app.models.ticket_status_history import TicketStatusHistory
+    from app.models.comment import Comment
+    from app.models.activity_log import ActivityLog
+    from app.core.database import db
+    from app.core.constants import TicketStatus
+
+    try:
+        # Prevent double prepopulation
+        if db.session.query(ActivityLog).first() is not None:
+            return
+
+        histories = TicketStatusHistory.query.all()
+        for h in histories:
+            category = "status_change"
+            created_by = h.changed_by.full_name if h.changed_by else "System"
+
+            if h.old_status is None:
+                category = "created"
+                message = f"New Ticket T-{1000 + h.ticket_id} ('{h.ticket.title}') was created by {created_by}."
+            elif h.old_status == TicketStatus.OPEN and h.new_status == TicketStatus.IN_PROGRESS:
+                category = "claimed"
+                message = f"Ticket T-{1000 + h.ticket_id} ('{h.ticket.title}') was claimed by {created_by}."
+            else:
+                old_val = h.old_status.value if hasattr(h.old_status, 'value') else str(h.old_status)
+                new_val = h.new_status.value if hasattr(h.new_status, 'value') else str(h.new_status)
+                message = f"Ticket T-{1000 + h.ticket_id} status changed from '{old_val}' to '{new_val}' by {created_by}."
+
+            log = ActivityLog(
+                category=category,
+                ticket_id=h.ticket_id,
+                message=message,
+                created_by=created_by,
+                timestamp=h.changed_at
+            )
+            db.session.add(log)
+
+        comments = Comment.query.all()
+        for c in comments:
+            created_by = c.author.full_name if c.author else "System"
+            message = f"New comment on Ticket T-{1000 + c.ticket_id} ('{c.ticket.title}') by {created_by}: {c.text[:60]}..."
+
+            log = ActivityLog(
+                category="comment",
+                ticket_id=c.ticket_id,
+                message=message,
+                created_by=created_by,
+                timestamp=c.created_at
+            )
+            db.session.add(log)
+
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        # Log or print error
+        print(f"Error prepopulating activity logs: {e}")
+
+
 @admin_bp.route('/activities', methods=['GET'])
 @role_required([UserRole.ADMIN])
 def get_activities():
@@ -522,74 +580,28 @@ def get_activities():
       403:
         description: Forbidden (Admin only)
     """
-    from app.models.ticket_status_history import TicketStatusHistory
-    from app.models.comment import Comment
+    from app.models.activity_log import ActivityLog
     from app.models.ticket import Ticket
     from app.core.config import Config
-    from app.core.constants import TicketStatus
-    from flask import g
+    from app.core.database import db
+    from flask import g, jsonify
 
     try:
         is_demo_user = (g.user.email == Config.DEMO_EMAIL)
 
-        # Query latest TicketStatusHistory
-        history_query = TicketStatusHistory.query.join(Ticket)
+        # Pre-populate if empty
+        if db.session.query(ActivityLog).first() is None:
+            prepopulate_activities()
+
+        query = ActivityLog.query.join(Ticket)
         if is_demo_user:
-            history_query = history_query.filter(Ticket.is_demo == True)
+            query = query.filter(Ticket.is_demo == True)
         else:
-            history_query = history_query.filter(Ticket.is_demo == False)
-        recent_history = history_query.order_by(TicketStatusHistory.changed_at.desc()).limit(20).all()
+            query = query.filter(Ticket.is_demo == False)
 
-        # Query latest Comments
-        comment_query = Comment.query.join(Ticket)
-        if is_demo_user:
-            comment_query = comment_query.filter(Ticket.is_demo == True)
-        else:
-            comment_query = comment_query.filter(Ticket.is_demo == False)
-        recent_comments = comment_query.order_by(Comment.created_at.desc()).limit(20).all()
+        recent_activities = query.order_by(ActivityLog.timestamp.desc()).limit(20).all()
 
-        activities = []
-
-        # Process status histories
-        for h in recent_history:
-            category = "status_change"
-            created_by = h.changed_by.full_name if h.changed_by else "System"
-
-            if h.old_status is None:
-                category = "created"
-                message = f"New Ticket T-{1000 + h.ticket_id} ('{h.ticket.title}') was created by {created_by}."
-            elif h.old_status == TicketStatus.OPEN and h.new_status == TicketStatus.IN_PROGRESS:
-                category = "claimed"
-                message = f"Ticket T-{1000 + h.ticket_id} ('{h.ticket.title}') was claimed by {created_by}."
-            else:
-                old_val = h.old_status.value if hasattr(h.old_status, 'value') else str(h.old_status)
-                new_val = h.new_status.value if hasattr(h.new_status, 'value') else str(h.new_status)
-                message = f"Ticket T-{1000 + h.ticket_id} status changed from '{old_val}' to '{new_val}' by {created_by}."
-
-            activities.append({
-                "timestamp": h.changed_at.isoformat(),
-                "category": category,
-                "ticket_id": h.ticket_id,
-                "message": message,
-                "created_by": created_by
-            })
-
-        # Process comments
-        for c in recent_comments:
-            created_by = c.author.full_name if c.author else "System"
-            message = f"New comment on Ticket T-{1000 + c.ticket_id} ('{c.ticket.title}') by {created_by}: {c.text[:60]}..."
-            activities.append({
-                "timestamp": c.created_at.isoformat(),
-                "category": "comment",
-                "ticket_id": c.ticket_id,
-                "message": message,
-                "created_by": created_by
-            })
-
-        # Sort combined activities descending by timestamp
-        activities.sort(key=lambda x: x["timestamp"], reverse=True)
-
-        return jsonify(activities[:20]), 200
+        return jsonify([act.to_dict() for act in recent_activities]), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

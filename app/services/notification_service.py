@@ -244,4 +244,19 @@ class NotificationService:
         }
         socketio.emit('live_activity', activity_data)
 
+        # Persist to database
+        try:
+            from app.models.activity_log import ActivityLog
+            from app.core.database import db
+            log_entry = ActivityLog(
+                category=category,
+                ticket_id=ticket_id,
+                message=message,
+                created_by=created_by
+            )
+            db.session.add(log_entry)
+            db.session.commit()
+        except Exception as db_err:
+            logger.error(f"Failed to persist activity log: {db_err}", exc_info=True)
+
 
