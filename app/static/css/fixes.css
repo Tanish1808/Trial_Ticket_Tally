@@ -146,3 +146,107 @@
         padding: 0.5rem 1rem;
     }
 }
+
+/* Live Activity Feed CSS */
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    transition: background-color var(--transition-base);
+    animation: slideInDown 0.3s ease-out;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-item:hover {
+    background-color: var(--surface-elevated);
+}
+
+.activity-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+.activity-icon.created {
+    background-color: rgba(37, 99, 235, 0.1);
+    color: var(--primary-500);
+}
+
+.activity-icon.claimed {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+}
+
+.activity-icon.status_change {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+}
+
+.activity-icon.priority_change {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+}
+
+.activity-icon.assigned {
+    background-color: rgba(139, 92, 246, 0.15);
+    color: var(--accent-500);
+}
+
+.activity-icon.info {
+    background-color: rgba(100, 116, 139, 0.15);
+    color: var(--text-secondary);
+}
+
+.activity-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-text {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+    word-break: break-word;
+}
+
+.activity-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+/* Custom Live Indicator Animation */
+.animate-pulse {
+    animation: custom-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes custom-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: .5;
+    }
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

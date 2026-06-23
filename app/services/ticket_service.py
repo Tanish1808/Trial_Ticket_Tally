@@ -91,6 +91,14 @@ class TicketService:
         # Notify
         NotificationService.notify_ticket_created(new_ticket, new_ticket.creator)
 
+        # Broadcast live activity
+        NotificationService.broadcast_live_activity(
+            category="created",
+            ticket_id=new_ticket.id,
+            message=f"New Ticket T-{1000 + new_ticket.id} ('{new_ticket.title}') was created by {new_ticket.creator.full_name}.",
+            created_by=new_ticket.creator.full_name
+        )
+
         # Send Email Confirmation to Creator
         try:
             from app.services.email_service import EmailService
@@ -186,10 +194,41 @@ class TicketService:
             updated = True
         
         if updated:
+            from app.models.user import User
+            updater = db.session.get(User, user_id)
+            updater_name = updater.full_name if updater else "System"
+
             ticket.updated_at = datetime.utcnow()
             db.session.commit()
+
             if old_status != ticket.status:
-                 NotificationService.notify_status_change(ticket, old_status, ticket.status)
+                NotificationService.notify_status_change(ticket, old_status, ticket.status)
+                # Broadcast live activity status change
+                old_status_val = old_status.value if hasattr(old_status, 'value') else str(old_status)
+                new_status_val = ticket.status.value if hasattr(ticket.status, 'value') else str(ticket.status)
+                NotificationService.broadcast_live_activity(
+                    category="status_change",
+                    ticket_id=ticket.id,
+                    message=f"Ticket T-{1000 + ticket.id} status changed from '{old_status_val}' to '{new_status_val}' by {updater_name}.",
+                    created_by=updater_name
+                )
+            if data.priority:
+                priority_val = data.priority.value if hasattr(data.priority, 'value') else str(data.priority)
+                NotificationService.broadcast_live_activity(
+                    category="priority_change",
+                    ticket_id=ticket.id,
+                    message=f"Ticket T-{1000 + ticket.id} priority updated to '{priority_val}' by {updater_name}.",
+                    created_by=updater_name
+                )
+            if data.assigned_to_id:
+                assignee = db.session.get(User, data.assigned_to_id)
+                assignee_name = assignee.full_name if assignee else "Unassigned"
+                NotificationService.broadcast_live_activity(
+                    category="assigned",
+                    ticket_id=ticket.id,
+                    message=f"Ticket T-{1000 + ticket.id} assigned to {assignee_name} by {updater_name}.",
+                    created_by=updater_name
+                )
         
         return ticket
 
@@ -301,6 +340,14 @@ class TicketService:
         db.session.commit()
         
         NotificationService.notify_status_change(ticket, old_status, ticket.status)
+        
+        # Broadcast live activity
+        NotificationService.broadcast_live_activity(
+            category="claimed",
+            ticket_id=ticket.id,
+            message=f"Ticket T-{1000 + ticket.id} ('{ticket.title}') was claimed by {ticket.assignee.full_name}.",
+            created_by=ticket.assignee.full_name
+        )
         
         # Send Email Notification to Creator
         try:

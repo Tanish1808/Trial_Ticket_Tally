@@ -220,3 +220,17 @@ class NotificationService:
             type='warning'
         )
 
+    @staticmethod
+    def broadcast_live_activity(category, ticket_id, message, created_by):
+        """Broadcast live activity event to all connected sockets"""
+        from datetime import datetime
+        activity_data = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "category": category,
+            "ticket_id": ticket_id,
+            "message": message,
+            "created_by": created_by
+        }
+        socketio.emit('live_activity', activity_data)
+
+

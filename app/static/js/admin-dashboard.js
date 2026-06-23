@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeCharts();
     showSection('dashboard');
     loadAnnouncements();
+    setupLiveActivityFeed();
 
     // Auto Refresh Logic
     const autoRefresh = localStorage.getItem('auto-refresh') !== 'false'; // Default true
@@ -1268,4 +1269,65 @@ window.deleteTeamMapping = async function(id) {
         console.error("Error deleting team mapping", e);
         alert("Error deleting team mapping");
     }
-};
+};
+
+// Live Activity Feed Logic
+let liveActivitiesList = [];
+
+function setupLiveActivityFeed() {
+    const feedContainer = document.getElementById('liveActivityFeed');
+    if (!feedContainer) return;
+
+    if (typeof socket !== 'undefined') {
+        socket.on('live_activity', function (data) {
+            handleIncomingLiveActivity(data);
+        });
+    }
+}
+
+function handleIncomingLiveActivity(data) {
+    const feedContainer = document.getElementById('liveActivityFeed');
+    if (!feedContainer) return;
+
+    // Remove waiting/spinner if it's the first activity
+    const waitingEl = feedContainer.querySelector('.text-muted');
+    if (waitingEl) {
+        feedContainer.innerHTML = '';
+    }
+
+    // Keep track of the last 20 activities
+    liveActivitiesList.unshift(data);
+    if (liveActivitiesList.length > 20) {
+        liveActivitiesList.pop();
+    }
+
+    // Render activity
+    const iconClassMap = {
+        created: { icon: 'fa-plus-circle', class: 'created' },
+        claimed: { icon: 'fa-hand-paper', class: 'claimed' },
+        status_change: { icon: 'fa-sync-alt', class: 'status_change' },
+        priority_change: { icon: 'fa-exclamation-circle', class: 'priority_change' },
+        assigned: { icon: 'fa-user-check', class: 'assigned' }
+    };
+
+    const config = iconClassMap[data.category] || { icon: 'fa-info-circle', class: 'info' };
+
+    const timeString = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const activityHtml = `
+        <div class="activity-item">
+            <div class="activity-icon ${config.class}">
+                <i class="fas ${config.icon}"></i>
+            </div>
+            <div class="activity-content">
+                <div class="activity-text">${data.message}</div>
+                <div class="activity-meta">
+                    <span>by ${data.created_by || 'System'}</span>
+                    <span>${timeString}</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Prepend to feed list
+    feedContainer.insertAdjacentHTML('afterbegin', activityHtml);
+}
