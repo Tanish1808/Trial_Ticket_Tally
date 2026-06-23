@@ -1274,46 +1274,20 @@ window.deleteTeamMapping = async function(id) {
 // Live Activity Feed Logic
 let liveActivitiesList = [];
 
-function setupLiveActivityFeed() {
-    const feedContainer = document.getElementById('liveActivityFeed');
-    if (!feedContainer) return;
-
-    if (typeof socket !== 'undefined') {
-        socket.on('live_activity', function (data) {
-            handleIncomingLiveActivity(data);
-        });
-    }
-}
-
-function handleIncomingLiveActivity(data) {
-    const feedContainer = document.getElementById('liveActivityFeed');
-    if (!feedContainer) return;
-
-    // Remove waiting/spinner if it's the first activity
-    const waitingEl = feedContainer.querySelector('.text-muted');
-    if (waitingEl) {
-        feedContainer.innerHTML = '';
-    }
-
-    // Keep track of the last 20 activities
-    liveActivitiesList.unshift(data);
-    if (liveActivitiesList.length > 20) {
-        liveActivitiesList.pop();
-    }
-
-    // Render activity
+function renderActivityHtml(data) {
     const iconClassMap = {
         created: { icon: 'fa-plus-circle', class: 'created' },
         claimed: { icon: 'fa-hand-paper', class: 'claimed' },
         status_change: { icon: 'fa-sync-alt', class: 'status_change' },
         priority_change: { icon: 'fa-exclamation-circle', class: 'priority_change' },
-        assigned: { icon: 'fa-user-check', class: 'assigned' }
+        assigned: { icon: 'fa-user-check', class: 'assigned' },
+        comment: { icon: 'fa-comment', class: 'info' }
     };
 
     const config = iconClassMap[data.category] || { icon: 'fa-info-circle', class: 'info' };
 
     const timeString = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const activityHtml = `
+    return `
         <div class="activity-item">
             <div class="activity-icon ${config.class}">
                 <i class="fas ${config.icon}"></i>
@@ -1327,7 +1301,69 @@ function handleIncomingLiveActivity(data) {
             </div>
         </div>
     `;
+}
 
+async function setupLiveActivityFeed() {
+    const feedContainer = document.getElementById('liveActivityFeed');
+    if (!feedContainer) return;
+
+    // Load initial historical activities
+    try {
+        const response = await fetch('/api/v1/admin/activities', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${getAuthToken()}`
+            }
+        });
+        if (response.ok) {
+            const activities = await response.json();
+            feedContainer.innerHTML = '';
+            
+            if (activities.length === 0) {
+                feedContainer.innerHTML = `
+                    <div class="text-muted text-center py-5">
+                        <i class="fas fa-info-circle fa-2x mb-3 text-secondary"></i>
+                        <p class="small">No recent activities found.</p>
+                    </div>
+                `;
+            } else {
+                liveActivitiesList = activities;
+                activities.forEach(activity => {
+                    const activityHtml = renderActivityHtml(activity);
+                    feedContainer.insertAdjacentHTML('beforeend', activityHtml);
+                });
+            }
+        } else {
+            console.error("Failed to load activities history:", response.statusText);
+        }
+    } catch (e) {
+        console.error("Error loading activities history:", e);
+    }
+
+    if (typeof socket !== 'undefined') {
+        socket.on('live_activity', function (data) {
+            handleIncomingLiveActivity(data);
+        });
+    }
+}
+
+function handleIncomingLiveActivity(data) {
+    const feedContainer = document.getElementById('liveActivityFeed');
+    if (!feedContainer) return;
+
+    // Remove waiting/spinner or "no recent activities" message if it exists
+    const waitingEl = feedContainer.querySelector('.text-muted');
+    if (waitingEl) {
+        feedContainer.innerHTML = '';
+    }
+
+    // Keep track of the last 20 activities
+    liveActivitiesList.unshift(data);
+    if (liveActivitiesList.length > 20) {
+        liveActivitiesList.pop();
+    }
+
+    const activityHtml = renderActivityHtml(data);
     // Prepend to feed list
     feedContainer.insertAdjacentHTML('afterbegin', activityHtml);
 }

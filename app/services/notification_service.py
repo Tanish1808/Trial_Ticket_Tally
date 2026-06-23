@@ -186,6 +186,17 @@ class NotificationService:
                 type='info'
             )
 
+        # Broadcast live activity
+        try:
+            NotificationService.broadcast_live_activity(
+                category="comment",
+                ticket_id=ticket.id,
+                message=f"New comment on Ticket T-{1000 + ticket.id} ('{ticket.title}') by {commenter.full_name}: {comment.text[:60]}...",
+                created_by=commenter.full_name
+            )
+        except Exception as e:
+            logger.error(f"Failed to broadcast comment live activity: {e}", exc_info=True)
+
     @staticmethod
     def notify_password_reset(user, token):
         """Notify user about password reset request (Mock for internally generated notif, usually email)"""
