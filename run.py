@@ -17,4 +17,4 @@ if __name__ == '__main__':
     print("Starting server...")
     print(f"Access the application at: http://127.0.0.1:5000")
     print(f"DEBUG: BASE_URL from config: {app.config.get('BASE_URL')}")
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
