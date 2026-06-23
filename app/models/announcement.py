@@ -1,4 +1,4 @@
-from datetime import datetime
+from app.utils.time_utils import utcnow
 from app.core.database import db
 
 class Announcement(db.Model):
@@ -9,7 +9,7 @@ class Announcement(db.Model):
     message = db.Column(db.Text, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     expires_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     # Relationship to User (admin creator)

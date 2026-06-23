@@ -1,4 +1,5 @@
 from datetime import datetime
+from app.utils.time_utils import utcnow
 from app.core.database import db
 from app.models.ticket import Ticket
 from app.models.ticket_status_history import TicketStatusHistory
@@ -198,7 +199,7 @@ class TicketService:
             updater = db.session.get(User, user_id)
             updater_name = updater.full_name if updater else "System"
 
-            ticket.updated_at = datetime.utcnow()
+            ticket.updated_at = utcnow()
             db.session.commit()
 
             if old_status != ticket.status:
@@ -327,7 +328,7 @@ class TicketService:
         old_status = ticket.status
         ticket.assigned_to_id = user_id
         ticket.status = TicketStatus.IN_PROGRESS
-        ticket.updated_at = datetime.utcnow()
+        ticket.updated_at = utcnow()
         
         # History
         history = TicketStatusHistory(
@@ -378,13 +379,14 @@ class TicketService:
         Processes all tickets in batch. Records status history changes under the system account (None).
         """
         from datetime import datetime, timedelta
+        from app.utils.time_utils import utcnow
         from app.core.constants import TicketStatus
         from app.models.ticket import Ticket
         from app.core.database import db
         from app.models.ticket_status_history import TicketStatusHistory
 
-        logger.info(f"[{datetime.utcnow()}] Starting auto-close check for Resolved tickets (7 days cutoff)...")
-        cutoff_date = datetime.utcnow() - timedelta(days=7)
+        logger.info(f"[{utcnow()}] Starting auto-close check for Resolved tickets (7 days cutoff)...")
+        cutoff_date = utcnow() - timedelta(days=7)
         
         # Batch processing recommended for large datasets
         resolved_tickets = Ticket.query.filter(
@@ -393,7 +395,7 @@ class TicketService:
         
         logger.info(f"Found {len(resolved_tickets)} tickets in Resolved status.")
         count = 0
-        now = datetime.utcnow()
+        now = utcnow()
         for ticket in resolved_tickets:
             # Use updated_at if available, otherwise createdAt
             last_activity = ticket.updated_at if ticket.updated_at else ticket.created_at
@@ -433,17 +435,18 @@ class TicketService:
         """
         import os
         import json
-        from datetime import datetime, timedelta
+        from datetime import timedelta
+        from app.utils.time_utils import utcnow
         from flask import current_app
         from app.core.database import db
         from app.models.ticket import Ticket
         from app.core.constants import TicketStatus
 
         retention_days = current_app.config.get('RETENTION_DAYS', 365)
-        cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff_date = utcnow() - timedelta(days=retention_days)
         archive_dir = current_app.config.get('ARCHIVE_FOLDER', os.path.join(os.getcwd(), 'archive'))
 
-        logger.info(f"[{datetime.utcnow()}] Starting data retention purge (cutoff date: {cutoff_date}, retention: {retention_days} days)...")
+        logger.info(f"[{utcnow()}] Starting data retention purge (cutoff date: {cutoff_date}, retention: {retention_days} days)...")
 
         # Ensure archive directory exists
         os.makedirs(archive_dir, exist_ok=True)

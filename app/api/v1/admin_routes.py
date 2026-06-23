@@ -100,7 +100,7 @@ def mark_message_read(message_id):
     from app.models.message import Message
     from app.core.database import db
     
-    message = Message.query.get_or_404(message_id)
+    message = db.get_or_404(Message, message_id)
     message.is_read = True
     db.session.commit()
     
@@ -261,7 +261,7 @@ def update_team_mapping(mapping_id):
     from pydantic import ValidationError
     
     try:
-        mapping = TeamMapping.query.get_or_404(mapping_id)
+        mapping = db.get_or_404(TeamMapping, mapping_id)
         data = TeamMappingUpdate(**request.json)
         
         if data.category is not None:
@@ -324,7 +324,7 @@ def delete_team_mapping(mapping_id):
     from app.core.database import db
     
     try:
-        mapping = TeamMapping.query.get_or_404(mapping_id)
+        mapping = db.get_or_404(TeamMapping, mapping_id)
         db.session.delete(mapping)
         db.session.commit()
         return jsonify({'message': 'Team mapping deleted'})
@@ -494,7 +494,7 @@ def delete_announcement(announcement_id):
     from app.models.announcement import Announcement
     from app.core.database import db
 
-    announcement = Announcement.query.get_or_404(announcement_id)
+    announcement = db.get_or_404(Announcement, announcement_id)
     try:
         db.session.delete(announcement)
         db.session.commit()

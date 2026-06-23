@@ -1,4 +1,4 @@
-from datetime import datetime
+from app.utils.time_utils import utcnow
 from app.core.database import db
 from app.core.constants import TicketPriority
 
@@ -9,7 +9,7 @@ class SLA(db.Model):
     priority = db.Column(db.Enum(TicketPriority), unique=True, nullable=False)
     response_time_hours = db.Column(db.Integer, nullable=False, default=24)
     resolution_time_hours = db.Column(db.Integer, nullable=False, default=72)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
     def __repr__(self):
         return f"<SLA {self.priority.value}>"

@@ -199,7 +199,7 @@ def get_project(project_id):
       404:
         description: Project not found
     """
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
     return jsonify(project.to_dict())
 
 @project_bp.route('/<int:project_id>', methods=['PATCH'])
@@ -267,7 +267,7 @@ def update_project(project_id):
       404:
         description: Project not found
     """
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
     data = request.get_json()
     
     # Prevent editing completed projects unless reopening
@@ -391,7 +391,7 @@ def delete_project(project_id):
       404:
         description: Project not found
     """
-    project = Project.query.get_or_404(project_id)
+    project = db.get_or_404(Project, project_id)
     project.soft_delete()
     db.session.commit()
     return jsonify({"message": "Project deleted successfully"})

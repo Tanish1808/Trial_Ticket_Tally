@@ -1,4 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+def utcnow():
+    """Returns a timezone-naive datetime representing current UTC time."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 def calculate_sla_deadline(start_time: datetime, hours: int) -> datetime:
     """
@@ -8,4 +12,4 @@ def calculate_sla_deadline(start_time: datetime, hours: int) -> datetime:
     return start_time + timedelta(hours=hours)
 
 def is_breached(deadline: datetime) -> bool:
-    return datetime.utcnow() > deadline
+    return utcnow() > deadline

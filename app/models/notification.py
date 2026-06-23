@@ -1,4 +1,4 @@
-from datetime import datetime
+from app.utils.time_utils import utcnow
 from app.core.database import db
 
 class Notification(db.Model):
@@ -10,7 +10,7 @@ class Notification(db.Model):
     message = db.Column(db.Text, nullable=False)
     type = db.Column(db.String(20), default='info')  # info, success, warning, error
     is_read = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
     # Relationship
     user = db.relationship('User', backref=db.backref('notifications', lazy=True))

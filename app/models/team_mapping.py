@@ -1,4 +1,4 @@
-from datetime import datetime
+from app.utils.time_utils import utcnow
 from app.core.database import db
 
 class TeamMapping(db.Model):
@@ -7,7 +7,7 @@ class TeamMapping(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     category = db.Column(db.String(100), unique=True, nullable=False)
     team_id = db.Column(db.Integer, db.ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
     # Relationship to Team
     team = db.relationship("Team", backref=db.backref("mappings", cascade="all, delete-orphan"))

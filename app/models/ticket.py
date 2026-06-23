@@ -1,4 +1,4 @@
-from datetime import datetime
+from app.utils.time_utils import utcnow
 from app.core.database import db, SoftDeleteMixin
 from app.core.constants import TicketStatus, TicketPriority
 
@@ -17,8 +17,8 @@ class Ticket(db.Model, SoftDeleteMixin):
     assigned_to_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     team_id = db.Column(db.Integer, db.ForeignKey("teams.id"), nullable=True)
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     creator = db.relationship("User", foreign_keys=[created_by_id], back_populates="created_tickets")

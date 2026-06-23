@@ -1,5 +1,6 @@
 import pytest
 from datetime import datetime, timedelta
+from app.utils.time_utils import utcnow
 from app.main import create_app
 from app.core.config import TestingConfig
 from app.core.database import db
@@ -80,7 +81,7 @@ def test_get_active_announcements(client, admin_headers, employee_headers):
     payload_expired = {
         "title": "Expired Announce",
         "message": "This is hidden",
-        "expires_at": (datetime.utcnow() - timedelta(hours=1)).isoformat()
+        "expires_at": (utcnow() - timedelta(hours=1)).isoformat()
     }
     res2 = client.post('/api/v1/admin/announcements', json=payload_expired, headers=admin_headers)
     assert res2.status_code == 201

@@ -211,7 +211,7 @@ def test_direct_ticket_assignment(client, employee_headers, app):
 
     # Verify in database that it was assigned to Alice and also mapped to her team
     with app.app_context():
-        ticket = Ticket.query.get(ticket_id)
+        ticket = db.session.get(Ticket, ticket_id)
         assert ticket is not None
         assert ticket.assigned_to_id == agent_id
         assert ticket.team.name == "Hardware Support"

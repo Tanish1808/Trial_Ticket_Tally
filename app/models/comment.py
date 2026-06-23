@@ -1,4 +1,4 @@
-from datetime import datetime
+from app.utils.time_utils import utcnow
 from app.core.database import db
 
 class Comment(db.Model):
@@ -6,7 +6,7 @@ class Comment(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
     
     # Foreign Keys
     ticket_id = db.Column(db.Integer, db.ForeignKey("tickets.id"), nullable=False)

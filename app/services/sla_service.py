@@ -49,8 +49,9 @@ class SLAService:
             # detailed logic omitted for brevity but conceptually here.
             return SLAStatus.ACHIEVED
             
+        from app.utils.time_utils import utcnow
         deadline = SLAService.get_deadline(ticket)
-        if datetime.utcnow() > deadline:
+        if utcnow() > deadline:
             return SLAStatus.BREACHED
         
         return SLAStatus.PENDING

@@ -3,6 +3,7 @@ from app.middleware.auth_middleware import role_required, token_required
 from app.core.constants import UserRole, TicketStatus
 from app.models.ticket import Ticket
 from app.models.user import User
+from app.utils.time_utils import utcnow
 
 analytics_bp = Blueprint('analytics', __name__, url_prefix='/api/v1/analytics')
 
@@ -23,7 +24,7 @@ def get_dashboard_stats():
     def get_count(status_enum):
         return status_map.get(status_enum, 0)
 
-    today_date = datetime.utcnow().date()
+    today_date = utcnow().date()
     resolved_today = Ticket.query.filter(
         Ticket.is_demo == False,
         Ticket.status == TicketStatus.RESOLVED,
@@ -52,7 +53,7 @@ def get_dashboard_stats():
 
     # 4. Trends (Last 7 days)
     # Only fetch tickets modified or created in last 7 days to reduce load
-    today = datetime.utcnow().date()
+    today = utcnow().date()
     seven_days_ago = today - timedelta(days=7)
     
     # We need tickets created recently OR resolved recently
@@ -120,7 +121,7 @@ def get_sla_stats():
     missed = 0
     pending = 0
     
-    now = datetime.utcnow()
+    now = utcnow()
     
     for t in tickets:
         # Calculate deadline
@@ -161,7 +162,7 @@ def get_it_dashboard_stats():
     from app.core.constants import TicketStatus, TicketPriority, UserRole
 
     user = g.user
-    today_date = datetime.utcnow().date()
+    today_date = utcnow().date()
     
     # Base query for the user's scope (Team or All if no team)
     query = Ticket.query
@@ -182,8 +183,8 @@ def get_it_dashboard_stats():
     
     # 4. SLA Breaches
     # SLA: Critical > 4h, High > 8h
-    critical_breach_time = datetime.utcnow() - timedelta(hours=4)
-    high_breach_time = datetime.utcnow() - timedelta(hours=8)
+    critical_breach_time = utcnow() - timedelta(hours=4)
+    high_breach_time = utcnow() - timedelta(hours=8)
     
     sla_breaches = query.filter(
         Ticket.status.in_([TicketStatus.OPEN, TicketStatus.IN_PROGRESS]),

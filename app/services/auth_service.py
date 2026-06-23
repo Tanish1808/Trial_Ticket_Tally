@@ -5,6 +5,7 @@ from app.utils.jwt import create_access_token
 from app.schemas.auth_schema import SignupRequest, LoginRequest
 from app.services.email_service import EmailService
 from datetime import datetime
+from app.utils.time_utils import utcnow
 
 class AuthService:
     @staticmethod
@@ -197,7 +198,7 @@ class AuthService:
                 assigned_to_id=user.id,
                 team_id=it_team.id,
                 is_demo=True,
-                created_at=datetime.utcnow()
+                created_at=utcnow()
             ),
             Ticket(
                 title="Outlook Sync Error", 
@@ -209,7 +210,7 @@ class AuthService:
                 assigned_to_id=user.id,
                 team_id=it_team.id,
                 is_demo=True,
-                created_at=datetime.utcnow()
+                created_at=utcnow()
             ),
             Ticket(
                 title="Payroll Discrepancy", 
@@ -221,7 +222,7 @@ class AuthService:
                 assigned_to_id=user.id,
                 team_id=hr_team.id,
                 is_demo=True,
-                created_at=datetime.utcnow()
+                created_at=utcnow()
             )
         ]
         db.session.add_all(sample_tickets)
@@ -243,7 +244,7 @@ class AuthService:
                 title="Scheduled Database Maintenance ⚠️",
                 message="The primary ticketing database will undergo scheduled maintenance this Sunday from 02:00 AM to 04:00 AM UTC. Some services might experience brief latency.",
                 is_active=True,
-                expires_at=datetime.utcnow() + timedelta(days=5),
+                expires_at=utcnow() + timedelta(days=5),
                 created_by_id=user.id
             ),
             Announcement(

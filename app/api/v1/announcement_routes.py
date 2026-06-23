@@ -25,7 +25,8 @@ def get_active_announcements():
     from app.core.config import Config
     from app.models.user import User
 
-    now = datetime.utcnow()
+    from app.utils.time_utils import utcnow
+    now = utcnow()
     
     # Base query
     query = Announcement.query.filter(

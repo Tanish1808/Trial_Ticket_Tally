@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, g, request
 from datetime import datetime
 from app.models.user import User
 from app.core.database import db
+from app.utils.time_utils import utcnow
 from werkzeug.security import generate_password_hash
 from app.middleware.auth_middleware import token_required, role_required
 from app.core.constants import UserRole, TicketStatus
@@ -420,7 +421,7 @@ def update_user(user_id):
       404:
         description: User not found
     """
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     data = request.get_json()
     
     if 'is_active' in data:
@@ -496,7 +497,7 @@ def export_user_data():
             "text": c.text,
             "created_at": c.created_at.isoformat()
         } for c in comments],
-        "exported_at": datetime.utcnow().isoformat()
+        "exported_at": utcnow().isoformat()
     }
     
     if format_type == 'csv':

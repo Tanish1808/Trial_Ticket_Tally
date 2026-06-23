@@ -223,9 +223,9 @@ class NotificationService:
     @staticmethod
     def broadcast_live_activity(category, ticket_id, message, created_by):
         """Broadcast live activity event to all connected sockets"""
-        from datetime import datetime
+        from app.utils.time_utils import utcnow
         activity_data = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": utcnow().isoformat(),
             "category": category,
             "ticket_id": ticket_id,
             "message": message,

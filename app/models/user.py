@@ -1,4 +1,4 @@
-from datetime import datetime
+from app.utils.time_utils import utcnow
 from app.core.database import db
 from app.core.constants import UserRole
 
@@ -12,7 +12,7 @@ class User(db.Model):
     role = db.Column(db.Enum(UserRole), default=UserRole.EMPLOYEE, nullable=False)
     department = db.Column(db.String(100), nullable=True)
     team_id = db.Column(db.Integer, db.ForeignKey("teams.id"), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
     is_active = db.Column(db.Boolean, default=True)
     preferences = db.Column(db.JSON, default={})
     specializations = db.Column(db.JSON, default=[])

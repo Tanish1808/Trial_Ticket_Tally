@@ -136,7 +136,7 @@ def update_event(event_id):
       404:
         description: Event not found
     """
-    event = Event.query.get_or_404(event_id)
+    event = db.get_or_404(Event, event_id)
     try:
         data = EventUpdate(**request.json)
         
@@ -194,7 +194,7 @@ def delete_event(event_id):
       404:
         description: Event not found
     """
-    event = Event.query.get_or_404(event_id)
+    event = db.get_or_404(Event, event_id)
     try:
         db.session.delete(event)
         db.session.commit()

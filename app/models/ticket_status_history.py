@@ -1,4 +1,4 @@
-from datetime import datetime
+from app.utils.time_utils import utcnow
 from app.core.database import db
 from app.core.constants import TicketStatus
 
@@ -12,7 +12,7 @@ class TicketStatusHistory(db.Model):
     new_status = db.Column(db.Enum(TicketStatus), nullable=False)
     
     changed_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-    changed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    changed_at = db.Column(db.DateTime, default=utcnow)
 
     # Relationships
     ticket = db.relationship("Ticket", back_populates="status_history")

@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, g
 from datetime import datetime
 from app.services.ticket_service import TicketService
 from app.schemas.ticket_schema import TicketCreate, TicketUpdate
+from app.utils.time_utils import utcnow
 from app.middleware.auth_middleware import token_required
 from pydantic import ValidationError
 from app.core.extensions import limiter
@@ -320,7 +321,7 @@ def add_comment(ticket_id):
         db.session.add(comment)
         
         # Update ticket updated_at
-        ticket.updated_at = datetime.utcnow()
+        ticket.updated_at = utcnow()
         db.session.commit()
         
         # Notify
@@ -520,7 +521,7 @@ def withdraw_ticket(ticket_id):
         )
         db.session.add(comment)
         
-        ticket.updated_at = datetime.utcnow()
+        ticket.updated_at = utcnow()
         db.session.commit()
         
         return jsonify({"message": "Ticket withdrawn successfully"}), 200

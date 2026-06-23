@@ -3,7 +3,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from datetime import datetime
+from app.utils.time_utils import utcnow
 from html import escape
 
 class TicketPdfService:
@@ -36,7 +36,7 @@ class TicketPdfService:
 
         # Header
         elements.append(Paragraph(f"Ticket Summary: #{ticket.id}", title_style))
-        elements.append(Paragraph(f"Generated on {datetime.utcnow().strftime('%B %d, %Y')}", styles['Normal']))
+        elements.append(Paragraph(f"Generated on {utcnow().strftime('%B %d, %Y')}", styles['Normal']))
         elements.append(Spacer(1, 20))
 
         # Ticket Details Table

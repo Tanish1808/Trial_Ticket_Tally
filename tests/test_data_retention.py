@@ -4,6 +4,7 @@ import pytest
 import shutil
 import tempfile
 from datetime import datetime, timedelta
+from app.utils.time_utils import utcnow
 from app.main import create_app
 from app.core.config import TestingConfig
 from app.core.database import db
@@ -86,7 +87,7 @@ def test_archive_and_purge_service(app, temp_archive, test_user):
         db.session.commit()
 
         # Artificially set updated_at back by 40 days
-        ticket.updated_at = datetime.utcnow() - timedelta(days=40)
+        ticket.updated_at = utcnow() - timedelta(days=40)
         db.session.commit()
 
         ticket_id = ticket.id
@@ -133,7 +134,7 @@ def test_soft_deleted_purge(app, temp_archive, test_user):
         db.session.commit()
 
         # Set updated_at back
-        ticket.updated_at = datetime.utcnow() - timedelta(days=40)
+        ticket.updated_at = utcnow() - timedelta(days=40)
         db.session.commit()
 
         # Run purge
@@ -161,7 +162,7 @@ def test_manual_purge_api(app, client, admin_headers, test_user):
         db.session.commit()
 
         ticket_id = ticket.id
-        ticket.updated_at = datetime.utcnow() - timedelta(days=40)
+        ticket.updated_at = utcnow() - timedelta(days=40)
         db.session.commit()
 
     # Trigger manual purge via API

@@ -1,5 +1,6 @@
 import pytest
 from datetime import datetime, timedelta
+from app.utils.time_utils import utcnow
 from app.main import create_app
 from app.core.config import TestingConfig
 from app.core.database import db
@@ -48,7 +49,7 @@ def employee_headers(app):
     return {"Authorization": f"Bearer {token}"}
 
 def test_admin_create_event(client, admin_headers):
-    start = datetime.utcnow() + timedelta(days=1)
+    start = utcnow() + timedelta(days=1)
     end = start + timedelta(hours=2)
     payload = {
         "title": "Database Upgrade",
@@ -65,7 +66,7 @@ def test_admin_create_event(client, admin_headers):
     assert data['event']['event_type'] == "maintenance"
 
 def test_employee_cannot_create_event(client, employee_headers):
-    start = datetime.utcnow() + timedelta(days=1)
+    start = utcnow() + timedelta(days=1)
     end = start + timedelta(hours=2)
     payload = {
         "title": "Hacked event",
@@ -78,8 +79,7 @@ def test_employee_cannot_create_event(client, employee_headers):
     assert response.status_code == 403
 
 def test_get_events(client, admin_headers, employee_headers):
-    # Create an event first
-    start = datetime.utcnow() + timedelta(days=1)
+    start = utcnow() + timedelta(days=1)
     end = start + timedelta(hours=2)
     payload = {
         "title": "System Training",
@@ -99,8 +99,7 @@ def test_get_events(client, admin_headers, employee_headers):
     assert events[0]['title'] == "System Training"
 
 def test_admin_update_event(client, admin_headers):
-    # Create an event
-    start = datetime.utcnow() + timedelta(days=1)
+    start = utcnow() + timedelta(days=1)
     end = start + timedelta(hours=2)
     payload = {
         "title": "Event to Update",
@@ -121,8 +120,7 @@ def test_admin_update_event(client, admin_headers):
     assert response.get_json()['event']['title'] == "Updated Event Title"
 
 def test_event_validation_dates(client, admin_headers):
-    # Create an event
-    start = datetime.utcnow() + timedelta(days=1)
+    start = utcnow() + timedelta(days=1)
     end = start + timedelta(hours=2)
     payload = {
         "title": "Validation Event",
@@ -143,8 +141,7 @@ def test_event_validation_dates(client, admin_headers):
     assert "error" in response.get_json()
 
 def test_admin_delete_event(client, admin_headers, employee_headers):
-    # Create an event
-    start = datetime.utcnow() + timedelta(days=1)
+    start = utcnow() + timedelta(days=1)
     end = start + timedelta(hours=2)
     payload = {
         "title": "Event to Delete",
