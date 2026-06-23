@@ -1,5 +1,4 @@
-import eventlet
-eventlet.monkey_patch()
+# Eventlet removed to resolve thread deadlocks on Windows
 
 import sys
 print(f"DEBUG: Python Executable: {sys.executable}")
