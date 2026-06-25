@@ -254,5 +254,26 @@ def test_broadcast_live_activity_demo_status(app, auth_headers, monkeypatch):
     assert len(emitted_data) == 2
     assert emitted_data[1]['is_demo'] is True
 
+def test_socketio_redis_message_queue_config(monkeypatch):
+    from app.core.extensions import socketio
+    
+    initialized_queue = []
+    def mock_init_app(app, **kwargs):
+        initialized_queue.append(kwargs.get('message_queue'))
+        
+    monkeypatch.setattr(socketio, 'init_app', mock_init_app)
+    
+    from app.main import create_app
+    from app.core.config import TestingConfig
+    
+    class CustomTestingConfig(TestingConfig):
+        REDIS_URL = "redis://localhost:6379/0"
+        
+    app = create_app(CustomTestingConfig)
+    
+    assert len(initialized_queue) == 1
+    assert initialized_queue[0] == "redis://localhost:6379/0"
+
+
 
 
