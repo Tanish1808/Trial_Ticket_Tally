@@ -1342,7 +1342,12 @@ async function setupLiveActivityFeed() {
 
     if (typeof socket !== 'undefined') {
         socket.on('live_activity', function (data) {
-            handleIncomingLiveActivity(data);
+            const currentUser = getCurrentUser();
+            const isDemoUser = currentUser && currentUser.email === 'demo@tickettally.com';
+            const isEventDemo = !!data.is_demo;
+            if (isDemoUser === isEventDemo) {
+                handleIncomingLiveActivity(data);
+            }
         });
     }
 }

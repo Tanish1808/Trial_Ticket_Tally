@@ -194,4 +194,65 @@ def test_json_logging(monkeypatch, capsys):
     assert json_log["level"] == "INFO"
     assert json_log["message"] == "Test JSON Log Message"
 
+def test_broadcast_live_activity_demo_status(app, auth_headers, monkeypatch):
+    from app.services.notification_service import NotificationService
+    from app.models.ticket import Ticket
+    from app.core.constants import TicketPriority
+    
+    # Mock socketio.emit
+    emitted_data = []
+    def mock_emit(event, data):
+        if event == 'live_activity':
+            emitted_data.append(data)
+            
+    from app.main import socketio
+    monkeypatch.setattr(socketio, 'emit', mock_emit)
+    
+    user = User.query.first()
+    
+    # 1. Create a non-demo ticket
+    t_normal = Ticket(
+        title="Normal Ticket",
+        description="Normal Desc",
+        category="Software Issue",
+        priority=TicketPriority.LOW,
+        created_by_id=user.id,
+        is_demo=False
+    )
+    db.session.add(t_normal)
+    db.session.commit()
+    
+    # Broadcast for normal ticket
+    NotificationService.broadcast_live_activity(
+        category="created",
+        ticket_id=t_normal.id,
+        message="Normal ticket created",
+        created_by="Test User"
+    )
+    assert len(emitted_data) == 1
+    assert emitted_data[0]['is_demo'] is False
+    
+    # 2. Create a demo ticket
+    t_demo = Ticket(
+        title="Demo Ticket",
+        description="Demo Desc",
+        category="Software Issue",
+        priority=TicketPriority.LOW,
+        created_by_id=user.id,
+        is_demo=True
+    )
+    db.session.add(t_demo)
+    db.session.commit()
+    
+    # Broadcast for demo ticket
+    NotificationService.broadcast_live_activity(
+        category="created",
+        ticket_id=t_demo.id,
+        message="Demo ticket created",
+        created_by="Test User"
+    )
+    assert len(emitted_data) == 2
+    assert emitted_data[1]['is_demo'] is True
+
+
 

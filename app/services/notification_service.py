@@ -235,12 +235,24 @@ class NotificationService:
     def broadcast_live_activity(category, ticket_id, message, created_by):
         """Broadcast live activity event to all connected sockets"""
         from app.utils.time_utils import utcnow
+        from app.models.ticket import Ticket
+        from app.core.database import db
+
+        is_demo = False
+        try:
+            ticket = db.session.get(Ticket, ticket_id)
+            if ticket:
+                is_demo = ticket.is_demo
+        except Exception as e:
+            logger.warning(f"Error checking ticket demo status in broadcast_live_activity: {e}")
+
         activity_data = {
             "timestamp": utcnow().isoformat(),
             "category": category,
             "ticket_id": ticket_id,
             "message": message,
-            "created_by": created_by
+            "created_by": created_by,
+            "is_demo": is_demo
         }
         socketio.emit('live_activity', activity_data)
 
