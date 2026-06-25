@@ -1286,7 +1286,7 @@ function renderActivityHtml(data) {
 
     const config = iconClassMap[data.category] || { icon: 'fa-info-circle', class: 'info' };
 
-    const timeString = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const dateTimeString = new Date(data.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
     return `
         <div class="activity-item">
             <div class="activity-icon ${config.class}">
@@ -1296,7 +1296,7 @@ function renderActivityHtml(data) {
                 <div class="activity-text">${data.message}</div>
                 <div class="activity-meta">
                     <span>by ${data.created_by || 'System'}</span>
-                    <span>${timeString}</span>
+                    <span>${dateTimeString}</span>
                 </div>
             </div>
         </div>
