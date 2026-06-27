@@ -96,6 +96,17 @@ def create_event():
         db.session.add(event)
         db.session.commit()
         
+        # Broadcast event
+        try:
+            from app.services.notification_service import NotificationService
+            NotificationService.broadcast_calendar_event("created", event.to_dict())
+        except Exception as e:
+            # Import logger if needed, wait, is there a logger in event_routes?
+            # Let's check. Wait, let's look at imports. No, we can just print or ignore if it fails, or log.
+            # Let's import current_app.logger or just import logging and get logger.
+            import logging
+            logging.getLogger(__name__).error(f"Failed to broadcast calendar event created: {e}")
+
         return jsonify({
             "message": "Event created successfully",
             "event": event.to_dict()
@@ -159,6 +170,15 @@ def update_event(event_id):
             event.end_time = data.end_time
             
         db.session.commit()
+        
+        # Broadcast event
+        try:
+            from app.services.notification_service import NotificationService
+            NotificationService.broadcast_calendar_event("updated", event.to_dict())
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to broadcast calendar event updated: {e}")
+
         return jsonify({
             "message": "Event updated successfully",
             "event": event.to_dict()
@@ -198,6 +218,15 @@ def delete_event(event_id):
     try:
         db.session.delete(event)
         db.session.commit()
+        
+        # Broadcast event
+        try:
+            from app.services.notification_service import NotificationService
+            NotificationService.broadcast_calendar_event("deleted", {"id": event_id})
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to broadcast calendar event deleted: {e}")
+
         return jsonify({"message": "Event deleted successfully"}), 200
     except Exception as e:
         db.session.rollback()
