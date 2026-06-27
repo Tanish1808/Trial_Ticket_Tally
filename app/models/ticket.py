@@ -17,6 +17,7 @@ class Ticket(db.Model, SoftDeleteMixin):
     assigned_to_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     team_id = db.Column(db.Integer, db.ForeignKey("teams.id"), nullable=True)
     
+    github_pr_url = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=utcnow)
     updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 

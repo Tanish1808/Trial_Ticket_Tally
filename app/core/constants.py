@@ -21,6 +21,8 @@ class TicketPriority(str, Enum):
 class SLAStatus(str, Enum):
     PENDING = "Pending"
     ACHIEVED = "Achieved"
+    BREACHED = "Breached"
+    APPROACHING = "Approaching"
 
 class ProjectStatus(str, Enum):
     PLANNING = "Planning"

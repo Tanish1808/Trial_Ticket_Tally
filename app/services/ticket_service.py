@@ -193,6 +193,10 @@ class TicketService:
         if data.assigned_to_id:
             ticket.assigned_to_id = data.assigned_to_id
             updated = True
+
+        if data.github_pr_url is not None:
+            ticket.github_pr_url = data.github_pr_url if data.github_pr_url != "" else None
+            updated = True
         
         if updated:
             from app.models.user import User

@@ -14,14 +14,13 @@ class TicketCreate(BaseModel):
 
 class TicketUpdate(BaseModel):
     status: Optional[TicketStatus] = None
-    status: Optional[TicketStatus] = None
     category: Optional[str] = None
     priority: Optional[TicketPriority] = None
     assigned_to_id: Optional[int] = None
     team_id: Optional[int] = None
+    github_pr_url: Optional[str] = None
 
 class TicketResponse(BaseModel):
-    id: int
     id: int
     title: str
     description: str
@@ -33,6 +32,7 @@ class TicketResponse(BaseModel):
     created_by_id: int
     assigned_to_id: Optional[int]
     team_id: Optional[int]
+    github_pr_url: Optional[str] = None
     
     # Nested helpers might be needed for frontend, or just IDs
     creator: Optional[UserResponse] = None

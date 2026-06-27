@@ -159,6 +159,9 @@ def create_app(config_class=Config):
     from app.api.v1.event_routes import event_bp
     app.register_blueprint(event_bp)
 
+    from app.api.v1.webhook_routes import webhook_bp
+    app.register_blueprint(webhook_bp)
+
     from app.api.v1.notification_routes import notification_bp
     app.register_blueprint(notification_bp, url_prefix='/api/v1/notifications')
 
