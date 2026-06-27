@@ -118,6 +118,8 @@ def get_ticket(ticket_id):
         "updatedAt": ticket.updated_at.isoformat() if ticket.updated_at else ticket.created_at.isoformat(),
         "createdByName": ticket.creator.full_name if ticket.creator else "Unknown",
         "createdById": ticket.created_by_id,
+        "github_pr_url": ticket.github_pr_url,
+        "githubPrUrl": ticket.github_pr_url,
         "assignedTo": (
             f"{ticket.team.name} : {ticket.assignee.full_name}" 
             if ticket.assignee and ticket.team 

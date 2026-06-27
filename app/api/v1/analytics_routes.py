@@ -104,47 +104,28 @@ def get_dashboard_stats():
 
 def get_sla_stats():
     from app.models.ticket import Ticket
-    from app.core.constants import TicketPriority, TicketStatus
-    from datetime import datetime, timedelta
+    from app.services.sla_service import SLAService
+    from app.core.constants import SLAStatus, TicketStatus
     
-    # Define SLA hours
-    sla_hours = {
-        TicketPriority.CRITICAL: 4,
-        TicketPriority.HIGH: 8,
-        TicketPriority.MEDIUM: 24,
-        TicketPriority.LOW: 48
-    }
-    
+    SLAService.seed_default_slas()
     tickets = Ticket.query.filter(Ticket.is_demo == False).all()
     
     met = 0
     missed = 0
     pending = 0
     
-    now = utcnow()
-    
     for t in tickets:
-        # Calculate deadline
-        hours = sla_hours.get(t.priority, 24)
-        deadline = t.created_at + timedelta(hours=hours)
-        
-        if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED]:
-            # Use updated_at as proxy for resolution time
-            resolution_time = t.updated_at
-            if resolution_time <= deadline:
-                met += 1
-            else:
-                missed += 1
-        elif t.status == TicketStatus.WITHDRAWN:
-            continue # Ignore withdrawn
+        if t.status == TicketStatus.WITHDRAWN:
+            continue
+            
+        status = SLAService.check_sla_status(t)
+        if status == SLAStatus.ACHIEVED:
+            met += 1
+        elif status == SLAStatus.BREACHED:
+            missed += 1
         else:
-            # Active tickets
-            if now > deadline:
-                missed += 1 # Active breach
-            else:
-                pending += 1 # On track
-                
-    total_processed = met + missed
+            pending += 1
+            
     return {
         "met": met,
         "missed": missed,
@@ -155,11 +136,13 @@ def get_sla_stats():
 @token_required
 def get_it_dashboard_stats():
     from app.core.database import db
-    from sqlalchemy import func, or_
+    from sqlalchemy import func, or_, and_
     from datetime import datetime, timedelta
     from flask import g
     from app.models.ticket import Ticket
     from app.core.constants import TicketStatus, TicketPriority, UserRole
+    from app.services.sla_service import SLAService
+    from app.models.sla import SLA
 
     user = g.user
     today_date = utcnow().date()
@@ -182,16 +165,27 @@ def get_it_dashboard_stats():
     ).count()
     
     # 4. SLA Breaches
-    # SLA: Critical > 4h, High > 8h
-    critical_breach_time = utcnow() - timedelta(hours=4)
-    high_breach_time = utcnow() - timedelta(hours=8)
+    SLAService.seed_default_slas()
+    sla_configs = SLA.query.all()
+    sla_hours = {cfg.priority: cfg.resolution_time_hours for cfg in sla_configs}
+    defaults = {
+        TicketPriority.CRITICAL: 4,
+        TicketPriority.HIGH: 8,
+        TicketPriority.MEDIUM: 24,
+        TicketPriority.LOW: 48
+    }
+    for p, hrs in defaults.items():
+        if p not in sla_hours:
+            sla_hours[p] = hrs
+
+    conditions = []
+    for priority, hours in sla_hours.items():
+        breach_time = utcnow() - timedelta(hours=hours)
+        conditions.append(and_(Ticket.priority == priority, Ticket.created_at <= breach_time))
     
     sla_breaches = query.filter(
         Ticket.status.in_([TicketStatus.OPEN, TicketStatus.IN_PROGRESS]),
-        or_(
-            (Ticket.priority == TicketPriority.CRITICAL) & (Ticket.created_at <= critical_breach_time),
-            (Ticket.priority == TicketPriority.HIGH) & (Ticket.created_at <= high_breach_time)
-        )
+        or_(*conditions)
     ).count()
 
     # 5. Weekly Performance Trends (Assigned vs Resolved)

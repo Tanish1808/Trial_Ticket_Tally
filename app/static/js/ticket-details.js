@@ -111,6 +111,9 @@ async function loadTicketDetails() {
         // Render comments
         renderComments(ticket);
 
+        // Render GitHub PR
+        renderGithubPr(ticket);
+
         // Initialize Withdraw Button visibility
         const withdrawBtn = document.getElementById('withdrawBtn');
         if (withdrawBtn) {
@@ -769,4 +772,114 @@ function showToast(message, type = 'info') {
 // Helper: Format Ticket ID
 function formatTicketId(id) {
     return `T-${1000 + parseInt(id)}`;
+}
+
+// GitHub PR Integration
+function renderGithubPr(ticket) {
+    const container = document.getElementById('githubPrContainer');
+    if (!container) return;
+
+    const prUrl = ticket.github_pr_url || ticket.githubPrUrl;
+    const canLink = currentUser && (currentUser.role === 'admin' || currentUser.role === 'it_staff');
+
+    if (prUrl) {
+        container.innerHTML = `
+            <div class="mb-3">
+                <a href="${prUrl}" target="_blank" class="d-flex align-items-center text-decoration-none">
+                    <i class="fab fa-github fa-lg text-dark me-2"></i>
+                    <span class="text-truncate fw-semibold text-primary" style="max-width: 220px;">${prUrl.split('/').pop() || 'PR Link'}</span>
+                    <i class="fas fa-external-link-alt ms-2 text-muted small"></i>
+                </a>
+            </div>
+            ${canLink ? `
+                <button onclick="unlinkGithubPr()" class="btn btn-sm btn-outline-danger w-100">
+                    <i class="fas fa-unlink me-1"></i>Unlink PR
+                </button>
+            ` : ''}
+        `;
+    } else {
+        if (canLink) {
+            container.innerHTML = `
+                <div class="mb-2 text-muted small">No GitHub Pull Request linked yet.</div>
+                <div class="input-group input-group-sm">
+                    <input type="text" id="githubPrUrlInput" class="form-control" placeholder="https://github.com/org/repo/pull/1">
+                    <button onclick="linkGithubPr()" class="btn btn-primary-custom" type="button">
+                        <i class="fas fa-link"></i>
+                    </button>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `<div class="text-muted small">No Pull Request linked.</div>`;
+        }
+    }
+}
+
+async function linkGithubPr() {
+    const input = document.getElementById('githubPrUrlInput');
+    if (!input || !input.value.trim()) {
+        showToast('Please enter a valid GitHub PR URL', 'error');
+        return;
+    }
+
+    const prUrl = input.value.trim();
+    if (!prUrl.startsWith('https://github.com/')) {
+        showToast('Must be a valid GitHub URL', 'error');
+        return;
+    }
+
+    try {
+        const token = getAuthToken();
+        const response = await fetch(`/api/v1/tickets/${ticketId}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                github_pr_url: prUrl
+            })
+        });
+
+        if (response.ok) {
+            showToast('GitHub PR linked successfully', 'success');
+            loadTicketDetails();
+        } else {
+            const err = await response.json();
+            showToast(err.error || 'Failed to link GitHub PR', 'error');
+        }
+    } catch (e) {
+        console.error("Failed to link GitHub PR", e);
+        showToast('An error occurred', 'error');
+    }
+}
+
+async function unlinkGithubPr() {
+    if (!confirm('Are you sure you want to unlink this GitHub PR?')) {
+        return;
+    }
+
+    try {
+        const token = getAuthToken();
+        const response = await fetch(`/api/v1/tickets/${ticketId}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                github_pr_url: ""
+            })
+        });
+
+        if (response.ok) {
+            showToast('GitHub PR unlinked successfully', 'success');
+            loadTicketDetails();
+        } else {
+            const err = await response.json();
+            showToast(err.error || 'Failed to unlink GitHub PR', 'error');
+        }
+    } catch (e) {
+        console.error("Failed to unlink GitHub PR", e);
+        showToast('An error occurred', 'error');
+    }
 }

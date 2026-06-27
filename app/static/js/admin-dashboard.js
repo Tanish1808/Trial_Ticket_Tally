@@ -15,7 +15,7 @@ if (!user || user.role !== 'admin') {
 }
 
 // Chart instances
-let lineChart, pieChart, barChart;
+let lineChart, pieChart, barChart, slaChart;
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', function () {
@@ -283,6 +283,48 @@ function updateCharts(data) {
     }
 
     // SLA Chart - Compliance
+    const slaCtx = document.getElementById('slaChart');
+    if (slaCtx && data.sla_compliance) {
+        const labels = ['Met', 'Missed', 'Pending'];
+        const values = [
+            data.sla_compliance.met || 0,
+            data.sla_compliance.missed || 0,
+            data.sla_compliance.pending || 0
+        ];
+
+        if (slaChart) {
+            slaChart.data.labels = labels;
+            slaChart.data.datasets[0].data = values;
+            slaChart.update('none');
+        } else {
+            slaChart = new Chart(slaCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
+                        borderWidth: 2,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 15
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+    }
 
 
 }
