@@ -271,4 +271,13 @@ class NotificationService:
         except Exception as db_err:
             logger.error(f"Failed to persist activity log: {db_err}", exc_info=True)
 
+    @staticmethod
+    def broadcast_calendar_event(action, event_data):
+        """Broadcast calendar update event to all connected sockets"""
+        socketio.emit('calendar_update', {
+            'action': action,
+            'event': event_data
+        })
+
+
 

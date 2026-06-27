@@ -165,3 +165,55 @@ def test_admin_delete_event(client, admin_headers, employee_headers):
     # Confirm it's gone
     res_get = client.get('/api/v1/events', headers=admin_headers)
     assert len(res_get.get_json()) == 0
+
+def test_calendar_event_broadcast(client, admin_headers, monkeypatch):
+    from app.core.extensions import socketio
+    
+    emitted_events = []
+    
+    # Mock socketio.emit to inspect broadcast payloads
+    def mock_emit(event, data, *args, **kwargs):
+        emitted_events.append((event, data))
+        
+    monkeypatch.setattr(socketio, 'emit', mock_emit)
+    
+    # 1. Test Create event broadcast
+    start = utcnow() + timedelta(days=1)
+    end = start + timedelta(hours=2)
+    payload = {
+        "title": "Maintenance Event",
+        "description": "DB Upgrade",
+        "event_type": "maintenance",
+        "start_time": start.isoformat() + "Z",
+        "end_time": end.isoformat() + "Z"
+    }
+    response = client.post('/api/v1/events', json=payload, headers=admin_headers)
+    assert response.status_code == 201
+    event_id = response.get_json()['event']['id']
+    
+    assert len(emitted_events) == 1
+    assert emitted_events[0][0] == 'calendar_update'
+    assert emitted_events[0][1]['action'] == 'created'
+    assert emitted_events[0][1]['event']['title'] == "Maintenance Event"
+    
+    # 2. Test Update event broadcast
+    emitted_events.clear()
+    update_payload = {"title": "Updated Maintenance Event"}
+    response = client.patch(f'/api/v1/events/{event_id}', json=update_payload, headers=admin_headers)
+    assert response.status_code == 200
+    
+    assert len(emitted_events) == 1
+    assert emitted_events[0][0] == 'calendar_update'
+    assert emitted_events[0][1]['action'] == 'updated'
+    assert emitted_events[0][1]['event']['title'] == "Updated Maintenance Event"
+    
+    # 3. Test Delete event broadcast
+    emitted_events.clear()
+    response = client.delete(f'/api/v1/events/{event_id}', headers=admin_headers)
+    assert response.status_code == 200
+    
+    assert len(emitted_events) == 1
+    assert emitted_events[0][0] == 'calendar_update'
+    assert emitted_events[0][1]['action'] == 'deleted'
+    assert emitted_events[0][1]['event']['id'] == event_id
+

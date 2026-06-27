@@ -274,3 +274,14 @@ function goBackToDashboard() {
         window.location.href = '/';
     }
 }
+
+// Real-time Calendar Sync via SocketIO
+if (typeof socket !== 'undefined' && socket) {
+    socket.on('calendar_update', function (data) {
+        console.log("Received calendar update event:", data);
+        if (calendarInstance) {
+            calendarInstance.refetchEvents();
+        }
+    });
+}
+
