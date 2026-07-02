@@ -178,6 +178,9 @@ async function loadDashboardData() {
 
             // Re-init charts with real data
             updateCharts(data);
+
+            // Update CSAT components
+            updateCsatDashboardComponents(data.csat);
         }
     } catch (e) {
         console.error("Failed to load dashboard stats", e);
@@ -1413,4 +1416,95 @@ function handleIncomingLiveActivity(data) {
     const activityHtml = renderActivityHtml(data);
     // Prepend to feed list
     feedContainer.insertAdjacentHTML('afterbegin', activityHtml);
+}
+
+/* ==========================================================================
+   CSAT Dashboard Updates
+   ========================================================================== */
+function updateCsatDashboardComponents(csat) {
+    if (!csat) return;
+
+    // Average rating
+    const averageEl = document.getElementById('csatAverage');
+    if (averageEl) averageEl.textContent = csat.average.toFixed(1);
+
+    // Total ratings count
+    const totalEl = document.getElementById('csatTotalCount');
+    if (totalEl) totalEl.textContent = csat.total;
+
+    // Stars display
+    const starsEl = document.getElementById('csatStars');
+    if (starsEl) {
+        let starsHtml = '';
+        const rounded = Math.round(csat.average);
+        for (let i = 1; i <= 5; i++) {
+            if (i <= rounded) {
+                starsHtml += '<i class="fas fa-star text-warning fs-5 me-1"></i>';
+            } else {
+                starsHtml += '<i class="far fa-star text-warning fs-5 me-1"></i>';
+            }
+        }
+        starsEl.innerHTML = starsHtml;
+    }
+
+    // Breakdown bars
+    for (let rating = 1; rating <= 5; rating++) {
+        const count = csat.breakdown[rating.toString()] || 0;
+        const percent = csat.total > 0 ? (count / csat.total) * 100 : 0;
+        
+        const barEl = document.getElementById(`csat-bar-${rating}`);
+        const countEl = document.getElementById(`csat-count-${rating}`);
+        
+        if (barEl) barEl.style.width = `${percent}%`;
+        if (countEl) countEl.textContent = count;
+    }
+
+    // Feedback logs feed
+    const feedEl = document.getElementById('csatFeedbackFeed');
+    if (feedEl) {
+        if (!csat.recent || csat.recent.length === 0) {
+            feedEl.innerHTML = `
+                <div class="text-muted text-center py-5">
+                    <i class="fas fa-comments fa-2x mb-3 text-secondary"></i>
+                    <p class="small">No customer feedback logs yet...</p>
+                </div>
+            `;
+        } else {
+            let feedHtml = '<div class="list-group list-group-flush">';
+            csat.recent.forEach(fb => {
+                let starsHtml = '';
+                for (let i = 1; i <= 5; i++) {
+                    if (i <= fb.rating) {
+                        starsHtml += '<i class="fas fa-star text-warning small me-1"></i>';
+                    } else {
+                        starsHtml += '<i class="far fa-star text-warning small me-1"></i>';
+                    }
+                }
+                
+                const commentText = fb.comment ? `<p class="mb-1 mt-2 text-light-emphasis small" style="font-style: italic;">"${fb.comment}"</p>` : '';
+                const timeStr = new Date(fb.createdAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                feedHtml += `
+                    <div class="list-group-item bg-transparent border-0 px-0 pb-3 mb-2 border-bottom" style="border-bottom: 1px solid var(--border-color) !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="fw-semibold small text-primary">T-${1000 + fb.ticketId} - ${fb.ticketTitle}</div>
+                            <span class="text-muted small">${timeStr}</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="me-2">${starsHtml}</div>
+                            <span class="small text-secondary">&bull; by ${fb.userName}</span>
+                        </div>
+                        ${commentText}
+                    </div>
+                `;
+            });
+            feedHtml += '</div>';
+            feedEl.innerHTML = feedHtml;
+        }
+    }
 }

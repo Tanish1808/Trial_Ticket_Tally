@@ -114,6 +114,9 @@ async function loadTicketDetails() {
         // Render GitHub PR
         renderGithubPr(ticket);
 
+        // Render CSAT Feedback
+        renderCsatFeedbackSection(ticket);
+
         // Initialize Withdraw Button visibility
         const withdrawBtn = document.getElementById('withdrawBtn');
         if (withdrawBtn) {
@@ -881,5 +884,129 @@ async function unlinkGithubPr() {
     } catch (e) {
         console.error("Failed to unlink GitHub PR", e);
         showToast('An error occurred', 'error');
+    }
+}
+
+/* ==========================================================================
+   CSAT Rating Handlers
+   ========================================================================== */
+let selectedCsatRating = 0;
+
+function renderCsatFeedbackSection(ticket) {
+    const feedbackCard = document.getElementById('csatFeedbackCard');
+    const ratingRow = document.getElementById('csatRatingRow');
+    const ratingStarsDisplay = document.getElementById('csatRatingStarsDisplay');
+
+    if (!feedbackCard || !ratingRow) return;
+
+    // Check if feedback exists
+    if (ticket.feedback) {
+        feedbackCard.classList.add('d-none');
+        ratingRow.classList.remove('d-none');
+        
+        let starsHtml = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= ticket.feedback.rating) {
+                starsHtml += '<i class="fas fa-star text-warning me-1"></i>';
+            } else {
+                starsHtml += '<i class="far fa-star text-warning me-1"></i>';
+            }
+        }
+        if (ticket.feedback.comment) {
+            starsHtml += `<div class="small text-muted mt-1" style="font-style: italic;">"${ticket.feedback.comment}"</div>`;
+        }
+        ratingStarsDisplay.innerHTML = starsHtml;
+    } else {
+        ratingRow.classList.add('d-none');
+
+        // Check if ticket status is Resolved or Closed and creator is current user
+        const isResolvedOrClosed = ticket.status === 'Resolved' || ticket.status === 'Closed';
+        const isCreator = currentUser && ticket.createdById === currentUser.id;
+
+        if (isResolvedOrClosed && isCreator) {
+            feedbackCard.classList.remove('d-none');
+        } else {
+            feedbackCard.classList.add('d-none');
+        }
+    }
+}
+
+function highlightCsatStars(rating) {
+    const stars = document.querySelectorAll('.csat-rating-stars .rating-star');
+    stars.forEach(star => {
+        const starRating = parseInt(star.getAttribute('data-rating'));
+        if (starRating <= rating) {
+            star.classList.replace('far', 'fas');
+        } else {
+            star.classList.replace('fas', 'far');
+        }
+    });
+}
+
+function resetCsatStars() {
+    highlightCsatStars(selectedCsatRating);
+}
+
+function selectCsatRating(rating) {
+    selectedCsatRating = rating;
+    highlightCsatStars(rating);
+    
+    const textEl = document.getElementById('selectedRatingText');
+    const submitBtn = document.getElementById('submitCsatBtn');
+    
+    const labels = {
+        1: 'Very Dissatisfied (1/5)',
+        2: 'Dissatisfied (2/5)',
+        3: 'Neutral (3/5)',
+        4: 'Satisfied (4/5)',
+        5: 'Very Satisfied (5/5)'
+    };
+    
+    if (textEl) textEl.textContent = labels[rating] || `${rating}/5`;
+    if (submitBtn) submitBtn.disabled = false;
+}
+
+async function submitCsatFeedback() {
+    if (selectedCsatRating < 1 || selectedCsatRating > 5) {
+        showToast('Please select a rating star first', 'error');
+        return;
+    }
+
+    const comment = document.getElementById('csatFeedbackComment').value.trim();
+    const submitBtn = document.getElementById('submitCsatBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+
+    try {
+        const token = getAuthToken();
+        const response = await fetch(`/api/v1/tickets/${ticketId}/feedback`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                rating: selectedCsatRating,
+                comment: comment || null
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast('Thank you for your rating!', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showToast(data.error || 'Failed to submit rating', 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Rating';
+        }
+    } catch (e) {
+        console.error("CSAT Submission Error:", e);
+        showToast('An error occurred while submitting feedback', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Rating';
     }
 }
