@@ -85,6 +85,41 @@ def get_dashboard_stats():
              if 0 <= days_ago < 7:
                  resolved_trend[6 - days_ago] += 1
 
+    # CSAT Feedback stats - EXCLUDE DEMO
+    from app.models.csat_feedback import CSATFeedback
+    
+    # Query feed backs for non-demo tickets
+    csat_query = db.session.query(CSATFeedback).join(Ticket).filter(Ticket.is_demo == False)
+    feedbacks = csat_query.all()
+    
+    total_ratings = len(feedbacks)
+    average_rating = 0.0
+    breakdown = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
+    
+    if total_ratings > 0:
+        total_sum = sum(fb.rating for fb in feedbacks)
+        average_rating = round(total_sum / total_ratings, 2)
+        for fb in feedbacks:
+            breakdown[str(fb.rating)] += 1
+            
+    # Recent feedback logs (last 5)
+    recent_feedbacks = csat_query.order_by(CSATFeedback.created_at.desc()).limit(5).all()
+    recent_list = [{
+        "ticketId": fb.ticket_id,
+        "ticketTitle": fb.ticket.title,
+        "rating": fb.rating,
+        "comment": fb.comment,
+        "userName": fb.user.full_name,
+        "createdAt": fb.created_at.isoformat()
+    } for fb in recent_feedbacks]
+    
+    csat_stats = {
+        "average": average_rating,
+        "total": total_ratings,
+        "breakdown": breakdown,
+        "recent": recent_list
+    }
+
     return jsonify({
         "total_tickets": total_tickets,
         "open_tickets": open_tickets,
@@ -99,7 +134,8 @@ def get_dashboard_stats():
             "created": created_trend,
             "resolved": resolved_trend
         },
-        "sla_compliance": get_sla_stats()
+        "sla_compliance": get_sla_stats(),
+        "csat": csat_stats
     })
 
 def get_sla_stats():

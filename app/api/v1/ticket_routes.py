@@ -2,12 +2,14 @@ from flask import Blueprint, request, jsonify, g
 from datetime import datetime
 from app.services.ticket_service import TicketService
 from app.schemas.ticket_schema import TicketCreate, TicketUpdate
+from app.schemas.csat_feedback_schema import CSATFeedbackCreate
 from app.utils.time_utils import utcnow
 from app.middleware.auth_middleware import token_required
 from pydantic import ValidationError
 from app.core.extensions import limiter
 
 from app.models.comment import Comment
+from app.models.csat_feedback import CSATFeedback
 from app.core.database import db
 import logging
 
@@ -132,6 +134,11 @@ def get_ticket(ticket_id):
             "timestamp": c.created_at.isoformat(),
             "parentId": c.parent_id
         } for c in ticket.comments],
+        "feedback": {
+            "rating": ticket.feedback.rating,
+            "comment": ticket.feedback.comment,
+            "createdAt": ticket.feedback.created_at.isoformat()
+        } if ticket.feedback else None,
         "timeline": [{
             "action": f"Status changed from {h.old_status.value if h.old_status else 'None'} to {h.new_status.value}",
             "by": h.changed_by.full_name if h.changed_by else "System",
@@ -576,4 +583,110 @@ def claim_ticket(ticket_id):
             
         return jsonify({"error": msg}), 400
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@ticket_bp.route('/<int:ticket_id>/feedback', methods=['POST'])
+@token_required
+def submit_feedback(ticket_id):
+    """
+    Submit CSAT Feedback for a ticket (Employee creator only, resolved/closed status only)
+    ---
+    tags:
+      - Tickets
+    security:
+      - Bearer: []
+    parameters:
+      - name: ticket_id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the ticket
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - rating
+          properties:
+            rating:
+              type: integer
+              minimum: 1
+              maximum: 5
+              example: 5
+            comment:
+              type: string
+              example: Great service!
+    responses:
+      201:
+        description: Feedback submitted successfully
+      400:
+        description: Invalid feedback data or invalid ticket status
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (Not the creator of the ticket)
+      404:
+        description: Ticket not found
+      409:
+        description: Feedback already exists for this ticket
+    """
+    try:
+        from app.models.ticket import Ticket
+        from app.core.constants import TicketStatus
+        from app.services.notification_service import NotificationService
+        
+        ticket = db.session.get(Ticket, ticket_id)
+        if not ticket:
+            return jsonify({"error": "Ticket not found"}), 404
+            
+        # Permission check: must be the creator of the ticket
+        if ticket.created_by_id != g.user.id:
+            return jsonify({"error": "Only the ticket creator can submit feedback"}), 403
+            
+        # Status check: must be Resolved or Closed
+        if ticket.status not in [TicketStatus.RESOLVED, TicketStatus.CLOSED]:
+            return jsonify({"error": "Feedback can only be submitted for Resolved or Closed tickets"}), 400
+            
+        # Duplicate check: check if feedback already exists
+        if ticket.feedback:
+            return jsonify({"error": "Feedback has already been submitted for this ticket"}), 409
+            
+        # Validate body
+        data = CSATFeedbackCreate(**request.json)
+        
+        feedback = CSATFeedback(
+            rating=data.rating,
+            comment=data.comment,
+            ticket_id=ticket.id,
+            user_id=g.user.id
+        )
+        db.session.add(feedback)
+        
+        # Add timeline entry (system comment or update ticket updated_at)
+        ticket.updated_at = utcnow()
+        db.session.commit()
+        
+        # Broadcast activity log event via WebSocket & save to DB
+        NotificationService.broadcast_live_activity(
+            category="feedback",
+            ticket_id=ticket.id,
+            message=f"CSAT rating of {feedback.rating}/5 stars submitted for Ticket T-{1000 + ticket.id} by {g.user.full_name}.",
+            created_by=g.user.full_name
+        )
+        
+        return jsonify({
+            "message": "Feedback submitted successfully",
+            "feedback": {
+                "id": feedback.id,
+                "rating": feedback.rating,
+                "comment": feedback.comment,
+                "createdAt": feedback.created_at.isoformat()
+            }
+        }), 201
+        
+    except ValidationError as e:
+        return jsonify({"error": e.errors()}), 400
+    except Exception as e:
+        db.session.rollback()
         return jsonify({"error": str(e)}), 500

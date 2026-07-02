@@ -27,6 +27,7 @@ class Ticket(db.Model, SoftDeleteMixin):
     team = db.relationship("Team", back_populates="tickets")
     status_history = db.relationship("TicketStatusHistory", back_populates="ticket", cascade="all, delete-orphan")
     comments = db.relationship("Comment", back_populates="ticket", cascade="all, delete-orphan")
+    feedback = db.relationship("CSATFeedback", back_populates="ticket", uselist=False, cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Ticket {self.id} - {self.title}>"
