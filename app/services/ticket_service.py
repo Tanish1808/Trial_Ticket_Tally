@@ -138,6 +138,7 @@ class TicketService:
             joinedload(Ticket.creator),
             joinedload(Ticket.team),
             joinedload(Ticket.assignee),
+            joinedload(Ticket.feedback),
             selectinload(Ticket.comments).joinedload(Comment.author),
             selectinload(Ticket.status_history).joinedload(TicketStatusHistory.changed_by)
         ).filter_by(id=ticket_id).first()
