@@ -231,6 +231,77 @@
               </div>
             </div>
           </div>
+          <div class="row mt-4">
+            <div class="col-lg-4 mb-4">
+              <div class="content-card">
+                <h3 class="content-card-title mb-4">Customer Satisfaction (CSAT)</h3>
+                <div class="d-flex align-items-center mb-4">
+                  <div class="csat-big-number me-4" style="font-size: 3.5rem; font-weight: 800; color: var(--warning);">
+                    <span id="csatAverage">0.0</span><span style="font-size: 1.5rem; font-weight: 500; color: var(--text-secondary);">/5</span>
+                  </div>
+                  <div>
+                    <div class="stars-display mb-1" id="csatStars">
+                      <!-- Stars rendered by JS -->
+                    </div>
+                    <div class="small text-muted"><span id="csatTotalCount">0</span> ratings submitted</div>
+                  </div>
+                </div>
+                <div class="csat-breakdown" id="csatBreakdown">
+                  <div class="d-flex align-items-center mb-2">
+                    <span class="me-2 text-warning small" style="width: 15px;">5</span>
+                    <i class="fas fa-star text-warning small me-2"></i>
+                    <div class="progress flex-grow-1" style="height: 8px; background-color: var(--border-color);">
+                      <div class="progress-bar bg-warning" id="csat-bar-5" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <span class="ms-2 small text-muted" id="csat-count-5" style="width: 25px; text-align: right;">0</span>
+                  </div>
+                  <div class="d-flex align-items-center mb-2">
+                    <span class="me-2 text-warning small" style="width: 15px;">4</span>
+                    <i class="fas fa-star text-warning small me-2"></i>
+                    <div class="progress flex-grow-1" style="height: 8px; background-color: var(--border-color);">
+                      <div class="progress-bar bg-warning" id="csat-bar-4" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <span class="ms-2 small text-muted" id="csat-count-4" style="width: 25px; text-align: right;">0</span>
+                  </div>
+                  <div class="d-flex align-items-center mb-2">
+                    <span class="me-2 text-warning small" style="width: 15px;">3</span>
+                    <i class="fas fa-star text-warning small me-2"></i>
+                    <div class="progress flex-grow-1" style="height: 8px; background-color: var(--border-color);">
+                      <div class="progress-bar bg-warning" id="csat-bar-3" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <span class="ms-2 small text-muted" id="csat-count-3" style="width: 25px; text-align: right;">0</span>
+                  </div>
+                  <div class="d-flex align-items-center mb-2">
+                    <span class="me-2 text-warning small" style="width: 15px;">2</span>
+                    <i class="fas fa-star text-warning small me-2"></i>
+                    <div class="progress flex-grow-1" style="height: 8px; background-color: var(--border-color);">
+                      <div class="progress-bar bg-warning" id="csat-bar-2" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <span class="ms-2 small text-muted" id="csat-count-2" style="width: 25px; text-align: right;">0</span>
+                  </div>
+                  <div class="d-flex align-items-center mb-2">
+                    <span class="me-2 text-warning small" style="width: 15px;">1</span>
+                    <i class="fas fa-star text-warning small me-2"></i>
+                    <div class="progress flex-grow-1" style="height: 8px; background-color: var(--border-color);">
+                      <div class="progress-bar bg-warning" id="csat-bar-1" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <span class="ms-2 small text-muted" id="csat-count-1" style="width: 25px; text-align: right;">0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-8 mb-4">
+              <div class="content-card d-flex flex-column" style="height: 100% !important; min-height: 280px;">
+                <h3 class="content-card-title mb-3">Recent Customer Feedback</h3>
+                <div id="csatFeedbackFeed" class="flex-grow-1" style="max-height: 220px; overflow-y: auto; padding-right: 5px;">
+                  <div class="text-muted text-center py-5">
+                    <i class="fas fa-comments fa-2x mb-3 text-secondary"></i>
+                    <p class="small">No customer feedback logs yet...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div id="ticketsSection" style="display: none">
           <div class="content-card">

@@ -314,6 +314,33 @@
         </div>
       </div>
 
+      <!-- CSAT Feedback Request Card -->
+      <div id="csatFeedbackCard" class="card border-0 shadow-sm p-4 mb-4 d-none" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.02) 100%); border-left: 5px solid var(--warning) !important; border-radius: 1rem;">
+        <div class="d-flex align-items-start">
+          <div class="me-3 fs-1 text-warning"><i class="fas fa-star-half-alt"></i></div>
+          <div class="flex-grow-1">
+            <h4 class="fw-bold mb-2">Rate Your Experience</h4>
+            <p class="text-muted small mb-3">Your feedback helps us improve our IT services. Please rate the support you received for this ticket.</p>
+            <div class="mb-3">
+              <div class="csat-rating-stars mb-2" style="font-size: 1.8rem; cursor: pointer; color: #ddd; display: inline-block;">
+                <i class="far fa-star rating-star" data-rating="1" onclick="selectCsatRating(1)" onmouseover="highlightCsatStars(1)" onmouseout="resetCsatStars()"></i>
+                <i class="far fa-star rating-star" data-rating="2" onclick="selectCsatRating(2)" onmouseover="highlightCsatStars(2)" onmouseout="resetCsatStars()"></i>
+                <i class="far fa-star rating-star" data-rating="3" onclick="selectCsatRating(3)" onmouseover="highlightCsatStars(3)" onmouseout="resetCsatStars()"></i>
+                <i class="far fa-star rating-star" data-rating="4" onclick="selectCsatRating(4)" onmouseover="highlightCsatStars(4)" onmouseout="resetCsatStars()"></i>
+                <i class="far fa-star rating-star" data-rating="5" onclick="selectCsatRating(5)" onmouseover="highlightCsatStars(5)" onmouseout="resetCsatStars()"></i>
+              </div>
+              <span class="ms-2 fw-semibold text-warning" id="selectedRatingText">Select rating</span>
+            </div>
+            <div class="mb-3">
+              <textarea class="form-control bg-transparent" id="csatFeedbackComment" rows="2" placeholder="Tell us more about the service (optional)..." style="max-width: 500px; border-radius: 0.5rem;"></textarea>
+            </div>
+            <button class="btn btn-warning px-4 py-2 text-dark fw-bold" onclick="submitCsatFeedback()" id="submitCsatBtn" disabled style="border-radius: 0.5rem;">
+              Submit Rating
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Main Content Grid -->
       <div class="detail-grid">
         <!-- Left Column - Details & Timeline -->
@@ -410,6 +437,10 @@
             <div class="info-row">
               <div class="info-label">SLA Status:</div>
               <div class="info-value" id="slaStatus">-</div>
+            </div>
+            <div class="info-row d-none" id="csatRatingRow">
+              <div class="info-label">Your Rating:</div>
+              <div class="info-value" id="csatRatingStarsDisplay">-</div>
             </div>
           </div>
 
