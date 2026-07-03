@@ -409,7 +409,12 @@
       </div>
       <div id="itstaffSection" style="display: none">
         <div class="content-card">
-          <h2 class="content-card-title mb-3">IT Staff Members</h2>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="content-card-title mb-0">IT Staff Members</h2>
+            <button class="btn btn-primary-custom" onclick="openStaffExportModal()">
+              <i class="fas fa-file-export me-2"></i>Export Performance
+            </button>
+          </div>
           <div class="table-responsive">
             <table class="table table-custom">
               <thead>
@@ -744,6 +749,40 @@
           <p class="text-muted small mb-4">You're all caught up! Check back later for updates.</p>
           <button type="button" class="btn btn-secondary btn-sm w-100 rounded-pill"
             data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Export Staff Performance Modal -->
+  <div class="modal fade" id="exportPerformanceModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="background: var(--surface); border: 1px solid var(--border)">
+        <div class="modal-header" style="border-bottom: 1px solid var(--border)">
+          <h5 class="modal-title"><i class="fas fa-file-export me-2"></i>Export Staff Performance</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Select the format for the staff performance export:</p>
+          <div class="d-grid gap-2">
+            <button class="btn btn-outline-primary text-start text-wrap" style="white-space: normal;"
+              onclick="confirmPerformanceExport('json')">
+              <i class="fas fa-file-code me-2"></i>
+              <strong>JSON Format</strong>
+              <div class="small text-muted">Complete performance metrics for all IT staff. Best for integrations.</div>
+            </button>
+            <button class="btn btn-outline-success text-start text-wrap" style="white-space: normal;"
+              onclick="confirmPerformanceExport('csv')">
+              <i class="fas fa-file-csv me-2"></i>
+              <strong>CSV (Spreadsheet)</strong>
+              <div class="small text-muted">A table of staff performance metrics. Best for Excel/Sheets.</div>
+            </button>
+            <button class="btn btn-outline-danger text-start text-wrap" style="white-space: normal;"
+              onclick="confirmPerformanceExport('pdf')">
+              <i class="fas fa-file-pdf me-2"></i>
+              <strong>PDF Report</strong>
+              <div class="small text-muted">A clean, formatted PDF performance summary report.</div>
+            </button>
+          </div>
         </div>
       </div>
     </div>
