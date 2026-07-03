@@ -190,3 +190,71 @@ class PDFService:
         doc.build(story)
         buffer.seek(0)
         return buffer
+
+    @staticmethod
+    def generate_performance_report(staff_list):
+        """Generates a PDF performance report for IT staff members.
+
+        Args:
+            staff_list (list): List of dicts representing staff metrics.
+
+        Returns:
+            BytesIO: A binary stream containing the generated PDF report.
+        """
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        story = []
+        styles = getSampleStyleSheet()
+
+        # Custom Styles
+        title_style = styles['Heading1']
+        normal_style = styles['Normal']
+        
+        # 1. Header
+        story.append(Paragraph("IT Staff Performance Report", title_style))
+        from datetime import datetime
+        story.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", normal_style))
+        story.append(Spacer(1, 12))
+
+        # 2. Performance Table
+        table_data = [
+            ["Name", "Email", "Team", "Active", "Resolved", "Avg CSAT", "SLA Compliance"]
+        ]
+        for staff in staff_list:
+            table_data.append([
+                staff.get("name", ""),
+                staff.get("email", ""),
+                staff.get("team", "") or "Unassigned",
+                str(staff.get("active", 0)),
+                str(staff.get("resolved", 0)),
+                f"{staff.get('avg_csat', 0.0):.1f}" if isinstance(staff.get('avg_csat'), (int, float)) else str(staff.get('avg_csat', "N/A")),
+                staff.get("sla_compliance", "100.0%")
+            ])
+
+        # Col widths summing to 504 (standard letter width with margins)
+        t_perf = Table(table_data, colWidths=[90, 110, 80, 45, 55, 55, 69])
+        t_perf.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6366f1')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ]))
+        
+        # Add alternating row background colors
+        for i in range(1, len(table_data)):
+            if i % 2 == 0:
+                t_perf.setStyle(TableStyle([
+                    ('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+                ]))
+                
+        story.append(t_perf)
+
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
