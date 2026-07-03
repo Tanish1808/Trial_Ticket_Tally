@@ -606,4 +606,122 @@ def get_activities():
         return jsonify({"error": str(e)}), 500
 
 
+@admin_bp.route('/export-performance', methods=['GET'])
+@role_required([UserRole.ADMIN])
+def export_performance():
+    """
+    Export performance metrics for all IT staff members in JSON, CSV, or PDF formats
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    parameters:
+      - name: format
+        in: query
+        type: string
+        enum: [json, csv, pdf]
+        default: json
+        description: Export format
+    responses:
+      200:
+        description: Exported performance metrics in requested format
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (Admin only)
+    """
+    from flask import request, make_response, send_file
+    from app.models.user import User
+    from app.models.ticket import Ticket
+    from app.core.constants import UserRole, TicketStatus, SLAStatus
+    from app.services.sla_service import SLAService
+    from app.services.pdf_service import PDFService
+    from app.core.config import Config
+    import csv
+    import io
+
+    # Format parameter
+    format_type = request.args.get('format', 'json').lower()
+
+    # Query all IT staff members
+    query = User.query.filter(User.role == UserRole.IT_STAFF)
+    
+    # Exclude demo email if not demo admin logged in
+    query = query.filter(User.email != Config.DEMO_EMAIL)
+    
+    staff_members = query.all()
+
+    # Calculate metrics for each staff member
+    staff_data = []
+    for member in staff_members:
+        # Assigned tickets (excluding demo tickets to be safe)
+        assigned_tickets = [t for t in member.assigned_tickets if not t.is_demo]
+        
+        total_assigned = len(assigned_tickets)
+        active_tickets = sum(1 for t in assigned_tickets if t.status in [TicketStatus.OPEN, TicketStatus.IN_PROGRESS])
+        resolved_tickets = sum(1 for t in assigned_tickets if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED])
+
+        # CSAT: Calculate mean rating of CSAT feedbacks for their assigned tickets
+        feedback_ratings = [t.feedback.rating for t in assigned_tickets if t.feedback]
+        avg_csat = round(sum(feedback_ratings) / len(feedback_ratings), 2) if feedback_ratings else "N/A"
+
+        # SLA Compliance: % of their resolved/closed tickets that met SLA
+        resolved_with_sla = [t for t in assigned_tickets if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED]]
+        if resolved_with_sla:
+            met_count = sum(1 for t in resolved_with_sla if SLAService.check_sla_status(t) == SLAStatus.ACHIEVED)
+            sla_compliance = f"{round((met_count / len(resolved_with_sla)) * 100, 1)}%"
+        else:
+            sla_compliance = "100.0%"
+
+        staff_data.append({
+            "id": member.id,
+            "name": member.full_name,
+            "email": member.email,
+            "team": member.team.name if member.team else "Unassigned",
+            "total": total_assigned,
+            "active": active_tickets,
+            "resolved": resolved_tickets,
+            "avg_csat": avg_csat,
+            "sla_compliance": sla_compliance
+        })
+
+    # Return based on format type
+    if format_type == 'csv':
+        si = io.StringIO()
+        cw = csv.writer(si)
+        
+        # Header
+        cw.writerow(['Name', 'Email', 'Team', 'Active Tickets', 'Resolved Tickets', 'Avg CSAT', 'SLA Compliance'])
+        
+        for staff in staff_data:
+            cw.writerow([
+                staff['name'],
+                staff['email'],
+                staff['team'],
+                staff['active'],
+                staff['resolved'],
+                staff['avg_csat'],
+                staff['sla_compliance']
+            ])
+            
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = "attachment; filename=it_staff_performance.csv"
+        output.headers["Content-type"] = "text/csv"
+        return output
+
+    elif format_type == 'pdf':
+        pdf_buffer = PDFService.generate_performance_report(staff_data)
+        return send_file(
+            pdf_buffer,
+            as_attachment=True,
+            download_name="it_staff_performance.pdf",
+            mimetype='application/pdf'
+        )
+
+    # Default to json
+    return jsonify(staff_data)
+
+
+
 
