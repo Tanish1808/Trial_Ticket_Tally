@@ -1507,4 +1507,53 @@ function updateCsatDashboardComponents(csat) {
             feedEl.innerHTML = feedHtml;
         }
     }
-}
+}
+
+// Open Export Performance Modal
+window.openStaffExportModal = function () {
+    const modalEl = document.getElementById('exportPerformanceModal');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.show();
+    } else {
+        console.error('Export performance modal not found');
+    }
+};
+
+// Confirm and Download Staff Performance Export
+window.confirmPerformanceExport = async function (format) {
+    const modalEl = document.getElementById('exportPerformanceModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+
+    showToast(`Generating ${format.toUpperCase()} export...`);
+
+    try {
+        const token = getAuthToken();
+        const response = await fetch(`/api/v1/admin/export-performance?format=${format}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `it_staff_performance_${Date.now()}.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            showToast('Download started');
+        } else {
+            console.error('Performance export failed', response.statusText);
+            alert('Failed to generate export report.');
+        }
+    } catch (e) {
+        console.error("Export error", e);
+        alert('Error exporting performance data.');
+    }
+};
+
