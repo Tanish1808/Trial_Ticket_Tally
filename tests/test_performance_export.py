@@ -119,15 +119,11 @@ def test_export_performance_formats(app, client, admin_headers):
     db.session.add(feedback)
     db.session.commit()
 
-    # 1. Test JSON format
+    # 1. Test JSON format (should return 400 since JSON is disallowed)
     res_json = client.get('/api/v1/admin/export-performance?format=json', headers=admin_headers)
-    assert res_json.status_code == 200
+    assert res_json.status_code == 400
     data = res_json.get_json()
-    assert len(data) == 1
-    assert data[0]['name'] == "Agent One"
-    assert data[0]['resolved'] == 1
-    assert data[0]['avg_csat'] == 5.0
-    assert data[0]['sla_compliance'] == "100.0%"
+    assert "error" in data
 
     # 2. Test CSV format
     res_csv = client.get('/api/v1/admin/export-performance?format=csv', headers=admin_headers)
