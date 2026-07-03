@@ -610,7 +610,7 @@ def get_activities():
 @role_required([UserRole.ADMIN])
 def export_performance():
     """
-    Export performance metrics for all IT staff members in JSON, CSV, or PDF formats
+    Export performance metrics for all IT staff members in CSV or PDF formats
     ---
     tags:
       - Admin
@@ -620,12 +620,14 @@ def export_performance():
       - name: format
         in: query
         type: string
-        enum: [json, csv, pdf]
-        default: json
+        enum: [csv, pdf]
+        default: csv
         description: Export format
     responses:
       200:
         description: Exported performance metrics in requested format
+      400:
+        description: Invalid format requested
       401:
         description: Unauthorized
       403:
@@ -642,7 +644,9 @@ def export_performance():
     import io
 
     # Format parameter
-    format_type = request.args.get('format', 'json').lower()
+    format_type = request.args.get('format', 'csv').lower()
+    if format_type not in ['csv', 'pdf']:
+        return jsonify({"error": "Invalid format. Supported formats are: csv, pdf"}), 400
 
     # Query all IT staff members
     query = User.query.filter(User.role == UserRole.IT_STAFF)
@@ -719,8 +723,6 @@ def export_performance():
             mimetype='application/pdf'
         )
 
-    # Default to json
-    return jsonify(staff_data)
 
 
 
