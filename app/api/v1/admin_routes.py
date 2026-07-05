@@ -722,8 +722,272 @@ def export_performance():
             download_name="it_staff_performance.pdf",
             mimetype='application/pdf'
         )
+def _get_ticket_resolution_time(ticket):
+    """
+    Returns resolution time in hours (float) and a formatted string (e.g. '2d 4h').
+    """
+    from app.core.constants import TicketStatus
+    resolved_at = None
+    # Find resolution time from status history
+    for history in ticket.status_history:
+        if history.new_status == TicketStatus.RESOLVED:
+            if resolved_at is None or history.changed_at < resolved_at:
+                resolved_at = history.changed_at
+                
+    if resolved_at is None and ticket.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED]:
+        resolved_at = ticket.updated_at or ticket.created_at
+        
+    if resolved_at:
+        duration = resolved_at - ticket.created_at
+        total_seconds = duration.total_seconds()
+        hours = round(total_seconds / 3600.0, 2)
+        
+        # Formatted string
+        days = int(hours // 24)
+        rem_hours = int(hours % 24)
+        minutes = int((total_seconds % 3600) // 60)
+        if days > 0:
+            formatted = f"{days}d {rem_hours}h {minutes}m"
+        elif rem_hours > 0:
+            formatted = f"{rem_hours}h {minutes}m"
+        else:
+            formatted = f"{minutes}m"
+        return hours, formatted
+    return None, "N/A"
 
 
+@admin_bp.route('/export-dashboard-report', methods=['GET'])
+@role_required([UserRole.ADMIN])
+def export_dashboard_report():
+    """
+    Export comprehensive performance report from dashboard statistics in CSV or PDF formats
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    parameters:
+      - name: format
+        in: query
+        type: string
+        enum: [csv, pdf]
+        default: csv
+        description: Export format
+    responses:
+      200:
+        description: Exported performance report in requested format
+      400:
+        description: Invalid format requested
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden (Admin only)
+    """
+    from flask import request, make_response, send_file
+    from app.models.user import User
+    from app.models.ticket import Ticket
+    from app.core.constants import UserRole, TicketStatus, SLAStatus
+    from app.services.sla_service import SLAService
+    from app.services.pdf_service import PDFService
+    from app.core.config import Config
+    from datetime import datetime
+    import csv
+    import io
 
+    # Format parameter
+    format_type = request.args.get('format', 'csv').lower()
+    if format_type not in ['csv', 'pdf']:
+        return jsonify({"error": "Invalid format. Supported formats are: csv, pdf"}), 400
 
+    # Retrieve all tickets excluding demo tickets
+    all_tickets = Ticket.query.filter(Ticket.is_demo == False).all()
+    
+    # 1. Ticket Resolution Times
+    resolved_tickets = [t for t in all_tickets if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED]]
+    resolved_tickets_data = []
+    res_hours_list = []
+    
+    for ticket in resolved_tickets:
+        hours, formatted_duration = _get_ticket_resolution_time(ticket)
+        if hours is not None:
+            res_hours_list.append(hours)
+        resolved_tickets_data.append({
+            "id": ticket.id,
+            "title": ticket.title,
+            "category": ticket.category or "General",
+            "priority": ticket.priority.value if hasattr(ticket.priority, 'value') else str(ticket.priority),
+            "assignee": ticket.assignee.full_name if ticket.assignee else "Unassigned",
+            "created_at": ticket.created_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.created_at else "N/A",
+            "resolved_at": ticket.updated_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.updated_at else "N/A",
+            "resolution_hours": hours if hours is not None else 0.0,
+            "resolution_time_formatted": formatted_duration,
+            "sla_status": SLAService.check_sla_status(ticket).value
+        })
+
+    # Summary KPIs
+    total_tickets = len(all_tickets)
+    resolved_count = len(resolved_tickets)
+    avg_res_hours = round(sum(res_hours_list) / len(res_hours_list), 1) if res_hours_list else 0.0
+    
+    breached_count = sum(1 for t in all_tickets if SLAService.check_sla_status(t) == SLAStatus.BREACHED)
+    overall_breach_rate = round((breached_count / total_tickets) * 100, 1) if total_tickets > 0 else 0.0
+    
+    summary_kpis = {
+        "total_tickets": total_tickets,
+        "resolved_count": resolved_count,
+        "avg_resolution_hours": avg_res_hours,
+        "breach_rate": overall_breach_rate
+    }
+
+    # 2. IT Agents performance
+    staff_members = User.query.filter(User.role == UserRole.IT_STAFF, User.email != Config.DEMO_EMAIL).all()
+    agent_data = []
+    for member in staff_members:
+        assigned_tickets = [t for t in member.assigned_tickets if not t.is_demo]
+        total = len(assigned_tickets)
+        active = sum(1 for t in assigned_tickets if t.status in [TicketStatus.OPEN, TicketStatus.IN_PROGRESS])
+        resolved = sum(1 for t in assigned_tickets if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED])
+        
+        breached = sum(1 for t in assigned_tickets if SLAService.check_sla_status(t) == SLAStatus.BREACHED)
+        breach_rate = round((breached / total) * 100, 1) if total > 0 else 0.0
+        
+        agent_data.append({
+            "name": member.full_name,
+            "email": member.email,
+            "team": member.team.name if member.team else "Unassigned",
+            "total": total,
+            "active": active,
+            "resolved": resolved,
+            "breached": breached,
+            "breach_rate": f"{breach_rate}%"
+        })
+
+    # 3. Categories performance
+    category_dict = {}
+    for t in all_tickets:
+        cat = t.category or "General"
+        if cat not in category_dict:
+            category_dict[cat] = []
+        category_dict[cat].append(t)
+        
+    category_data = []
+    for cat, t_list in category_dict.items():
+        total = len(t_list)
+        active = sum(1 for t in t_list if t.status in [TicketStatus.OPEN, TicketStatus.IN_PROGRESS])
+        resolved = sum(1 for t in t_list if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED])
+        
+        breached = sum(1 for t in t_list if SLAService.check_sla_status(t) == SLAStatus.BREACHED)
+        breach_rate = round((breached / total) * 100, 1) if total > 0 else 0.0
+        
+        feedback_ratings = [t.feedback.rating for t in t_list if t.feedback]
+        avg_csat = round(sum(feedback_ratings) / len(feedback_ratings), 2) if feedback_ratings else "N/A"
+        
+        res_times = []
+        for t in t_list:
+            if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED]:
+                h, _ = _get_ticket_resolution_time(t)
+                if h is not None:
+                    res_times.append(h)
+        avg_res_time = round(sum(res_times) / len(res_times), 1) if res_times else 0.0
+        
+        category_data.append({
+            "category": cat,
+            "total": total,
+            "active": active,
+            "resolved": resolved,
+            "breached": breached,
+            "breach_rate": f"{breach_rate}%",
+            "avg_csat": avg_csat,
+            "avg_resolution_hours": avg_res_time
+        })
+
+    if format_type == 'csv':
+        si = io.StringIO()
+        cw = csv.writer(si)
+        
+        # Report Title
+        cw.writerow(['TICKET-TALLY EXECUTIVE PERFORMANCE REPORT'])
+        cw.writerow([f'Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'])
+        cw.writerow([])
+        
+        # Summary
+        cw.writerow(['EXECUTIVE KPI SUMMARY'])
+        cw.writerow(['Total Tickets', 'Resolved Tickets', 'Avg Resolution Time (Hours)', 'SLA Breach Rate'])
+        cw.writerow([
+            summary_kpis['total_tickets'],
+            summary_kpis['resolved_count'],
+            summary_kpis['avg_resolution_hours'],
+            f"{summary_kpis['breach_rate']}%"
+        ])
+        cw.writerow([])
+        cw.writerow([])
+        
+        # Section 1
+        cw.writerow(['SECTION 1: TICKET RESOLUTION TIMES'])
+        cw.writerow(['Ticket ID', 'Title', 'Category', 'Priority', 'Assignee', 'Created At', 'Resolved At', 'Resolution Time (Hours)', 'SLA Status'])
+        for ticket in resolved_tickets_data:
+            cw.writerow([
+                f"#{ticket['id']}",
+                ticket['title'],
+                ticket['category'],
+                ticket['priority'],
+                ticket['assignee'],
+                ticket['created_at'],
+                ticket['resolved_at'],
+                ticket['resolution_hours'],
+                ticket['sla_status']
+            ])
+        cw.writerow([])
+        cw.writerow([])
+        
+        # Section 2
+        cw.writerow(['SECTION 2: AGENT PERFORMANCE (VOLUME & BREACH RATES)'])
+        cw.writerow(['Agent Name', 'Email', 'Team', 'Total Assigned', 'Active Tickets', 'Resolved Tickets', 'Breached Tickets', 'Breach Rate'])
+        for agent in agent_data:
+            cw.writerow([
+                agent['name'],
+                agent['email'],
+                agent['team'],
+                agent['total'],
+                agent['active'],
+                agent['resolved'],
+                agent['breached'],
+                agent['breach_rate']
+            ])
+        cw.writerow([])
+        cw.writerow([])
+        
+        # Section 3
+        cw.writerow(['SECTION 3: PERFORMANCE METRICS BY CATEGORY'])
+        cw.writerow(['Category', 'Total Tickets', 'Active Tickets', 'Resolved Tickets', 'Avg Resolution Time (Hours)', 'Breached Tickets', 'SLA Breach Rate', 'Avg CSAT'])
+        for cat in category_data:
+            cw.writerow([
+                cat['category'],
+                cat['total'],
+                cat['active'],
+                cat['resolved'],
+                cat['avg_resolution_hours'],
+                cat['breached'],
+                cat['breach_rate'],
+                cat['avg_csat']
+            ])
+            
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = f"attachment; filename=executive_performance_report_{int(datetime.now().timestamp())}.csv"
+        output.headers["Content-type"] = "text/csv"
+        return output
+
+    elif format_type == 'pdf':
+        pdf_buffer = PDFService.generate_dashboard_performance_report(
+            resolved_tickets_data,
+            agent_data,
+            category_data,
+            summary_kpis
+        )
+        return send_file(
+            pdf_buffer,
+            as_attachment=True,
+            download_name=f"executive_performance_report_{int(datetime.now().timestamp())}.pdf",
+            mimetype='application/pdf'
+        )
 

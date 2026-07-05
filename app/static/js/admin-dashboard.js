@@ -1556,4 +1556,53 @@ window.confirmPerformanceExport = async function (format) {
         alert('Error exporting performance data.');
     }
 };
+
+// Open Dashboard Export Modal
+window.openDashboardExportModal = function () {
+    const modalEl = document.getElementById('exportDashboardReportModal');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.show();
+    } else {
+        console.error('Export dashboard report modal not found');
+    }
+};
+
+// Confirm and Download Dashboard Export
+window.confirmDashboardExport = async function (format) {
+    const modalEl = document.getElementById('exportDashboardReportModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+
+    showToast(`Generating ${format.toUpperCase()} performance report...`);
+
+    try {
+        const token = getAuthToken();
+        const response = await fetch(`/api/v1/admin/export-dashboard-report?format=${format}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `executive_performance_report_${Date.now()}.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            showToast('Download started');
+        } else {
+            console.error('Dashboard report export failed', response.statusText);
+            alert('Failed to generate dashboard report.');
+        }
+    } catch (e) {
+        console.error("Export error", e);
+        alert('Error exporting dashboard data.');
+    }
+};
+
 
