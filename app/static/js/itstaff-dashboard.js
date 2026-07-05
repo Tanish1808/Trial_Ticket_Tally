@@ -929,7 +929,22 @@ function timeAgo(dateString) {
     if (seconds < 60) return 'Just now';
     if (seconds < 3600) return `${Math.floor((seconds + 1) / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor((seconds + 1) / 3600)}h ago`;
-    return `${Math.floor((seconds + 1) / 86400)}d ago`;
+    
+    const days = Math.floor((seconds + 1) / 86400);
+    if (days < 30) return `${days}d ago`;
+    
+    const months = Math.floor(days / 30);
+    const remDays = days % 30;
+    if (months < 12) {
+        return remDays > 0 ? `${months}mo ${remDays}d ago` : `${months}mo ago`;
+    }
+    
+    const years = Math.floor(months / 12);
+    const remMonths = months % 12;
+    if (remMonths > 0) {
+        return `${years}y ${remMonths}mo ago`;
+    }
+    return `${years}y ago`;
 }
 
 // Toggle Announcements Drawer
