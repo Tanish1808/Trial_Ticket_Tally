@@ -204,59 +204,191 @@ class PDFService:
             BytesIO: A binary stream containing the generated PDF report.
         """
         buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        # Page size is letter. 0.5 inch margins = 36 pt. Printable width = 540 pt.
+        doc = SimpleDocTemplate(
+            buffer, 
+            pagesize=letter,
+            leftMargin=36,
+            rightMargin=36,
+            topMargin=36,
+            bottomMargin=54
+        )
         story = []
         styles = getSampleStyleSheet()
 
-        # Custom Styles
-        title_style = styles['Heading1']
-        normal_style = styles['Normal']
+        # Define custom premium styles matching the dashboard report layout
+        title_style = ParagraphStyle(
+            'ReportTitle',
+            parent=styles['Heading1'],
+            fontName='Helvetica-Bold',
+            fontSize=22,
+            leading=26,
+            textColor=colors.HexColor('#0f172a'),
+            spaceAfter=4
+        )
         
-        # 1. Header
-        story.append(Paragraph("IT Staff Performance Report", title_style))
-        from datetime import datetime
-        story.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", normal_style))
-        story.append(Spacer(1, 12))
+        subtitle_style = ParagraphStyle(
+            'ReportSubtitle',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=10,
+            leading=14,
+            textColor=colors.HexColor('#64748b'),
+            spaceAfter=15
+        )
 
-        # 2. Performance Table
-        table_data = [
-            ["Name", "Email", "Team", "Active", "Resolved", "Avg CSAT", "SLA Compliance"]
-        ]
+        table_header_style = ParagraphStyle(
+            'TableHeader',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=9,
+            leading=11,
+            textColor=colors.white
+        )
+
+        table_cell_style = ParagraphStyle(
+            'TableCell',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=8.5,
+            leading=11,
+            textColor=colors.HexColor('#334155')
+        )
+
+        table_cell_bold = ParagraphStyle(
+            'TableCellBold',
+            parent=table_cell_style,
+            fontName='Helvetica-Bold',
+            textColor=colors.HexColor('#0f172a')
+        )
+
+        kpi_val_style = ParagraphStyle(
+            'KPIValue',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=16,
+            leading=18,
+            textColor=colors.HexColor('#1e3a8a'),
+            alignment=1 # Center
+        )
+
+        kpi_lbl_style = ParagraphStyle(
+            'KPILabel',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=8,
+            leading=10,
+            textColor=colors.HexColor('#64748b'),
+            alignment=1 # Center
+        )
+
+        # 1. Header Title Block
+        story.append(Paragraph("IT STAFF PERFORMANCE REPORT", title_style))
+        gen_time = datetime.now().strftime('%B %d, %Y %I:%M %p')
+        story.append(Paragraph(f"Ticket-Tally IT Support Staff Metrics & bull; Generated on {gen_time}", subtitle_style))
+        story.append(Spacer(1, 5))
+
+        # 2. Staff KPI Summary Block
+        total_staff = len(staff_list)
+        total_active = 0
+        total_resolved = 0
+        csat_values = []
         for staff in staff_list:
+            try:
+                total_active += int(staff.get("active", 0))
+            except (ValueError, TypeError):
+                pass
+            try:
+                total_resolved += int(staff.get("resolved", 0))
+            except (ValueError, TypeError):
+                pass
+            
+            csat = staff.get("avg_csat")
+            if isinstance(csat, (int, float)):
+                csat_values.append(csat)
+            elif str(csat).replace('.', '', 1).isdigit():
+                csat_values.append(float(csat))
+
+        avg_csat = round(sum(csat_values) / len(csat_values), 2) if csat_values else "N/A"
+        avg_csat_str = f"{avg_csat:.1f}" if isinstance(avg_csat, (int, float)) else str(avg_csat)
+
+        kpi_data = [
+            [
+                Paragraph(str(total_staff), kpi_val_style),
+                Paragraph(str(total_active), kpi_val_style),
+                Paragraph(str(total_resolved), kpi_val_style),
+                Paragraph(avg_csat_str, kpi_val_style)
+            ],
+            [
+                Paragraph("TOTAL AGENTS", kpi_lbl_style),
+                Paragraph("ACTIVE TICKETS", kpi_lbl_style),
+                Paragraph("RESOLVED TICKETS", kpi_lbl_style),
+                Paragraph("AVERAGE CSAT RATING", kpi_lbl_style)
+            ]
+        ]
+
+        # Total printable width is 540 pt
+        kpi_table = Table(kpi_data, colWidths=[135, 135, 135, 135])
+        kpi_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 2),
+            ('TOPPADDING', (0, 1), (-1, 1), 2),
+            ('BOTTOMPADDING', (0, 1), (-1, 1), 10),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#cbd5e1')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+        ]))
+        story.append(kpi_table)
+        story.append(Spacer(1, 20))
+
+        # 3. Staff Performance Table
+        headers = [
+            Paragraph("Agent Name", table_header_style),
+            Paragraph("Email Address", table_header_style),
+            Paragraph("Team", table_header_style),
+            Paragraph("Active", table_header_style),
+            Paragraph("Resolved", table_header_style),
+            Paragraph("Avg CSAT", table_header_style),
+            Paragraph("SLA Compliance", table_header_style)
+        ]
+        
+        table_data = [headers]
+        for staff in staff_list:
+            csat_val = staff.get("avg_csat", "N/A")
+            csat_str = f"{csat_val:.1f}" if isinstance(csat_val, (int, float)) else str(csat_val)
+            
             table_data.append([
-                staff.get("name", ""),
-                staff.get("email", ""),
-                staff.get("team", "") or "Unassigned",
-                str(staff.get("active", 0)),
-                str(staff.get("resolved", 0)),
-                f"{staff.get('avg_csat', 0.0):.1f}" if isinstance(staff.get('avg_csat'), (int, float)) else str(staff.get('avg_csat', "N/A")),
-                staff.get("sla_compliance", "100.0%")
+                Paragraph(staff.get("name", ""), table_cell_bold),
+                Paragraph(staff.get("email", ""), table_cell_style),
+                Paragraph(staff.get("team", "") or "Unassigned", table_cell_style),
+                Paragraph(str(staff.get("active", 0)), table_cell_style),
+                Paragraph(str(staff.get("resolved", 0)), table_cell_style),
+                Paragraph(csat_str, table_cell_style),
+                Paragraph(staff.get("sla_compliance", "100.0%"), table_cell_bold)
             ])
 
-        # Col widths summing to 504 (standard letter width with margins)
-        t_perf = Table(table_data, colWidths=[90, 110, 80, 45, 55, 55, 69])
-        t_perf.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6366f1')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        # Widths summing to 540 pt
+        t_perf = Table(table_data, colWidths=[100, 130, 90, 55, 55, 55, 55], repeatRows=1)
+        t_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ]))
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+        ]
         
         # Add alternating row background colors
-        for i in range(1, len(table_data)):
-            if i % 2 == 0:
-                t_perf.setStyle(TableStyle([
-                    ('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
-                ]))
+        for idx in range(1, len(table_data)):
+            if idx % 2 == 0:
+                t_style.append(('BACKGROUND', (0, idx), (-1, idx), colors.HexColor('#f8fafc')))
                 
+        t_perf.setStyle(TableStyle(t_style))
         story.append(t_perf)
 
-        doc.build(story)
+        # Build doc with NumberedCanvas to show footers
+        doc.build(story, canvasmaker=NumberedCanvas)
         buffer.seek(0)
         return buffer
 
