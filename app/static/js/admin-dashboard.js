@@ -1451,10 +1451,13 @@ function updateCsatDashboardComponents(csat) {
     const starsEl = document.getElementById('csatStars');
     if (starsEl) {
         let starsHtml = '';
-        const rounded = Math.round(csat.average);
+        const average = csat.average;
         for (let i = 1; i <= 5; i++) {
-            if (i <= rounded) {
+            const diff = average - i + 1;
+            if (diff >= 0.75) {
                 starsHtml += '<i class="fas fa-star text-warning fs-5 me-1"></i>';
+            } else if (diff >= 0.25) {
+                starsHtml += '<i class="fas fa-star-half-alt text-warning fs-5 me-1"></i>';
             } else {
                 starsHtml += '<i class="far fa-star text-warning fs-5 me-1"></i>';
             }
