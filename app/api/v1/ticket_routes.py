@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, g
 from datetime import datetime
 from app.services.ticket_service import TicketService
+from app.services.sla_service import SLAService
 from app.schemas.ticket_schema import TicketCreate, TicketUpdate
 from app.schemas.csat_feedback_schema import CSATFeedbackCreate
 from app.utils.time_utils import utcnow
@@ -118,6 +119,8 @@ def get_ticket(ticket_id):
         "priority": ticket.priority.value,
         "createdAt": ticket.created_at.isoformat(),
         "updatedAt": ticket.updated_at.isoformat() if ticket.updated_at else ticket.created_at.isoformat(),
+        "slaDeadline": SLAService.get_deadline(ticket).isoformat() + "Z",
+        "slaStatus": SLAService.check_sla_status(ticket).value,
         "createdByName": ticket.creator.full_name if ticket.creator else "Unknown",
         "createdById": ticket.created_by_id,
         "github_pr_url": ticket.github_pr_url,
@@ -196,6 +199,8 @@ def get_tickets():
             "priority": t.priority.value,
             "createdAt": t.created_at.isoformat(),
             "updatedAt": t.updated_at.isoformat() if t.updated_at else t.created_at.isoformat(),
+            "slaDeadline": SLAService.get_deadline(t).isoformat() + "Z",
+            "slaStatus": SLAService.check_sla_status(t).value,
             "createdByName": t.creator.full_name if t.creator else "Unknown",
             "createdById": t.created_by_id,
             "assignedToId": t.assigned_to_id,
