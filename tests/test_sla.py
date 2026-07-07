@@ -225,3 +225,47 @@ def test_check_sla_status_resolved_breached(app):
     
     status = SLAService.check_sla_status(ticket)
     assert status == SLAStatus.BREACHED
+
+def test_ticket_api_sla_fields(app, client):
+    from app.utils.jwt import create_access_token
+    user = User(
+        email="employee_test@tt.com",
+        password_hash="test",
+        full_name="Employee",
+        role=UserRole.EMPLOYEE
+    )
+    db.session.add(user)
+    db.session.commit()
+    
+    ticket = Ticket(
+        title="SLA API Test Ticket",
+        description="Priority high ticket",
+        category="General",
+        priority=TicketPriority.HIGH,
+        created_by_id=user.id
+    )
+    db.session.add(ticket)
+    db.session.commit()
+    
+    token = create_access_token(identity=str(user.id))
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # 1. Test get_tickets (list view)
+    response = client.get('/api/v1/tickets', headers=headers)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert len(data['items']) == 1
+    item = data['items'][0]
+    assert "slaDeadline" in item
+    assert "slaStatus" in item
+    assert item["slaStatus"] == SLAStatus.PENDING.value
+    assert item["slaDeadline"].endswith("Z")
+    
+    # 2. Test get_ticket (single view)
+    response_single = client.get(f'/api/v1/tickets/{ticket.id}', headers=headers)
+    assert response_single.status_code == 200
+    data_single = response_single.get_json()
+    assert "slaDeadline" in data_single
+    assert "slaStatus" in data_single
+    assert data_single["slaStatus"] == SLAStatus.PENDING.value
+    assert data_single["slaDeadline"].endswith("Z")
