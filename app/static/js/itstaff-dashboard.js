@@ -371,6 +371,38 @@ function renderKanbanBoard() {
     }
 }
 
+function getSLABadge(ticket) {
+    if (!ticket.slaDeadline) return '';
+
+    const isCompleted = ticket.status === 'Resolved' || ticket.status === 'Closed';
+    
+    if (isCompleted) {
+        if (ticket.slaStatus === 'Achieved') {
+            return `<span class="sla-badge sla-badge-achieved">SLA: Achieved</span>`;
+        } else {
+            return `<span class="sla-badge sla-badge-danger">SLA: Breached</span>`;
+        }
+    }
+    
+    const deadline = new Date(ticket.slaDeadline);
+    const now = new Date();
+    const timeDiff = deadline - now;
+    
+    if (timeDiff <= 0) {
+        return `<span class="sla-badge sla-badge-danger">⚠️ Breached</span>`;
+    }
+    
+    const totalMinutes = Math.floor(timeDiff / (1000 * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    
+    if (hours === 0) {
+        return `<span class="sla-badge sla-badge-warning">⚠️ ${minutes}m left</span>`;
+    } else {
+        return `<span class="sla-badge sla-badge-neutral">⏱️ ${hours}h ${minutes}m left</span>`;
+    }
+}
+
 function createKanbanCard(ticket) {
     const card = document.createElement('div');
     card.className = 'kanban-card';
@@ -394,6 +426,7 @@ function createKanbanCard(ticket) {
         <div class="kanban-card-title">${ticket.subject || ticket.title}</div>
         <div class="kanban-card-tags">
             <span class="kanban-tag">${category}</span>
+            ${getSLABadge(ticket)}
         </div>
         <div class="kanban-card-footer">
             <div class="kanban-assignee">
