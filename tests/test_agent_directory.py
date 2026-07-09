@@ -216,3 +216,46 @@ def test_direct_ticket_assignment(client, employee_headers, app):
         assert ticket.assigned_to_id == agent_id
         assert ticket.team.name == "Hardware Support"
         assert ticket.status == TicketStatus.OPEN
+
+def test_get_agents_demo_mode(client, app):
+    # Register/Get the Demo user
+    with app.app_context():
+        from app.core.config import Config
+        demo_user = User.query.filter_by(email=Config.DEMO_EMAIL).first()
+        if not demo_user:
+            demo_user = User(
+                email=Config.DEMO_EMAIL,
+                password_hash="test",
+                full_name="Demo User",
+                role=UserRole.EMPLOYEE
+            )
+            db.session.add(demo_user)
+            db.session.commit()
+        demo_token = create_access_token(identity=str(demo_user.id))
+        demo_headers = {"Authorization": f"Bearer {demo_token}"}
+
+    # 1. Fetch agents as Demo user
+    response = client.get('/api/v1/users/agents', headers=demo_headers)
+    assert response.status_code == 200
+    agents = response.get_json()
+    
+    # Verify we get the mock agents (Alice Smith, Bob Jones, Charlie Brown, Diana Prince)
+    assert len(agents) == 4
+    names = [a['fullName'] for a in agents]
+    assert "Alice Smith" in names
+    assert "Bob Jones" in names
+    
+    # 2. Fetch specialties as Demo user
+    response_spec = client.get('/api/v1/users/specialties', headers=demo_headers)
+    assert response_spec.status_code == 200
+    specs = response_spec.get_json()
+    assert "AWS" in specs
+    assert "Cisco" in specs
+    
+    # 3. Fetch teams as Demo user
+    response_teams = client.get('/api/v1/users/teams', headers=demo_headers)
+    assert response_teams.status_code == 200
+    teams = response_teams.get_json()
+    team_names = [t['name'] for t in teams]
+    assert "IT Support" in team_names
+    assert "Network Engineering" in team_names

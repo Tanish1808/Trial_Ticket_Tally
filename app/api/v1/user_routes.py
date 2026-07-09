@@ -548,6 +548,59 @@ def export_user_data():
 
     return jsonify(export_data)
 
+# Mock data for Demo Mode Agent Directory to prevent real data leaks
+MOCK_TEAMS = [
+    {"id": 1, "name": "IT Support"},
+    {"id": 2, "name": "Human Resources"},
+    {"id": 3, "name": "Network Engineering"},
+    {"id": 4, "name": "Systems Administration"}
+]
+
+MOCK_AGENTS = [
+    {
+        "id": 9001,
+        "email": "alice.smith@example.com",
+        "fullName": "Alice Smith",
+        "full_name": "Alice Smith",
+        "role": "it_staff",
+        "department": "IT Support",
+        "team": {"id": 1, "name": "IT Support"},
+        "specializations": ["Hardware", "Windows", "Office 365"]
+    },
+    {
+        "id": 9002,
+        "email": "bob.jones@example.com",
+        "fullName": "Bob Jones",
+        "full_name": "Bob Jones",
+        "role": "it_staff",
+        "department": "Network Engineering",
+        "team": {"id": 3, "name": "Network Engineering"},
+        "specializations": ["Cisco", "VPN", "Routing & Switching"]
+    },
+    {
+        "id": 9003,
+        "email": "charlie.brown@example.com",
+        "fullName": "Charlie Brown",
+        "full_name": "Charlie Brown",
+        "role": "it_staff",
+        "department": "IT Support",
+        "team": {"id": 1, "name": "IT Support"},
+        "specializations": ["Software", "Linux", "MacOS"]
+    },
+    {
+        "id": 9004,
+        "email": "diana.prince@example.com",
+        "fullName": "Diana Prince",
+        "full_name": "Diana Prince",
+        "role": "admin",
+        "department": "Systems Administration",
+        "team": {"id": 4, "name": "Systems Administration"},
+        "specializations": ["AWS", "Kubernetes", "Database Security"]
+    }
+]
+
+MOCK_SPECIALTIES = sorted(list({s for a in MOCK_AGENTS for s in a["specializations"]}))
+
 @user_bp.route('/agents', methods=['GET'])
 @token_required
 def get_agents():
@@ -558,6 +611,32 @@ def get_agents():
     specialty_filter = request.args.get('specialty')
     
     from app.core.config import Config
+    if g.user.email == Config.DEMO_EMAIL:
+        filtered_agents = []
+        for agent in MOCK_AGENTS:
+            specs = agent["specializations"]
+            
+            # Match specialty filter
+            if specialty_filter:
+                if specialty_filter.lower() not in [s.lower() for s in specs]:
+                    continue
+                    
+            # Match search query
+            if search_query:
+                search_lower = search_query.lower()
+                team_name = agent["team"]["name"].lower() if agent["team"] else ""
+                match_name = search_lower in agent["full_name"].lower()
+                match_email = search_lower in agent["email"].lower()
+                match_team = search_lower in team_name
+                match_spec = any(search_lower in s.lower() for s in specs)
+                
+                if not (match_name or match_email or match_team or match_spec):
+                    continue
+                    
+            filtered_agents.append(agent)
+            
+        return jsonify(filtered_agents)
+
     query = User.query.filter(
         User.role.in_([UserRole.IT_STAFF, UserRole.ADMIN]),
         User.is_active == True,
@@ -610,6 +689,9 @@ def get_all_specialties():
     Get list of all unique specialties/specializations across all active agents
     """
     from app.core.config import Config
+    if g.user.email == Config.DEMO_EMAIL:
+        return jsonify(MOCK_SPECIALTIES)
+
     agents = User.query.filter(
         User.role.in_([UserRole.IT_STAFF, UserRole.ADMIN]),
         User.is_active == True,
@@ -631,6 +713,10 @@ def get_all_teams():
     """
     Get list of all teams in the system (for directory dropdown)
     """
+    from app.core.config import Config
+    if g.user.email == Config.DEMO_EMAIL:
+        return jsonify(MOCK_TEAMS)
+
     from app.models.team import Team
     teams = Team.query.all()
     return jsonify([{
