@@ -211,25 +211,55 @@ function updateStats(ticket) {
     document.getElementById('updateCount').textContent = updateCount;
 
     // SLA Status
-    const slaHours = {
-        'Critical': 4,
-        'High': 8,
-        'Medium': 24,
-        'Low': 48
-    };
-
-    const maxHours = slaHours[ticket.priority] || 24;
-    const slaBreached = ageInHours > maxHours && ticket.status !== 'Resolved' && ticket.status !== 'Closed';
-
+    const isCompleted = ticket.status === 'Resolved' || ticket.status === 'Closed';
     let slaHtml;
-    if (ticket.status === 'Resolved' || ticket.status === 'Closed') {
-        slaHtml = '<span class="sla-indicator success"><i class="fas fa-check-circle"></i> Completed</span>';
-    } else if (slaBreached) {
-        slaHtml = '<span class="sla-indicator danger"><i class="fas fa-exclamation-triangle"></i> Breached</span>';
-    } else if (ageInHours > maxHours * 0.8) {
-        slaHtml = '<span class="sla-indicator warning"><i class="fas fa-clock"></i> Approaching</span>';
+
+    if (ticket.slaDeadline) {
+        if (isCompleted) {
+            if (ticket.slaStatus === 'Achieved') {
+                slaHtml = '<span class="sla-indicator success"><i class="fas fa-check-circle"></i> SLA: Achieved</span>';
+            } else {
+                slaHtml = '<span class="sla-indicator danger"><i class="fas fa-exclamation-triangle"></i> SLA: Breached</span>';
+            }
+        } else {
+            const deadline = new Date(ticket.slaDeadline);
+            const now = new Date();
+            const timeDiff = deadline - now;
+
+            if (timeDiff <= 0) {
+                slaHtml = '<span class="sla-indicator danger"><i class="fas fa-exclamation-triangle"></i> Breached</span>';
+            } else {
+                const totalMinutes = Math.floor(timeDiff / (1000 * 60));
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = totalMinutes % 60;
+
+                if (hours === 0) {
+                    slaHtml = `<span class="sla-indicator warning"><i class="fas fa-clock"></i> Approaching (${minutes}m left)</span>`;
+                } else {
+                    slaHtml = `<span class="sla-indicator success"><i class="fas fa-clock"></i> On Track (${hours}h ${minutes}m left)</span>`;
+                }
+            }
+        }
     } else {
-        slaHtml = '<span class="sla-indicator success"><i class="fas fa-check"></i> On Track</span>';
+        // Fallback to original calculation if slaDeadline is missing
+        const slaHours = {
+            'Critical': 4,
+            'High': 8,
+            'Medium': 24,
+            'Low': 48
+        };
+        const maxHours = slaHours[ticket.priority] || 24;
+        const slaBreached = ageInHours > maxHours && ticket.status !== 'Resolved' && ticket.status !== 'Closed';
+
+        if (isCompleted) {
+            slaHtml = '<span class="sla-indicator success"><i class="fas fa-check-circle"></i> Completed</span>';
+        } else if (slaBreached) {
+            slaHtml = '<span class="sla-indicator danger"><i class="fas fa-exclamation-triangle"></i> Breached</span>';
+        } else if (ageInHours > maxHours * 0.8) {
+            slaHtml = '<span class="sla-indicator warning"><i class="fas fa-clock"></i> Approaching</span>';
+        } else {
+            slaHtml = '<span class="sla-indicator success"><i class="fas fa-check"></i> On Track</span>';
+        }
     }
 
     document.getElementById('slaStatus').innerHTML = slaHtml;
