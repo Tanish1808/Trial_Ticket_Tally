@@ -6,6 +6,23 @@ from reportlab.pdfgen import canvas
 from io import BytesIO
 from datetime import datetime
 
+def _format_hours_to_hm(hours):
+    """Formats average resolution hours (float) as a human-readable 'Xh Ym' string."""
+    if not isinstance(hours, (int, float)):
+        return str(hours) if hours is not None else "N/A"
+    if hours <= 0:
+        return "N/A"
+    total_seconds = int(round(hours * 3600))
+    h = total_seconds // 3600
+    m = (total_seconds % 3600) // 60
+    parts = []
+    if h > 0:
+        parts.append(f"{h}h")
+    if m > 0:
+        parts.append(f"{m}m")
+    return " ".join(parts) if parts else "0m"
+
+
 class PDFService:
     @staticmethod
     def generate_ticket_pdf(ticket):
@@ -509,7 +526,7 @@ class PDFService:
             [
                 Paragraph(str(summary_kpis.get("total_tickets", 0)), kpi_val_style),
                 Paragraph(str(summary_kpis.get("resolved_count", 0)), kpi_val_style),
-                Paragraph(f"{summary_kpis.get('avg_resolution_hours', 0.0):.1f} hrs" if isinstance(summary_kpis.get('avg_resolution_hours'), (int, float)) else str(summary_kpis.get('avg_resolution_hours', 'N/A')), kpi_val_style),
+                Paragraph(_format_hours_to_hm(summary_kpis.get('avg_resolution_hours')), kpi_val_style),
                 Paragraph(f"{summary_kpis.get('breach_rate', 0.0):.1f}%" if isinstance(summary_kpis.get('breach_rate'), (int, float)) else str(summary_kpis.get('breach_rate', '0.0%')), kpi_val_style)
             ],
             [
@@ -655,7 +672,7 @@ class PDFService:
             t3_data = [headers]
             for cat in category_data:
                 res_time_val = cat.get('avg_resolution_hours', 0.0)
-                res_time_str = f"{res_time_val:.1f} hrs" if isinstance(res_time_val, (int, float)) and res_time_val > 0 else "N/A"
+                res_time_str = _format_hours_to_hm(res_time_val)
                 
                 t3_data.append([
                     Paragraph(cat.get('category', 'General'), table_cell_bold),
