@@ -257,6 +257,66 @@ class AuthService:
         ]
         db.session.add_all(sample_announcements)
         db.session.commit()
+
+        # Seed sample calendar events for demo context
+        from app.models.event import Event
+
+        # Clear existing events by the demo user to prevent duplication
+        existing_events = Event.query.filter_by(created_by_id=user.id).all()
+        for e in existing_events:
+            db.session.delete(e)
+        db.session.commit()
+
+        # Add fresh sample events relative to the current date/time
+        now = utcnow()
+        day1_start = datetime(now.year, now.month, now.day) + timedelta(days=1, hours=10)
+        day1_end = day1_start + timedelta(hours=1, minutes=30)
+
+        day3_start = datetime(now.year, now.month, now.day) + timedelta(days=3, hours=14)
+        day3_end = day3_start + timedelta(hours=2)
+
+        day5_start = datetime(now.year, now.month, now.day) + timedelta(days=5, hours=11)
+        day5_end = day5_start + timedelta(hours=1)
+
+        day7_start = datetime(now.year, now.month, now.day) + timedelta(days=7, hours=9)
+        day7_end = day7_start + timedelta(hours=3)
+
+        sample_events = [
+            Event(
+                title="IT Support Weekly Sync 🔄",
+                description="Weekly review of open high-priority tickets, SLA breaches, and team workload distribution.",
+                event_type="other",
+                start_time=day1_start,
+                end_time=day1_end,
+                created_by_id=user.id
+            ),
+            Event(
+                title="Database Security Patching 🔒",
+                description="Applying scheduled security patches to the production database. Expect brief read-only modes.",
+                event_type="maintenance",
+                start_time=day3_start,
+                end_time=day3_end,
+                created_by_id=user.id
+            ),
+            Event(
+                title="New Staff Onboarding & Training 📚",
+                description="Onboarding session for new IT support recruits covering platform workflows and guidelines.",
+                event_type="training",
+                start_time=day5_start,
+                end_time=day5_end,
+                created_by_id=user.id
+            ),
+            Event(
+                title="Quarterly Backup Restoration Drill 💾",
+                description="Testing database backups by performing a full restore in the sandbox environment.",
+                event_type="system_update",
+                start_time=day7_start,
+                end_time=day7_end,
+                created_by_id=user.id
+            )
+        ]
+        db.session.add_all(sample_events)
+        db.session.commit()
             
         return user
 
