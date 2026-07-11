@@ -569,9 +569,8 @@ window.confirmExport = async function (format) {
 
 // Confirm logout
 function confirmLogout() {
-    if (confirm('Are you sure you want to logout?')) {
-        logout();
-    }
+    const modal = new bootstrap.Modal(document.getElementById('logoutConfirmationModal'));
+    modal.show();
 }
 
 // Go back to dashboard
