@@ -638,6 +638,25 @@
     </div>
   </div>
 
+  <!-- Logout Confirmation Modal -->
+  <div class="modal fade" id="logoutConfirmationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger">Confirm Logout</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted">Are you sure you want to logout? Any unsaved changes will be lost.</p>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger rounded-pill px-4" onclick="logout()">Logout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
   <script>
     let socket;
