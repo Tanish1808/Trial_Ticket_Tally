@@ -264,3 +264,22 @@
         font-size: 1.5rem;
     }
 }
+
+/* Error Shake & Icon Styling */
+.modal-error-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 50%;
+    margin: 0 auto;
+    animation: errorShake 0.5s ease-in-out;
+}
+
+@keyframes errorShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
