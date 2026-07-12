@@ -234,11 +234,12 @@
                 const modalEl = document.getElementById('loginErrorModal');
                 if (window.bootstrap && modalEl) {
                   const errorMsg = data.error || 'Login failed';
-                  document.getElementById('loginErrorMessage').textContent = errorMsg;
                   if (errorMsg.toLowerCase().includes('credential')) {
                     document.getElementById('loginErrorTitle').textContent = 'Invalid Credentials';
+                    document.getElementById('loginErrorMessage').textContent = 'The email or password you entered is incorrect. Please check your credentials and try again.';
                   } else {
                     document.getElementById('loginErrorTitle').textContent = 'Login Failed';
+                    document.getElementById('loginErrorMessage').textContent = errorMsg;
                   }
                   const modal = new bootstrap.Modal(modalEl);
                   modal.show();
