@@ -249,4 +249,109 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Premium Status Update Card Options */
+.status-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.status-card-option {
+    display: flex;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    position: relative;
+    user-select: none;
+}
+
+.status-card-option:hover {
+    border-color: var(--primary-500);
+    background: var(--surface);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.status-card-option.active {
+    background: var(--surface);
+    border-color: var(--primary-500);
+    border-width: 2px;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.status-card-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    margin-right: 1rem;
+    flex-shrink: 0;
+    transition: all var(--transition-base);
+}
+
+/* Colors for status card icons */
+.status-card-icon.status-inprogress {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+.status-card-option.active .status-card-icon.status-inprogress {
+    background: var(--warning);
+    color: white;
+}
+
+.status-card-icon.status-resolved {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+.status-card-option.active .status-card-icon.status-resolved {
+    background: var(--success);
+    color: white;
+}
+
+.status-card-icon.status-closed {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary-500);
+}
+.status-card-option.active .status-card-icon.status-closed {
+    background: var(--primary-500);
+    color: white;
+}
+
+.status-card-info {
+    flex-grow: 1;
+}
+
+.status-card-title {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    margin-bottom: 0.1rem;
+}
+
+.status-card-desc {
+    font-size: 0.775rem;
+    color: var(--text-secondary);
+}
+
+.status-card-checkmark {
+    font-size: 1.2rem;
+    color: var(--primary-500);
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all var(--transition-base);
+    margin-left: auto;
+}
+
+.status-card-option.active .status-card-checkmark {
+    opacity: 1;
+    transform: scale(1);
 }
