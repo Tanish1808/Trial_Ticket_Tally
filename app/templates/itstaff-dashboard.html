@@ -288,20 +288,67 @@
         <div class="modal-body">
           <form id="updateTicketForm">
             <input type="hidden" id="updateTicketId" />
-            <div class="mb-3">
-              <label class="form-label">Update Status</label><select class="form-select" id="updateStatus" required>
-                <option value="In Progress">In Progress</option>
-                <option value="Resolved">Resolved</option>
-              </select>
+            <input type="hidden" id="updateStatus" required />
+            
+            <div class="mb-4">
+              <label class="form-label fw-bold text-secondary mb-2" style="font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">Update Status</label>
+              <div class="status-cards-container d-flex flex-column gap-2">
+                
+                <!-- Option: In Progress -->
+                <div class="status-card-option" data-status="In Progress" id="status-card-inprogress">
+                  <div class="status-card-icon status-inprogress">
+                    <i class="fas fa-spinner fa-spin"></i>
+                  </div>
+                  <div class="status-card-info">
+                    <div class="status-card-title">In Progress</div>
+                    <div class="status-card-desc">Work is actively underway on this issue.</div>
+                  </div>
+                  <div class="status-card-checkmark">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                </div>
+
+                <!-- Option: Resolved -->
+                <div class="status-card-option" data-status="Resolved" id="status-card-resolved">
+                  <div class="status-card-icon status-resolved">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                  <div class="status-card-info">
+                    <div class="status-card-title">Resolved</div>
+                    <div class="status-card-desc">The fix is deployed and verified.</div>
+                  </div>
+                  <div class="status-card-checkmark">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                </div>
+
+                <!-- Option: Closed -->
+                <div class="status-card-option" data-status="Closed" id="status-card-closed">
+                  <div class="status-card-icon status-closed">
+                    <i class="fas fa-archive"></i>
+                  </div>
+                  <div class="status-card-info">
+                    <div class="status-card-title">Closed</div>
+                    <div class="status-card-desc">Archive the ticket and seal the request.</div>
+                  </div>
+                  <div class="status-card-checkmark">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                </div>
+
+              </div>
             </div>
+
             <div class="mb-3">
-              <label class="form-label">Add Note (Optional)</label><textarea class="form-control" id="updateNote"
-                rows="3"></textarea>
+              <label class="form-label fw-bold text-secondary mb-2" style="font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">Add Note (Optional)</label>
+              <textarea class="form-control" id="updateNote" rows="3" placeholder="Provide a brief update or resolution details..."></textarea>
             </div>
-            <div class="d-flex justify-content-end gap-2">
+            
+            <div class="d-flex justify-content-end gap-2 pt-2" style="border-top: 1px solid var(--border-light)">
               <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">
-                Cancel</button><button type="submit" class="btn btn-primary-custom">
-                Update Ticket
+                Cancel</button>
+              <button type="submit" class="btn btn-primary-custom" id="submitUpdateBtn" disabled>
+                Update Status
               </button>
             </div>
           </form>
