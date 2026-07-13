@@ -63,6 +63,13 @@ function setupEventListeners() {
     document.getElementById('updateTicketForm').addEventListener('submit', handleUpdateTicket);
     document.getElementById('searchTickets').addEventListener('input', handleSearch);
 
+    // Setup status card options click listeners
+    document.querySelectorAll('.status-card-option').forEach(card => {
+        card.addEventListener('click', function () {
+            selectStatusOption(this.dataset.status);
+        });
+    });
+
     // Announcements toggle event listeners
     const toggleBtn = document.getElementById('announcementsToggleBtn');
     const closeBtn = document.getElementById('announcementsCloseBtn');
@@ -804,27 +811,54 @@ function showUpdateModal(ticketId) {
         return;
     }
 
-    // Check if resolved, if so, we might allow closing it
     const isResolved = ticket.status === 'Resolved';
 
     document.getElementById('updateTicketId').value = ticketId;
     document.getElementById('updateTicketTitle').textContent = `Update ${formatTicketId(ticketId)}`;
 
-    const select = document.getElementById('updateStatus');
+    // Set value & show/hide status cards
+    const cardInprogress = document.getElementById('status-card-inprogress');
+    const cardResolved = document.getElementById('status-card-resolved');
+    const cardClosed = document.getElementById('status-card-closed');
+
     if (isResolved) {
-        select.innerHTML = '<option value="Closed">Closed</option>';
-        select.value = 'Closed';
+        // Only Closed is allowed for resolved tickets
+        if (cardInprogress) cardInprogress.style.display = 'none';
+        if (cardResolved) cardResolved.style.display = 'none';
+        if (cardClosed) cardClosed.style.display = 'flex';
+        selectStatusOption('Closed');
     } else {
-        select.innerHTML = `
-            <option value="In Progress">In Progress</option>
-            <option value="Resolved">Resolved</option>
-            <option value="Closed">Closed</option>
-        `;
-        select.value = ticket.status === 'Open' || ticket.status === 'New' ? 'In Progress' : ticket.status;
+        if (cardInprogress) cardInprogress.style.display = 'flex';
+        if (cardResolved) cardResolved.style.display = 'flex';
+        if (cardClosed) cardClosed.style.display = 'flex';
+        
+        const defaultStatus = ticket.status === 'Open' || ticket.status === 'New' ? 'In Progress' : ticket.status;
+        selectStatusOption(defaultStatus);
     }
+
+    // Reset notes input
+    document.getElementById('updateNote').value = '';
 
     const modal = getModal('updateTicketModal');
     modal.show();
+}
+
+function selectStatusOption(status) {
+    const statusInput = document.getElementById('updateStatus');
+    if (statusInput) statusInput.value = status;
+
+    // Highlight the selected card and unhighlight others
+    document.querySelectorAll('.status-card-option').forEach(card => {
+        if (card.dataset.status === status) {
+            card.classList.add('active');
+        } else {
+            card.classList.remove('active');
+        }
+    });
+
+    // Enable submit button once a selection is made
+    const submitBtn = document.getElementById('submitUpdateBtn');
+    if (submitBtn) submitBtn.disabled = false;
 }
 
 async function handleUpdateTicket(e) {
