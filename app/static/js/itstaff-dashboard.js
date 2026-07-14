@@ -832,24 +832,32 @@ function showUpdateModal(ticketId) {
         }
     }
 
-    // Determine default status to select when modal opens
-    let defaultStatus;
-    if (ticket.status === 'Resolved') {
-        defaultStatus = 'Closed';
+    // Determine the next status in the strict sequence:
+    // Open/New -> In Progress -> Resolved -> Closed
+    let nextStatus;
+    if (ticket.status === 'New' || ticket.status === 'Open') {
+        nextStatus = 'In Progress';
+    } else if (ticket.status === 'In Progress') {
+        nextStatus = 'Resolved';
+    } else if (ticket.status === 'Resolved') {
+        nextStatus = 'Closed';
     } else {
-        defaultStatus = ticket.status === 'Open' || ticket.status === 'New' ? 'In Progress' : ticket.status;
+        nextStatus = 'Closed';
     }
 
-    // Set default hidden input value
+    // Set the hidden input value to the target next status
     const statusInput = document.getElementById('updateStatus');
-    if (statusInput) statusInput.value = defaultStatus;
+    if (statusInput) statusInput.value = nextStatus;
 
-    // Enable submit button
+    // Set the button text dynamically
     const submitBtn = document.getElementById('submitUpdateBtn');
-    if (submitBtn) submitBtn.disabled = false;
+    if (submitBtn) {
+        submitBtn.textContent = `Update to ${nextStatus}`;
+        submitBtn.disabled = false;
+    }
 
-    // Render the stepper initial state
-    renderStepper(ticket.status, defaultStatus);
+    // Render the stepper initial state showing progression from current to next status
+    renderStepper(ticket.status, nextStatus);
 
     // Reset notes input
     document.getElementById('updateNote').value = '';
@@ -874,16 +882,13 @@ function getOriginalIcon(step) {
     return '';
 }
 
-function renderStepper(currentStatus, selectedStatus) {
+function renderStepper(currentStatus, targetStatus) {
     const currentIdx = getStatusOrderIndex(currentStatus);
-    const selectedIdx = getStatusOrderIndex(selectedStatus);
-    
-    // Allowed transitions: if Resolved, only Closed. Otherwise, In Progress, Resolved, Closed.
-    const allowedStatuses = (currentStatus === 'Resolved') ? ['Closed'] : ['In Progress', 'Resolved', 'Closed'];
+    const targetIdx = getStatusOrderIndex(targetStatus);
 
     const fillEl = document.getElementById('statusProgressFill');
     if (fillEl) {
-        const targetPercent = selectedIdx * 33.33;
+        const targetPercent = targetIdx * 33.33;
         fillEl.style.width = `${targetPercent}%`;
     }
 
@@ -907,39 +912,16 @@ function renderStepper(currentStatus, selectedStatus) {
             if (circle) circle.innerHTML = getOriginalIcon(step);
         }
 
-        if (step === selectedStatus && selectedStatus !== currentStatus) {
+        // Highlight the auto-selected target status
+        if (step === targetStatus) {
             node.classList.remove('active');
             node.classList.add('selected');
         }
 
-        if (allowedStatuses.includes(step)) {
-            node.classList.add('selectable');
-            
-            node.onclick = () => {
-                const statusInput = document.getElementById('updateStatus');
-                if (statusInput) statusInput.value = step;
-                renderStepper(currentStatus, step);
-                const submitBtn = document.getElementById('submitUpdateBtn');
-                if (submitBtn) submitBtn.disabled = false;
-            };
-
-            node.onmouseenter = () => {
-                if (fillEl) fillEl.style.width = `${idx * 33.33}%`;
-            };
-
-            node.onmouseleave = () => {
-                if (fillEl) {
-                    const activeSelected = document.getElementById('updateStatus').value;
-                    const activeSelectedIdx = getStatusOrderIndex(activeSelected);
-                    fillEl.style.width = `${activeSelectedIdx * 33.33}%`;
-                }
-            };
-        } else {
-            node.classList.add('disabled');
-            node.onclick = null;
-            node.onmouseenter = null;
-            node.onmouseleave = null;
-        }
+        // Stepper nodes are now read-only progression indicators, click/hover handlers are disabled
+        node.onclick = null;
+        node.onmouseenter = null;
+        node.onmouseleave = null;
     });
 }
 
