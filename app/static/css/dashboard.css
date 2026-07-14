@@ -1478,5 +1478,212 @@
     color: #cbd5e1;
 }
 
+/* ==========================================================================
+   Amazon-style Status Stepper / Progress Bar Styles
+   ========================================================================== */
+
+.status-bar-container {
+    position: relative;
+    width: 100%;
+    margin-top: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.status-progress-track {
+    position: absolute;
+    top: 20px; /* Aligns with vertical center of 40px node circle */
+    left: 24px;
+    right: 24px;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    z-index: 1;
+    overflow: visible;
+}
+
+.status-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--primary-500) 0%, var(--accent-500) 100%);
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.5);
+}
+
+/* Track glow in dark theme */
+[data-theme="dark"] .status-progress-fill {
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+}
+
+.status-steps {
+    z-index: 2;
+}
+
+.status-step-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+    z-index: 2;
+}
+
+.status-step-node .node-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 3px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 3;
+    box-shadow: var(--shadow-sm);
+}
+
+.status-step-node .node-label {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    transition: var(--transition-base);
+}
+
+/* NODE STATES */
+
+/* Completed status */
+.status-step-node.completed .node-circle {
+    background: var(--primary-500);
+    border-color: var(--primary-500);
+    color: var(--text-inverse);
+    box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
+}
+
+.status-step-node.completed .node-label {
+    color: var(--text-primary);
+}
+
+/* Active current status */
+.status-step-node.active .node-circle {
+    background: var(--surface);
+    border-color: var(--accent-500);
+    color: var(--accent-500);
+    box-shadow: 0 0 18px rgba(6, 182, 212, 0.5);
+    transform: scale(1.1);
+}
+
+.status-step-node.active .node-circle i {
+    animation: pulse-icon 2s infinite;
+}
+
+.status-step-node.active .node-label {
+    color: var(--accent-500);
+    font-weight: 800;
+}
+
+/* Selected target status to transition to */
+.status-step-node.selected .node-circle {
+    background: var(--success);
+    border-color: var(--success);
+    color: var(--text-inverse);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+    transform: scale(1.15);
+    animation: pulse-success 2s infinite;
+}
+
+.status-step-node.selected .node-label {
+    color: var(--success);
+    font-weight: 800;
+}
+
+/* Selectable status (hoverable upcoming step) */
+.status-step-node.selectable:hover .node-circle {
+    border-color: var(--primary-500);
+    color: var(--primary-500);
+    transform: translateY(-4px) scale(1.1);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.status-step-node.selectable:hover .node-label {
+    color: var(--primary-500);
+}
+
+/* Disabled/Unreachable transition state */
+.status-step-node.disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+}
+
+.status-step-node.disabled .node-circle {
+    background: var(--border-light);
+    border-color: var(--border);
+    box-shadow: none;
+}
+
+/* Animations */
+@keyframes pulse-success {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+@keyframes pulse-icon {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+}
+
+/* Banner for Current Status */
+.current-status-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-lg);
+    background: var(--surface-elevated) !important;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-base);
+}
+
+/* Styled Note Textarea */
+.update-status-note-group textarea {
+    border-radius: var(--radius-md);
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--text-primary);
+    transition: var(--transition-base);
+    padding: 0.75rem 1rem;
+    resize: none;
+}
+
+.update-status-note-group textarea:focus {
+    border-color: var(--primary-500);
+    background: var(--surface-elevated);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15) !important;
+    outline: none;
+}
+
+[data-theme="dark"] .update-status-note-group textarea:focus {
+    box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2) !important;
+    border-color: var(--accent-500);
+}
+
 
 
