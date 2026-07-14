@@ -290,64 +290,67 @@
             <input type="hidden" id="updateTicketId" />
             <input type="hidden" id="updateStatus" required />
             
+            <!-- Current Status Banner -->
+            <div class="current-status-banner mb-4">
+              <span class="text-secondary fw-bold" style="font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">Current Status</span>
+              <span id="currentStatusBadge" class="badge rounded-pill px-3 py-2 text-uppercase fs-7 fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">Open</span>
+            </div>
+
+            <!-- Amazon style Status Stepper -->
             <div class="mb-4">
-              <label class="form-label fw-bold text-secondary mb-2" style="font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">Update Status</label>
-              <div class="status-cards-container d-flex flex-column gap-2">
+              <label class="form-label fw-bold text-secondary mb-3" style="font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">Select Target Status</label>
+              
+              <div class="status-bar-container">
+                <div class="status-progress-track">
+                  <div class="status-progress-fill" id="statusProgressFill"></div>
+                </div>
                 
-                <!-- Option: In Progress -->
-                <div class="status-card-option" data-status="In Progress" id="status-card-inprogress">
-                  <div class="status-card-icon status-inprogress">
-                    <i class="fas fa-spinner fa-spin"></i>
+                <div class="status-steps d-flex justify-content-between align-items-center">
+                  <!-- Node 1: Open -->
+                  <div class="status-step-node" data-status="Open" id="step-Open">
+                    <div class="node-circle" title="Ticket is open and unassigned/assigned">
+                      <i class="fas fa-folder-open"></i>
+                    </div>
+                    <div class="node-label">Open</div>
                   </div>
-                  <div class="status-card-info">
-                    <div class="status-card-title">In Progress</div>
-                    <div class="status-card-desc">Work is actively underway on this issue.</div>
+                  
+                  <!-- Node 2: In Progress -->
+                  <div class="status-step-node" data-status="In Progress" id="step-In-Progress">
+                    <div class="node-circle" title="Ticket is currently under investigation">
+                      <i class="fas fa-spinner"></i>
+                    </div>
+                    <div class="node-label">In Progress</div>
                   </div>
-                  <div class="status-card-checkmark">
-                    <i class="fas fa-check-circle"></i>
+                  
+                  <!-- Node 3: Resolved -->
+                  <div class="status-step-node" data-status="Resolved" id="step-Resolved">
+                    <div class="node-circle" title="A fix has been deployed and tested">
+                      <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="node-label">Resolved</div>
                   </div>
-                </div>
-
-                <!-- Option: Resolved -->
-                <div class="status-card-option" data-status="Resolved" id="status-card-resolved">
-                  <div class="status-card-icon status-resolved">
-                    <i class="fas fa-check-circle"></i>
-                  </div>
-                  <div class="status-card-info">
-                    <div class="status-card-title">Resolved</div>
-                    <div class="status-card-desc">The fix is deployed and verified.</div>
-                  </div>
-                  <div class="status-card-checkmark">
-                    <i class="fas fa-check-circle"></i>
-                  </div>
-                </div>
-
-                <!-- Option: Closed -->
-                <div class="status-card-option" data-status="Closed" id="status-card-closed">
-                  <div class="status-card-icon status-closed">
-                    <i class="fas fa-archive"></i>
-                  </div>
-                  <div class="status-card-info">
-                    <div class="status-card-title">Closed</div>
-                    <div class="status-card-desc">Archive the ticket and seal the request.</div>
-                  </div>
-                  <div class="status-card-checkmark">
-                    <i class="fas fa-check-circle"></i>
+                  
+                  <!-- Node 4: Closed -->
+                  <div class="status-step-node" data-status="Closed" id="step-Closed">
+                    <div class="node-circle" title="Issue is completed and ticket is archived">
+                      <i class="fas fa-archive"></i>
+                    </div>
+                    <div class="node-label">Closed</div>
                   </div>
                 </div>
-
               </div>
             </div>
 
-            <div class="mb-3">
-              <label class="form-label fw-bold text-secondary mb-2" style="font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">Add Note (Optional)</label>
-              <textarea class="form-control" id="updateNote" rows="3" placeholder="Provide a brief update or resolution details..."></textarea>
+            <div class="mb-4 update-status-note-group">
+              <label class="form-label fw-bold text-secondary mb-2" style="font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">Add Note for Employee (Optional)</label>
+              <textarea class="form-control" id="updateNote" rows="3" placeholder="Leave instructions, details about the fix, or progression comments..."></textarea>
             </div>
             
-            <div class="d-flex justify-content-end gap-2 pt-2" style="border-top: 1px solid var(--border-light)">
-              <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">
-                Cancel</button>
-              <button type="submit" class="btn btn-primary-custom" id="submitUpdateBtn" disabled>
+            <div class="d-flex justify-content-end gap-2 pt-3" style="border-top: 1px solid var(--border-light)">
+              <button type="button" class="btn btn-outline-custom rounded-pill px-4" data-bs-dismiss="modal">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary-custom rounded-pill px-4" id="submitUpdateBtn" disabled>
                 Update Status
               </button>
             </div>
