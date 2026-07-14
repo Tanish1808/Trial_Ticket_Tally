@@ -811,30 +811,45 @@ function showUpdateModal(ticketId) {
         return;
     }
 
-    const isResolved = ticket.status === 'Resolved';
-
     document.getElementById('updateTicketId').value = ticketId;
-    document.getElementById('updateTicketTitle').textContent = `Update ${formatTicketId(ticketId)}`;
+    document.getElementById('updateTicketTitle').textContent = `Update Ticket - ${formatTicketId(ticketId)}`;
 
-    // Set value & show/hide status cards
-    const cardInprogress = document.getElementById('status-card-inprogress');
-    const cardResolved = document.getElementById('status-card-resolved');
-    const cardClosed = document.getElementById('status-card-closed');
-
-    if (isResolved) {
-        // Only Closed is allowed for resolved tickets
-        if (cardInprogress) cardInprogress.style.display = 'none';
-        if (cardResolved) cardResolved.style.display = 'none';
-        if (cardClosed) cardClosed.style.display = 'flex';
-        selectStatusOption('Closed');
-    } else {
-        if (cardInprogress) cardInprogress.style.display = 'flex';
-        if (cardResolved) cardResolved.style.display = 'flex';
-        if (cardClosed) cardClosed.style.display = 'flex';
-        
-        const defaultStatus = ticket.status === 'Open' || ticket.status === 'New' ? 'In Progress' : ticket.status;
-        selectStatusOption(defaultStatus);
+    // Set current status badge in the banner
+    const badge = document.getElementById('currentStatusBadge');
+    if (badge) {
+        badge.textContent = ticket.status;
+        badge.className = 'badge rounded-pill px-3 py-2 text-uppercase fs-7 fw-bold';
+        if (ticket.status === 'New' || ticket.status === 'Open') {
+            badge.classList.add('bg-primary-subtle', 'text-primary');
+        } else if (ticket.status === 'In Progress') {
+            badge.classList.add('bg-info-subtle', 'text-info');
+        } else if (ticket.status === 'Resolved') {
+            badge.classList.add('bg-success-subtle', 'text-success');
+        } else if (ticket.status === 'Closed') {
+            badge.classList.add('bg-secondary-subtle', 'text-secondary');
+        } else {
+            badge.classList.add('bg-warning-subtle', 'text-warning');
+        }
     }
+
+    // Determine default status to select when modal opens
+    let defaultStatus;
+    if (ticket.status === 'Resolved') {
+        defaultStatus = 'Closed';
+    } else {
+        defaultStatus = ticket.status === 'Open' || ticket.status === 'New' ? 'In Progress' : ticket.status;
+    }
+
+    // Set default hidden input value
+    const statusInput = document.getElementById('updateStatus');
+    if (statusInput) statusInput.value = defaultStatus;
+
+    // Enable submit button
+    const submitBtn = document.getElementById('submitUpdateBtn');
+    if (submitBtn) submitBtn.disabled = false;
+
+    // Render the stepper initial state
+    renderStepper(ticket.status, defaultStatus);
 
     // Reset notes input
     document.getElementById('updateNote').value = '';
@@ -843,22 +858,89 @@ function showUpdateModal(ticketId) {
     modal.show();
 }
 
-function selectStatusOption(status) {
-    const statusInput = document.getElementById('updateStatus');
-    if (statusInput) statusInput.value = status;
+function getStatusOrderIndex(status) {
+    if (status === 'Open' || status === 'New') return 0;
+    if (status === 'In Progress') return 1;
+    if (status === 'Resolved') return 2;
+    if (status === 'Closed') return 3;
+    return 0;
+}
 
-    // Highlight the selected card and unhighlight others
-    document.querySelectorAll('.status-card-option').forEach(card => {
-        if (card.dataset.status === status) {
-            card.classList.add('active');
+function getOriginalIcon(step) {
+    if (step === 'Open') return '<i class="fas fa-folder-open"></i>';
+    if (step === 'In Progress') return '<i class="fas fa-spinner fa-spin"></i>';
+    if (step === 'Resolved') return '<i class="fas fa-check-circle"></i>';
+    if (step === 'Closed') return '<i class="fas fa-archive"></i>';
+    return '';
+}
+
+function renderStepper(currentStatus, selectedStatus) {
+    const currentIdx = getStatusOrderIndex(currentStatus);
+    const selectedIdx = getStatusOrderIndex(selectedStatus);
+    
+    // Allowed transitions: if Resolved, only Closed. Otherwise, In Progress, Resolved, Closed.
+    const allowedStatuses = (currentStatus === 'Resolved') ? ['Closed'] : ['In Progress', 'Resolved', 'Closed'];
+
+    const fillEl = document.getElementById('statusProgressFill');
+    if (fillEl) {
+        const targetPercent = selectedIdx * 33.33;
+        fillEl.style.width = `${targetPercent}%`;
+    }
+
+    const steps = ['Open', 'In Progress', 'Resolved', 'Closed'];
+    steps.forEach((step, idx) => {
+        const node = document.getElementById(`step-${step.replace(' ', '-')}`);
+        if (!node) return;
+
+        // Reset classes
+        node.classList.remove('completed', 'active', 'selected', 'selectable', 'disabled');
+
+        const circle = node.querySelector('.node-circle');
+
+        if (idx < currentIdx) {
+            node.classList.add('completed');
+            if (circle) circle.innerHTML = '<i class="fas fa-check"></i>';
+        } else if (idx === currentIdx) {
+            node.classList.add('active');
+            if (circle) circle.innerHTML = getOriginalIcon(step);
         } else {
-            card.classList.remove('active');
+            if (circle) circle.innerHTML = getOriginalIcon(step);
+        }
+
+        if (step === selectedStatus && selectedStatus !== currentStatus) {
+            node.classList.remove('active');
+            node.classList.add('selected');
+        }
+
+        if (allowedStatuses.includes(step)) {
+            node.classList.add('selectable');
+            
+            node.onclick = () => {
+                const statusInput = document.getElementById('updateStatus');
+                if (statusInput) statusInput.value = step;
+                renderStepper(currentStatus, step);
+                const submitBtn = document.getElementById('submitUpdateBtn');
+                if (submitBtn) submitBtn.disabled = false;
+            };
+
+            node.onmouseenter = () => {
+                if (fillEl) fillEl.style.width = `${idx * 33.33}%`;
+            };
+
+            node.onmouseleave = () => {
+                if (fillEl) {
+                    const activeSelected = document.getElementById('updateStatus').value;
+                    const activeSelectedIdx = getStatusOrderIndex(activeSelected);
+                    fillEl.style.width = `${activeSelectedIdx * 33.33}%`;
+                }
+            };
+        } else {
+            node.classList.add('disabled');
+            node.onclick = null;
+            node.onmouseenter = null;
+            node.onmouseleave = null;
         }
     });
-
-    // Enable submit button once a selection is made
-    const submitBtn = document.getElementById('submitUpdateBtn');
-    if (submitBtn) submitBtn.disabled = false;
 }
 
 async function handleUpdateTicket(e) {
