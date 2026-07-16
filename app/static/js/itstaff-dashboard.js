@@ -14,6 +14,8 @@ if (!user || (user.role !== 'itstaff' && user.role !== 'it_staff')) {
 let cachedTickets = [];
 let currentViewMode = 'list'; // 'list' or 'kanban'
 let currentFilter = 'all'; // 'all' or 'my-assignments' or specific status
+let pendingUpdate = null; // Stores ticket status update data during confirmation flow
+
 
 document.addEventListener('DOMContentLoaded', async function () {
     await initializeDashboard();
@@ -83,6 +85,22 @@ function setupEventListeners() {
     }
     if (overlay) {
         overlay.addEventListener('click', () => toggleAnnouncementsDrawer(false));
+    }
+
+    // Confirmation Modal Event Listeners
+    const confirmBtn = document.getElementById('confirmStatusUpdateBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', executeStatusUpdate);
+    }
+
+    const cancelBtn = document.getElementById('confirmStatusUpdateCancelBtn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', cancelStatusUpdate);
+    }
+
+    const confirmModalEl = document.getElementById('confirmStatusUpdateModal');
+    if (confirmModalEl) {
+        confirmModalEl.addEventListener('hidden.bs.modal', handleConfirmModalHidden);
     }
 }
 
@@ -927,17 +945,59 @@ function renderStepper(currentStatus, targetStatus) {
 
 async function handleUpdateTicket(e) {
     e.preventDefault();
-    const btn = document.querySelector('#updateTicketForm button[type="submit"]');
-    if (btn) btn.disabled = true;
 
     const ticketId = document.getElementById('updateTicketId').value;
     const newStatus = document.getElementById('updateStatus').value;
     const note = document.getElementById('updateNote').value;
 
+    pendingUpdate = {
+        ticketId: ticketId,
+        newStatus: newStatus,
+        note: note,
+        confirmed: false
+    };
+
+    // Set next status text inside the confirmation modal
+    const confirmNextStatusEl = document.getElementById('confirmNextStatusText');
+    if (confirmNextStatusEl) {
+        confirmNextStatusEl.textContent = newStatus;
+    }
+
+    // Hide the primary update modal
+    const updateModal = getModal('updateTicketModal');
+    if (updateModal) updateModal.hide();
+
+    // Show the secondary confirmation modal
+    const confirmModal = getModal('confirmStatusUpdateModal');
+    if (confirmModal) confirmModal.show();
+}
+
+function cancelStatusUpdate() {
+    const confirmModal = getModal('confirmStatusUpdateModal');
+    if (confirmModal) confirmModal.hide();
+}
+
+function handleConfirmModalHidden() {
+    // If modal is closed without confirmation (cancel button, ESC, backdrop click, or X)
+    if (pendingUpdate && !pendingUpdate.confirmed) {
+        const updateModal = getModal('updateTicketModal');
+        if (updateModal) updateModal.show();
+    }
+}
+
+async function executeStatusUpdate() {
+    if (!pendingUpdate) return;
+    pendingUpdate.confirmed = true;
+
+    const confirmBtn = document.getElementById('confirmStatusUpdateBtn');
+    if (confirmBtn) confirmBtn.disabled = true;
+
+    const { ticketId, newStatus, note } = pendingUpdate;
+
     try {
         const token = getAuthToken();
         const response = await fetch(`/api/v1/tickets/${ticketId}`, {
-            method: 'PUT', // or PATCH
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
@@ -957,13 +1017,16 @@ async function handleUpdateTicket(e) {
             });
         }
 
+        // Hide confirmation modal
+        const confirmModal = getModal('confirmStatusUpdateModal');
+        if (confirmModal) confirmModal.hide();
+
         if (response.ok) {
-            const modal = getModal('updateTicketModal');
-            modal.hide();
             document.getElementById('updateTicketForm').reset();
+            pendingUpdate = null;
             loadTickets();
 
-            // Show Success Toast if resolved
+            // Show Success Toast
             if (newStatus === 'Resolved') {
                 showToast('Ticket resolved successfully', 'success');
             } else {
@@ -971,12 +1034,14 @@ async function handleUpdateTicket(e) {
             }
         } else {
             showToast('Failed to update ticket', 'error');
+            pendingUpdate.confirmed = false; // Allow returning to form on failure
         }
     } catch (e) {
         console.error(e);
         alert('Error updating ticket');
+        pendingUpdate.confirmed = false; // Allow returning to form on failure
     } finally {
-        if (btn) btn.disabled = false;
+        if (confirmBtn) confirmBtn.disabled = false;
     }
 }
 
