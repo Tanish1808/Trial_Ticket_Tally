@@ -359,6 +359,35 @@
       </div>
     </div>
   </div>
+ 
+  <!-- Confirm Status Update Modal -->
+  <div class="modal fade" id="confirmStatusUpdateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="background: var(--surface); border: 1px solid var(--border)">
+        <div class="modal-header" style="border-bottom: 1px solid var(--border)">
+          <h5 class="modal-title text-warning-emphasis">
+            <i class="fas fa-exclamation-triangle me-2 text-warning"></i>Confirm Status Change
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-3">Are you sure you want to transition this ticket's status to <strong id="confirmNextStatusText" class="text-primary"></strong>?</p>
+          <div class="alert alert-warning border-0 d-flex align-items-center mb-0" style="background: rgba(255, 193, 7, 0.1); color: var(--warning-emphasis, #856404); border-radius: 8px;">
+            <i class="fas fa-exclamation-circle me-2 fs-5"></i>
+            <span class="small fw-semibold">Status transitions are sequential and cannot be undone.</span>
+          </div>
+        </div>
+        <div class="modal-footer" style="border-top: 1px solid var(--border-light)">
+          <button type="button" class="btn btn-outline-custom rounded-pill px-4" id="confirmStatusUpdateCancelBtn">
+            Cancel
+          </button>
+          <button type="button" class="btn btn-primary-custom rounded-pill px-4" id="confirmStatusUpdateBtn">
+            Yes, Update Status
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Concurrency Conflict Modal -->
   <div class="modal fade" id="concurrencyModal" tabindex="-1">
