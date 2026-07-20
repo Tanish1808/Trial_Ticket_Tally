@@ -252,15 +252,15 @@ function displayTickets(tickets, viewMode = 'all') {
         // Robust check matching filterTickets logic
         const userName = (user.full_name || user.name || "").toLowerCase();
 
-        // KEY LOGIC: Only consider it "Assigned To Me" (for UI purposes) if we are in 'my-assignments' view.
-        // If we are in Dashboard ('all'), we want to treat it as "Occupied" (Yellow Approach Button) regardless of owner.
-        // Handle "Team : Name" format
         const assignedLower = t.assignedTo ? t.assignedTo.toLowerCase() : "";
-        const isAssignedToMe = (viewMode === 'my-assignments') && t.assignedTo &&
-            (assignedLower === userName || assignedLower.endsWith(' : ' + userName));
+        const isAssignedToMe = (t.assignedToId && t.assignedToId === user.id) ||
+            (t.assignedTo && (assignedLower === userName || assignedLower.endsWith(' : ' + userName)));
 
-        // Logic: Show "Approach" if it's NOT assigned to me (in this context), and NOT Closed/Resolved.
-        const canApproach = !isAssignedToMe && t.status !== 'Closed' && t.status !== 'Resolved';
+        const isAlreadyAssigned = Boolean(t.assignedToId) ||
+            (t.assignedTo && t.assignedTo.includes(' : ')) ||
+            t.status !== 'Open';
+
+        const canApproach = !isAssignedToMe && !isAlreadyAssigned && t.status === 'Open';
 
         return `
         <tr>
@@ -274,16 +274,22 @@ function displayTickets(tickets, viewMode = 'all') {
             <td>
                 <div class="d-flex gap-2">
                     <a href="/ticket/${t.id}" class="btn btn-sm btn-view" title="View Details"><i class="fas fa-eye"></i></a>
-                    ${canApproach ?
-                `<button class="btn btn-sm ${t.assignedToId ? 'btn-warning text-dark' : 'btn-outline-success'}" 
+                    ${isAssignedToMe && t.status !== 'Closed' && t.status !== 'Resolved' ?
+                `<button class="btn btn-sm btn-primary-custom" onclick="showUpdateModal('${t.id}')"><i class="fas fa-edit"></i> Update</button>` :
+                (canApproach ?
+                    `<button class="btn btn-sm btn-outline-success" 
                         onclick="openApproachModal(${t.id})" 
-                        title="${t.assignedToId ? 'Ticket Approached' : 'Approach Ticket'}" 
-                        style="border-width: 2px; font-weight: 600;"
-                        ${t.assignedToId ? 'disabled' : ''}>
-                            <i class="fas ${t.assignedToId ? 'fa-user-check' : 'fa-hand-holding-medical'} me-1"></i> 
-                            ${t.assignedToId ? 'Approached' : 'Approach'}
+                        title="Approach Ticket" 
+                        style="border-width: 2px; font-weight: 600;">
+                            <i class="fas fa-hand-holding-medical me-1"></i> Approach
                         </button>` :
-                (isAssignedToMe ? `<button class="btn btn-sm btn-primary-custom" onclick="showUpdateModal('${t.id}')"><i class="fas fa-edit"></i> Update</button>` : `<button class="btn btn-sm btn-secondary" disabled><i class="fas fa-lock"></i></button>`)
+                    (isAlreadyAssigned ?
+                        `<button class="btn btn-sm btn-warning text-dark" disabled title="Ticket Approached / Already Taken" style="border-width: 2px; font-weight: 600; opacity: 0.85;">
+                            <i class="fas fa-user-check me-1"></i> Approached
+                        </button>` :
+                        `<button class="btn btn-sm btn-secondary" disabled><i class="fas fa-lock"></i></button>`
+                    )
+                )
             }
                 </div>
             </td>
@@ -614,11 +620,16 @@ function getModal(id) {
 }
 
 // Open Confirmation Modal
-// Open Confirmation Modal
 function openApproachModal(ticketId) {
+    const ticket = cachedTickets.find(t => t.id == ticketId);
+    if (ticket && (ticket.assignedToId || (ticket.assignedTo && ticket.assignedTo.includes(' : ')) || ticket.status !== 'Open')) {
+        const conflictModal = getModal('concurrencyModal');
+        if (conflictModal) conflictModal.show();
+        return;
+    }
     document.getElementById('approachTicketId').value = ticketId;
     const modal = getModal('confirmApproachModal');
-    modal.show();
+    if (modal) modal.show();
 }
 
 // Chart Global Instance
