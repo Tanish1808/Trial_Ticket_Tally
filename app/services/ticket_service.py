@@ -173,6 +173,12 @@ class TicketService:
             if ticket.status == TicketStatus.CLOSED:
                 raise ValueError("Cannot change the status of a closed ticket")
             ticket.status = data.status
+            # Auto-assign if moving to IN_PROGRESS and unassigned
+            if data.status == TicketStatus.IN_PROGRESS and not ticket.assigned_to_id and not data.assigned_to_id:
+                from app.models.user import User, UserRole
+                updating_user = db.session.get(User, user_id)
+                if updating_user and updating_user.role in [UserRole.IT_STAFF, UserRole.ADMIN]:
+                    ticket.assigned_to_id = user_id
             # Add History
             history = TicketStatusHistory(
                 ticket_id=ticket.id,
