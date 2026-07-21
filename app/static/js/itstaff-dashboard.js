@@ -622,7 +622,7 @@ function getModal(id) {
 // Open Confirmation Modal
 function openApproachModal(ticketId) {
     const ticket = cachedTickets.find(t => t.id == ticketId);
-    if (ticket && (ticket.assignedToId || (ticket.assignedTo && ticket.assignedTo.includes(' : ')) || ticket.status !== 'Open')) {
+    if (ticket && (ticket.assignedToId || (ticket.assignedTo && ticket.assignedTo.includes(' : ')))) {
         const conflictModal = getModal('concurrencyModal');
         if (conflictModal) conflictModal.show();
         return;
