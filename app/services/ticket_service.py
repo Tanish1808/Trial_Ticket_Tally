@@ -165,13 +165,16 @@ class TicketService:
         ticket = db.session.get(Ticket, ticket_id)
         if not ticket:
             raise ValueError("Ticket not found")
+
+        if ticket.status == TicketStatus.CLOSED:
+            raise ValueError("Cannot update a closed ticket")
         
         updated = False
         old_status = ticket.status
         
         if data.status and data.status != ticket.status:
-            if ticket.status == TicketStatus.CLOSED:
-                raise ValueError("Cannot change the status of a closed ticket")
+            if data.status == TicketStatus.CLOSED:
+                raise ValueError("Manual status transition to Closed is not allowed")
             ticket.status = data.status
             # Auto-assign if moving to IN_PROGRESS and unassigned
             if data.status == TicketStatus.IN_PROGRESS and not ticket.assigned_to_id and not data.assigned_to_id:
