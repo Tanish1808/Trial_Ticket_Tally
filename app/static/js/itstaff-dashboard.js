@@ -840,6 +840,13 @@ function showUpdateModal(ticketId) {
         return;
     }
 
+    // Check if already resolved (cannot update or manually close)
+    if (ticket.status === 'Resolved') {
+        const modal = getModal('alreadyResolvedModal');
+        modal.show();
+        return;
+    }
+
     document.getElementById('updateTicketId').value = ticketId;
     document.getElementById('updateTicketTitle').textContent = `Update Ticket - ${formatTicketId(ticketId)}`;
 
