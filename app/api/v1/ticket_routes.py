@@ -318,6 +318,7 @@ def add_comment(ticket_id):
         description: Ticket not found
     """
     try:
+        from app.core.constants import TicketStatus
         data = request.json
         if not data or 'text' not in data:
             return jsonify({"error": "Comment text required"}), 400
@@ -325,6 +326,9 @@ def add_comment(ticket_id):
         ticket = TicketService.get_ticket_by_id(ticket_id)
         if not ticket:
             return jsonify({"error": "Ticket not found"}), 404
+
+        if ticket.status == TicketStatus.CLOSED:
+            return jsonify({"error": "Cannot add comments to a closed ticket"}), 400
             
         comment = Comment(
             text=data['text'],
