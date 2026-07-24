@@ -214,6 +214,7 @@ def get_ticket_resolved_email(name, ticket_id, title):
             <div class="content">
                 <p>Hello {name},</p>
                 <p>Your ticket has been marked as <strong>Resolved</strong>. We hope we were able to assist you effectively.</p>
+                <p>Please note: this ticket will be <strong>automatically closed in 7 days</strong> if no further action is taken. If the issue is not fully fixed, you can add a comment on the ticket to reopen/keep it active.</p>
                 
                 <div class="info-box" style="border-left-color: #10b981;">
                     <div style="margin-bottom: 5px;">
