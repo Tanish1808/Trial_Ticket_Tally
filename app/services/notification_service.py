@@ -121,10 +121,18 @@ class NotificationService:
         from app.services.ticket_pdf_service import TicketPdfService
 
         # 1. Internal Notification
+        if new_status == TicketStatus.RESOLVED:
+            msg = f"Your ticket #{ticket.id} '{ticket.title}' has been resolved and will auto-close in 7 days."
+        elif new_status == TicketStatus.CLOSED:
+            msg = f"Your ticket #{ticket.id} '{ticket.title}' has been closed."
+        else:
+            status_str = new_status.value if hasattr(new_status, 'value') else str(new_status)
+            msg = f"Your ticket #{ticket.id} '{ticket.title}' is now {status_str}."
+
         NotificationService.create_notification(
             user_id=ticket.created_by_id,
             title="Ticket Status Updated",
-            message=f"Your ticket #{ticket.id} '{ticket.title}' is now {new_status}.",
+            message=msg,
             type='success' if new_status == TicketStatus.RESOLVED else 'info'
         )
 
