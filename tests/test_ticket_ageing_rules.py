@@ -189,3 +189,25 @@ def test_ticket_ageing_scheduler(app, test_user):
         assert t1_db.status == TicketStatus.CLOSED
         assert t2_db.status == TicketStatus.RESOLVED
         assert t3_db.status == TicketStatus.OPEN
+
+def test_resolved_notification_message(app, test_user):
+    from app.models.notification import Notification
+    with app.app_context():
+        ticket = Ticket(
+            title="Notification test",
+            description="Testing message text",
+            category="Software Issue",
+            status=TicketStatus.OPEN,
+            created_by_id=test_user.id
+        )
+        db.session.add(ticket)
+        db.session.commit()
+        ticket_id = ticket.id
+
+        from app.schemas.ticket_schema import TicketUpdate
+        data = TicketUpdate(status="Resolved")
+        TicketService.update_ticket(ticket_id, data, test_user.id)
+
+        notif = Notification.query.filter_by(user_id=test_user.id).order_by(Notification.created_at.desc()).first()
+        assert notif is not None
+        assert "has been resolved and will auto-close in 7 days" in notif.message
