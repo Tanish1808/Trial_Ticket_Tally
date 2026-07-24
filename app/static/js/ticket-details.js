@@ -117,6 +117,9 @@ async function loadTicketDetails() {
         // Render CSAT Feedback
         renderCsatFeedbackSection(ticket);
 
+        // Render Status Alert Banner (Resolved/Closed info)
+        renderStatusAlertBanner(ticket);
+
         // Initialize Withdraw Button visibility
         const withdrawBtn = document.getElementById('withdrawBtn');
         if (withdrawBtn) {
@@ -1038,5 +1041,60 @@ async function submitCsatFeedback() {
         showToast('An error occurred while submitting feedback', 'error');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Submit Rating';
+    }
+}
+
+/* ==========================================================================
+   Status Alert Banner Rendering
+   ========================================================================== */
+function renderStatusAlertBanner(ticket) {
+    const banner = document.getElementById('statusAlertBanner');
+    const icon = document.getElementById('statusAlertIcon');
+    const title = document.getElementById('statusAlertTitle');
+    const msg = document.getElementById('statusAlertMessage');
+
+    if (!banner || !icon || !title || !msg) return;
+
+    if (ticket.status === 'Resolved') {
+        banner.className = 'alert alert-info border-0 shadow-sm p-3 mb-4 d-block';
+        banner.style.background = 'linear-gradient(135deg, rgba(13, 202, 240, 0.1) 0%, rgba(13, 202, 240, 0.02) 100%)';
+        banner.style.setProperty('border-left', '5px solid var(--info)', 'important');
+        banner.style.color = 'var(--text-primary)';
+        icon.innerHTML = '<i class="fas fa-info-circle text-info"></i>';
+        title.textContent = 'Ticket Resolved';
+        msg.innerHTML = 'This ticket has been marked as <strong>Resolved</strong>. It will be automatically closed in <strong>7 days</strong> if no further action is taken. If the issue is not fixed, please add a comment below to reopen/keep it active.';
+    } else if (ticket.status === 'Closed') {
+        banner.className = 'alert alert-secondary border-0 shadow-sm p-3 mb-4 d-block';
+        banner.style.background = 'linear-gradient(135deg, rgba(108, 117, 125, 0.1) 0%, rgba(108, 117, 125, 0.02) 100%)';
+        banner.style.setProperty('border-left', '5px solid var(--secondary)', 'important');
+        banner.style.color = 'var(--text-primary)';
+        icon.innerHTML = '<i class="fas fa-lock text-secondary"></i>';
+        title.textContent = 'Ticket Closed';
+        msg.innerHTML = 'This ticket is <strong>Closed</strong>. No further comments or updates can be added.';
+        
+        // Disable comments if closed
+        const commentText = document.getElementById('commentText');
+        const commentFormBtn = document.querySelector('#commentForm button[type="submit"]');
+        if (commentText) {
+            commentText.disabled = true;
+            commentText.placeholder = 'This ticket is closed. Comments are disabled.';
+        }
+        if (commentFormBtn) {
+            commentFormBtn.disabled = true;
+        }
+    } else {
+        banner.classList.add('d-none');
+        banner.classList.remove('d-block');
+        
+        // Re-enable comments if not closed
+        const commentText = document.getElementById('commentText');
+        const commentFormBtn = document.querySelector('#commentForm button[type="submit"]');
+        if (commentText && commentText.disabled) {
+            commentText.disabled = false;
+            commentText.placeholder = 'Share updates, ask questions, or provide feedback...';
+        }
+        if (commentFormBtn && commentFormBtn.disabled) {
+            commentFormBtn.disabled = false;
+        }
     }
 }
