@@ -160,6 +160,16 @@ function initKanbanBoard() {
         if (boardContainer) {
             boardContainer.classList.add('read-only-board');
         }
+        // Show polite read-only banner
+        const banner = document.getElementById('kanbanReadOnlyBanner');
+        if (banner) {
+            banner.style.display = 'flex';
+        }
+        // Update header subtitle politely
+        const subtitle = document.querySelector('.header-title-section .header-subtitle');
+        if (subtitle) {
+            subtitle.innerHTML = '<i class="fas fa-info-circle text-primary me-1"></i> Track your tickets across categories in real-time (Read-Only View).';
+        }
     }
 
     const columns = ['kanban-list-todo', 'kanban-list-inprogress', 'kanban-list-done'];
