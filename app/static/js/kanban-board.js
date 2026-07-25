@@ -165,10 +165,15 @@ function initKanbanBoard() {
         if (banner) {
             banner.style.display = 'flex';
         }
+        // Show header badge
+        const badge = document.getElementById('kanbanReadOnlyBadge');
+        if (badge) {
+            badge.style.display = 'inline-flex';
+        }
         // Update header subtitle politely
         const subtitle = document.querySelector('.header-title-section .header-subtitle');
         if (subtitle) {
-            subtitle.innerHTML = '<i class="fas fa-info-circle text-primary me-1"></i> Track your tickets across categories in real-time (Read-Only View).';
+            subtitle.innerHTML = '<i class="fas fa-info-circle text-primary me-1"></i> Track your tickets across categories in real-time.';
         }
     }
 
