@@ -181,6 +181,9 @@ async function loadDashboardData() {
 
             // Update CSAT components
             updateCsatDashboardComponents(data.csat);
+
+            // Update reopen requests badge
+            updateReopenRequestsBadge(data.pending_reopens_count);
         }
     } catch (e) {
         console.error("Failed to load dashboard stats", e);
@@ -345,7 +348,7 @@ function initializeCharts() {
 // Show section
 function showSection(section) {
     // Hide all sections
-    const sections = ['dashboardSection', 'ticketsSection', 'usersSection', 'itstaffSection', 'messagesSection', 'announcementsSection', 'profileSection', 'team-mappingsSection'];
+    const sections = ['dashboardSection', 'ticketsSection', 'usersSection', 'itstaffSection', 'messagesSection', 'announcementsSection', 'profileSection', 'team-mappingsSection', 'reopen-requestsSection'];
     sections.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -385,6 +388,9 @@ function showSection(section) {
     } else if (section === 'team-mappings') {
         document.getElementById('team-mappingsSection').style.display = 'block';
         loadTeamMappings();
+    } else if (section === 'reopen-requests') {
+        document.getElementById('reopen-requestsSection').style.display = 'block';
+        loadReopenRequests();
     }
 }
 
@@ -1622,5 +1628,169 @@ window.confirmDashboardExport = async function (format) {
         alert('Error exporting dashboard data.');
     }
 };
+
+// Reopen Request Helper and Loaders
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#039;');
+}
+
+function updateReopenRequestsBadge(count) {
+    const badge = document.getElementById('reopenRequestBadge');
+    if (!badge) return;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.classList.remove('d-none');
+    } else {
+        badge.classList.add('d-none');
+    }
+}
+
+async function loadReopenRequests() {
+    try {
+        const response = await fetch('/api/v1/admin/reopen-requests', {
+            headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+        });
+
+        const tbody = document.getElementById('reopenRequestsTableBody');
+        const emptyState = document.getElementById('emptyReopenState');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        if (response.ok) {
+            const requests = await response.json();
+            
+            // Update sidebar badge
+            updateReopenRequestsBadge(requests.length);
+
+            if (requests.length === 0) {
+                if (emptyState) emptyState.classList.remove('d-none');
+                return;
+            }
+
+            if (emptyState) emptyState.classList.add('d-none');
+
+            requests.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>T-${1000 + r.ticket_id}</strong></td>
+                    <td><a href="/tickets/${r.ticket_id}" class="fw-semibold text-decoration-none text-primary">${escapeHtml(r.ticket_title)}</a></td>
+                    <td>${escapeHtml(r.requested_by_name)}</td>
+                    <td><span class="text-wrap d-inline-block" style="max-width: 300px; font-style: italic;">"${escapeHtml(r.reason)}"</span></td>
+                    <td>${new Date(r.requested_at).toLocaleString()}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <button onclick="approveReopenRequest(${r.id})" class="btn btn-sm btn-success">
+                                <i class="fas fa-check me-1"></i>Approve
+                            </button>
+                            <button onclick="promptDeclineReopenRequest(${r.id})" class="btn btn-sm btn-danger">
+                                <i class="fas fa-times me-1"></i>Decline
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else {
+            console.error('Failed to load reopen requests', response.statusText);
+        }
+    } catch (e) {
+        console.error('Failed to load reopen requests', e);
+    }
+}
+
+window.approveReopenRequest = async function(requestId) {
+    if (!confirm('Are you sure you want to approve this reopen request? The ticket will return to In Progress under the original assignee.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/v1/admin/reopen-requests/${requestId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getAuthToken()}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast('Reopen request approved successfully', 'success');
+            loadReopenRequests();
+            loadDashboardData();
+        } else {
+            showToast(data.error || 'Failed to approve request', 'error');
+        }
+    } catch (e) {
+        console.error('Approve request failed', e);
+        showToast('An error occurred', 'error');
+    }
+};
+
+window.promptDeclineReopenRequest = function(requestId) {
+    document.getElementById('declineRequestId').value = requestId;
+    document.getElementById('declineReasonInput').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('declineReopenModal'));
+    modal.show();
+};
+
+// Setup Decline Form Submit Handler
+document.addEventListener('DOMContentLoaded', () => {
+    const declineForm = document.getElementById('declineReopenForm');
+    if (declineForm) {
+        declineForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const requestId = document.getElementById('declineRequestId').value;
+            const declineReason = document.getElementById('declineReasonInput').value.trim();
+
+            if (!declineReason) {
+                showToast('Decline reason is mandatory', 'error');
+                return;
+            }
+
+            const confirmBtn = document.getElementById('confirmDeclineBtn');
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Declining...';
+
+            try {
+                const response = await fetch(`/api/v1/admin/reopen-requests/${requestId}/decline`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ decline_reason: declineReason })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const modalEl = document.getElementById('declineReopenModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+
+                    showToast('Reopen request declined successfully', 'success');
+                    loadReopenRequests();
+                    loadDashboardData();
+                } else {
+                    showToast(data.error || 'Failed to decline request', 'error');
+                }
+            } catch (e) {
+                console.error('Decline request failed', e);
+                showToast('An error occurred', 'error');
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirm Decline';
+            }
+        });
+    }
+});
 
 

@@ -38,6 +38,10 @@ document.addEventListener('DOMContentLoaded', function () {
 // Setup event listeners
 function setupEventListeners() {
     document.getElementById('commentForm').addEventListener('submit', handleAddComment);
+    const reopenForm = document.getElementById('reopenRequestForm');
+    if (reopenForm) {
+        reopenForm.addEventListener('submit', handleReopenSubmit);
+    }
 }
 
 // Helper to parse date consistently (assume UTC from server)
@@ -128,6 +132,33 @@ async function loadTicketDetails() {
                 withdrawBtn.classList.remove('d-none');
             } else {
                 withdrawBtn.classList.add('d-none');
+            }
+        }
+
+        // Initialize Reopen Button visibility
+        const requestReopenBtn = document.getElementById('requestReopenBtn');
+        if (requestReopenBtn) {
+            // Show only if:
+            // 1. Status is Resolved
+            // 2. Current User is the Creator AND User Role is Employee
+            // 3. Resolved less than 7 days ago
+            // 4. No reopen request exists OR the latest reopen request was 'declined' (to allow resubmission)
+            const isResolved = ticket.status === 'Resolved';
+            const isCreator = currentUser && ticket.createdById === currentUser.id && currentUser.role === 'employee';
+            
+            // Check 7-day limit
+            const resolvedAtDate = parseDate(ticket.updatedAt || ticket.createdAt);
+            const now = new Date();
+            const timeDiff = now - resolvedAtDate;
+            const withinSevenDays = timeDiff <= 7 * 24 * 60 * 60 * 1000;
+            
+            const hasPendingRequest = ticket.reopen_request && ticket.reopen_request.status === 'pending';
+            const hasApprovedRequest = ticket.reopen_request && ticket.reopen_request.status === 'approved';
+            
+            if (isResolved && isCreator && withinSevenDays && !hasPendingRequest && !hasApprovedRequest) {
+                requestReopenBtn.classList.remove('d-none');
+            } else {
+                requestReopenBtn.classList.add('d-none');
             }
         }
 
@@ -1057,12 +1088,28 @@ function renderStatusAlertBanner(ticket) {
 
     if (ticket.status === 'Resolved') {
         banner.className = 'alert alert-info border-0 shadow-sm p-3 mb-4 d-block';
-        banner.style.background = 'linear-gradient(135deg, rgba(13, 202, 240, 0.1) 0%, rgba(13, 202, 240, 0.02) 100%)';
+        banner.style.background = 'linear-gradient(135deg, rgba(13, 202, 240, 0.08) 0%, rgba(13, 202, 240, 0.02) 100%)';
         banner.style.setProperty('border-left', '5px solid var(--info)', 'important');
         banner.style.color = 'var(--text-primary)';
         icon.innerHTML = '<i class="fas fa-info-circle text-info"></i>';
-        title.textContent = 'Ticket Resolved';
-        msg.innerHTML = 'This ticket has been marked as <strong>Resolved</strong>. It will be automatically closed in <strong>7 days</strong> if no further action is taken. If the issue is not fixed, please add a comment below to reopen/keep it active.';
+        
+        const hasPendingRequest = ticket.reopen_request && ticket.reopen_request.status === 'pending';
+        const isCreator = currentUser && ticket.createdById === currentUser.id && currentUser.role === 'employee';
+
+        if (hasPendingRequest) {
+            title.textContent = 'Reopen Request Pending';
+            msg.innerHTML = `Your request to reopen this ticket is currently <strong>Pending Admin Review</strong>.<br><small class="text-muted"><strong>Reason provided:</strong> ${ticket.reopen_request.reason}</small>`;
+        } else if (ticket.reopen_request && ticket.reopen_request.status === 'declined') {
+            title.textContent = 'Reopen Request Declined';
+            banner.className = 'alert alert-danger border-0 shadow-sm p-3 mb-4 d-block';
+            banner.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%)';
+            banner.style.setProperty('border-left', '5px solid var(--danger)', 'important');
+            icon.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i>';
+            msg.innerHTML = `Your request to reopen this ticket was <strong>Declined</strong> by the Administrator.<br><strong>Reason for decline:</strong> <span class="text-danger">${ticket.reopen_request.decline_reason}</span>${isCreator ? '<br><small class="text-muted">You can submit a new request below if you have additional information.</small>' : ''}`;
+        } else {
+            title.textContent = 'Ticket Resolved';
+            msg.innerHTML = 'This ticket has been marked as <strong>Resolved</strong>. It will be automatically closed in <strong>7 days</strong> if no further action is taken. If the issue is not fixed, you can request a reopen within this period using the button below.';
+        }
     } else if (ticket.status === 'Closed') {
         banner.className = 'alert alert-secondary border-0 shadow-sm p-3 mb-4 d-block';
         banner.style.background = 'linear-gradient(135deg, rgba(108, 117, 125, 0.1) 0%, rgba(108, 117, 125, 0.02) 100%)';
@@ -1096,5 +1143,71 @@ function renderStatusAlertBanner(ticket) {
         if (commentFormBtn && commentFormBtn.disabled) {
             commentFormBtn.disabled = false;
         }
+    }
+}
+
+// Show reopen request modal
+window.showReopenModal = function() {
+    const modal = new bootstrap.Modal(document.getElementById('reopenRequestModal'));
+    modal.show();
+};
+
+// Handle submit reopen request
+async function handleReopenSubmit(e) {
+    e.preventDefault();
+
+    // Check for Demo Mode
+    if (document.body.classList.contains('demo-mode')) {
+        const restrictedModal = new bootstrap.Modal(document.getElementById('restrictedActionModal'));
+        restrictedModal.show();
+        return;
+    }
+
+    const reason = document.getElementById('reopenReason').value.trim();
+    if (!reason || reason.length < 15) {
+        showToast('Please enter a valid reason (min 15 characters)', 'error');
+        return;
+    }
+
+    const submitBtn = document.getElementById('submitReopenRequestBtn');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+
+    try {
+        const token = getAuthToken();
+        const response = await fetch(`/api/v1/tickets/${ticketId}/reopen-request`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason: reason })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Close modal
+            const modalEl = document.getElementById('reopenRequestModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            
+            showToast('Reopen request submitted successfully', 'success');
+            
+            // Reload details
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showToast(data.error || 'Failed to submit request', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    } catch (e) {
+        console.error("Reopen submission failed", e);
+        showToast('An error occurred while submitting request', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
     }
 }
