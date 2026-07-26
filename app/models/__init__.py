@@ -10,4 +10,5 @@ from app.models.announcement import Announcement
 from app.models.event import Event
 from app.models.activity_log import ActivityLog
 from app.models.csat_feedback import CSATFeedback
+from app.models.reopen_request import ReopenRequest
 
