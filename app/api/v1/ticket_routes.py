@@ -109,6 +109,9 @@ def get_ticket(ticket_id):
     if not ticket:
         return jsonify({"error": "Ticket not found"}), 404
         
+    from app.models.reopen_request import ReopenRequest
+    rr = ReopenRequest.query.filter_by(ticket_id=ticket.id).order_by(ReopenRequest.requested_at.desc()).first()
+        
     return jsonify({
         "id": ticket.id, 
         "title": ticket.title, 
@@ -142,6 +145,13 @@ def get_ticket(ticket_id):
             "comment": ticket.feedback.comment,
             "createdAt": ticket.feedback.created_at.isoformat()
         } if ticket.feedback else None,
+        "reopen_request": {
+            "id": rr.id,
+            "status": rr.status,
+            "reason": rr.reason,
+            "decline_reason": rr.decline_reason,
+            "createdAt": rr.requested_at.isoformat()
+        } if rr else None,
         "timeline": [{
             "action": f"Status changed from {h.old_status.value if h.old_status else 'None'} to {h.new_status.value}",
             "by": h.changed_by.full_name if h.changed_by else "System",
@@ -696,6 +706,82 @@ def submit_feedback(ticket_id):
         
     except ValidationError as e:
         return jsonify({"error": e.errors()}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@ticket_bp.route('/<int:ticket_id>/reopen-request', methods=['POST'])
+@token_required
+def create_reopen_request(ticket_id):
+    from app.models.reopen_request import ReopenRequest
+    from app.models.ticket import Ticket
+    from app.core.constants import TicketStatus, UserRole
+    from datetime import timedelta
+    from app.services.notification_service import NotificationService
+    
+    try:
+        ticket = db.session.get(Ticket, ticket_id)
+        if not ticket:
+            return jsonify({"error": "Ticket not found"}), 404
+            
+        # Check permissions: only the ticket creator (employee) can request a reopen
+        if g.user.role != UserRole.EMPLOYEE or ticket.created_by_id != g.user.id:
+            return jsonify({"error": "Unauthorized: Only the ticket creator can request a reopen"}), 403
+            
+        # Check status: must be Resolved
+        if ticket.status != TicketStatus.RESOLVED:
+            return jsonify({"error": f"Cannot request reopen on a ticket that is {ticket.status.value}"}), 400
+            
+        # Check 7-day cutoff (Resolved within last 7 days)
+        last_activity = ticket.updated_at if ticket.updated_at else ticket.created_at
+        cutoff_date = utcnow() - timedelta(days=7)
+        if last_activity < cutoff_date:
+            return jsonify({"error": "Cannot request reopen: 7-day limit has passed"}), 400
+            
+        # Check for existing pending reopen requests
+        existing_request = ReopenRequest.query.filter_by(ticket_id=ticket.id, status='pending').first()
+        if existing_request:
+            return jsonify({"error": "A reopen request is already pending for this ticket"}), 400
+            
+        # Get reason from payload
+        json_data = request.get_json(silent=True) or {}
+        reason = json_data.get('reason')
+        if not reason or len(reason.strip()) < 15:
+            return jsonify({"error": "A valid reason (minimum 15 characters) is required to request reopen"}), 400
+            
+        # Create reopen request
+        reopen_req = ReopenRequest(
+            ticket_id=ticket.id,
+            requested_by_id=g.user.id,
+            reason=reason.strip()
+        )
+        db.session.add(reopen_req)
+        db.session.commit()
+        
+        # Notify Admins
+        from app.models.user import User
+        admins = User.query.filter_by(role=UserRole.ADMIN).all()
+        for admin in admins:
+            NotificationService.create_notification(
+                user_id=admin.id,
+                title="Ticket Reopen Requested",
+                message=f"Reopen requested for Ticket T-{1000 + ticket.id} by {g.user.full_name}.",
+                type='info'
+            )
+            
+        # Broadcast activity
+        NotificationService.broadcast_live_activity(
+            category="reopen_requested",
+            ticket_id=ticket.id,
+            message=f"Reopen request submitted for Ticket T-{1000 + ticket.id} by {g.user.full_name}.",
+            created_by=g.user.full_name
+        )
+        
+        return jsonify({
+            "message": "Reopen request submitted successfully",
+            "request_id": reopen_req.id
+        }), 201
+        
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
