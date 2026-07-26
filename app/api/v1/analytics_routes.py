@@ -120,6 +120,10 @@ def get_dashboard_stats():
         "recent": recent_list
     }
 
+    # Query pending reopen requests count
+    from app.models.reopen_request import ReopenRequest
+    pending_reopens_count = ReopenRequest.query.filter_by(status='pending').count()
+
     return jsonify({
         "total_tickets": total_tickets,
         "open_tickets": open_tickets,
@@ -135,7 +139,8 @@ def get_dashboard_stats():
             "resolved": resolved_trend
         },
         "sla_compliance": get_sla_stats(),
-        "csat": csat_stats
+        "csat": csat_stats,
+        "pending_reopens_count": pending_reopens_count
     })
 
 def get_sla_stats():

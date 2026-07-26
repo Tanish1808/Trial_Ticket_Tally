@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request, g
 from app.middleware.auth_middleware import role_required
 from app.core.constants import UserRole
 from app.models.ticket import Ticket
@@ -990,4 +990,161 @@ def export_dashboard_report():
             download_name=f"executive_performance_report_{int(datetime.now().timestamp())}.pdf",
             mimetype='application/pdf'
         )
+
+@admin_bp.route('/reopen-requests', methods=['GET'])
+@role_required([UserRole.ADMIN])
+def get_reopen_requests():
+    from app.models.reopen_request import ReopenRequest
+    
+    try:
+        requests = ReopenRequest.query.filter_by(status='pending').order_by(ReopenRequest.requested_at.desc()).all()
+        return jsonify([{
+            "id": r.id,
+            "ticket_id": r.ticket_id,
+            "ticket_title": r.ticket.title,
+            "requested_by_name": r.requested_by.full_name,
+            "requested_by_id": r.requested_by_id,
+            "reason": r.reason,
+            "requested_at": r.requested_at.isoformat(),
+            "requestedAt": r.requested_at.isoformat()
+        } for r in requests]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@admin_bp.route('/reopen-requests/<int:request_id>/approve', methods=['POST'])
+@role_required([UserRole.ADMIN])
+def approve_reopen_request(request_id):
+    from app.core.database import db
+    from app.models.reopen_request import ReopenRequest
+    from app.models.ticket_status_history import TicketStatusHistory
+    from app.core.constants import TicketStatus
+    from app.services.notification_service import NotificationService
+    from app.utils.time_utils import utcnow
+    
+    try:
+        reopen_req = db.session.get(ReopenRequest, request_id)
+        if not reopen_req:
+            return jsonify({"error": "Reopen request not found"}), 404
+            
+        if reopen_req.status != 'pending':
+            return jsonify({"error": f"Reopen request has already been {reopen_req.status}"}), 400
+            
+        ticket = reopen_req.ticket
+        if not ticket:
+            return jsonify({"error": "Ticket associated with this request not found"}), 404
+            
+        old_status = ticket.status
+        ticket.status = TicketStatus.IN_PROGRESS
+        ticket.updated_at = utcnow()
+        
+        # Log status history
+        history = TicketStatusHistory(
+            ticket_id=ticket.id,
+            old_status=old_status,
+            new_status=TicketStatus.IN_PROGRESS,
+            changed_by_id=g.user.id
+        )
+        db.session.add(history)
+        
+        # Resolve request
+        reopen_req.status = 'approved'
+        reopen_req.resolved_at = utcnow()
+        reopen_req.resolved_by_id = g.user.id
+        
+        db.session.commit()
+        
+        # Notify Employee (creator)
+        NotificationService.create_notification(
+            user_id=ticket.created_by_id,
+            title="Ticket Reopened",
+            message=f"Your request to reopen Ticket T-{1000 + ticket.id} has been approved. The issue is now In Progress.",
+            type='success'
+        )
+        
+        # Notify Assignee (IT Staff) if assigned
+        if ticket.assigned_to_id:
+            NotificationService.create_notification(
+                user_id=ticket.assigned_to_id,
+                title="Ticket Reopened & Assigned",
+                message=f"Ticket T-{1000 + ticket.id} has been reopened by Admin and returned to you. Reason: {reopen_req.reason}",
+                type='info'
+            )
+            # Try to send email to assignee
+            try:
+                from app.services.email_service import EmailService
+                assignee_email = ticket.assignee.email
+                if assignee_email:
+                    EmailService.send_email(
+                        to_email=assignee_email,
+                        subject=f"REOPENED: Ticket #{ticket.id} - {ticket.title}",
+                        body=f"<h3>Ticket Reopened</h3><p>Admin has approved a reopen request for Ticket #{ticket.id} ('{ticket.title}') raised by {reopen_req.requested_by.full_name}.</p><p><strong>Reopen Reason:</strong> {reopen_req.reason}</p><p>This ticket has been assigned back to you for resolution.</p>"
+                    )
+            except Exception as mail_err:
+                import logging
+                logging.getLogger(__name__).error(f"Failed to send email to assignee: {mail_err}")
+                
+        # Broadcast status change
+        NotificationService.broadcast_live_activity(
+            category="status_change",
+            ticket_id=ticket.id,
+            message=f"Ticket T-{1000 + ticket.id} status changed from '{old_status.value}' to 'In Progress' (Reopened by Admin {g.user.full_name}).",
+            created_by=g.user.full_name
+        )
+        
+        return jsonify({"message": "Reopen request approved successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@admin_bp.route('/reopen-requests/<int:request_id>/decline', methods=['POST'])
+@role_required([UserRole.ADMIN])
+def decline_reopen_request(request_id):
+    from app.core.database import db
+    from app.models.reopen_request import ReopenRequest
+    from app.services.notification_service import NotificationService
+    from app.utils.time_utils import utcnow
+    
+    try:
+        reopen_req = db.session.get(ReopenRequest, request_id)
+        if not reopen_req:
+            return jsonify({"error": "Reopen request not found"}), 404
+            
+        if reopen_req.status != 'pending':
+            return jsonify({"error": f"Reopen request has already been {reopen_req.status}"}), 400
+            
+        json_data = request.get_json(silent=True) or {}
+        decline_reason = json_data.get('decline_reason')
+        if not decline_reason or not decline_reason.strip():
+            return jsonify({"error": "Decline reason is mandatory"}), 400
+            
+        reopen_req.status = 'declined'
+        reopen_req.decline_reason = decline_reason.strip()
+        reopen_req.resolved_at = utcnow()
+        reopen_req.resolved_by_id = g.user.id
+        
+        db.session.commit()
+        
+        # Notify Employee
+        ticket = reopen_req.ticket
+        NotificationService.create_notification(
+            user_id=ticket.created_by_id,
+            title="Reopen Request Declined",
+            message=f"Your request to reopen Ticket T-{1000 + ticket.id} was declined by Admin. Reason: {decline_reason.strip()}",
+            type='error'
+        )
+        
+        # Broadcast activity
+        NotificationService.broadcast_live_activity(
+            category="reopen_declined",
+            ticket_id=ticket.id,
+            message=f"Reopen request for Ticket T-{1000 + ticket.id} was declined by Admin {g.user.full_name}.",
+            created_by=g.user.full_name
+        )
+        
+        return jsonify({"message": "Reopen request declined successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
