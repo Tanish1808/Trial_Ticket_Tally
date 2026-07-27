@@ -1704,33 +1704,10 @@ async function loadReopenRequests() {
     }
 }
 
-window.approveReopenRequest = async function(requestId) {
-    if (!confirm('Are you sure you want to approve this reopen request? The ticket will return to In Progress under the original assignee.')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/v1/admin/reopen-requests/${requestId}/approve`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${getAuthToken()}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showToast('Reopen request approved successfully', 'success');
-            loadReopenRequests();
-            loadDashboardData();
-        } else {
-            showToast(data.error || 'Failed to approve request', 'error');
-        }
-    } catch (e) {
-        console.error('Approve request failed', e);
-        showToast('An error occurred', 'error');
-    }
+window.approveReopenRequest = function(requestId) {
+    document.getElementById('approveRequestId').value = requestId;
+    const modal = new bootstrap.Modal(document.getElementById('approveReopenModal'));
+    modal.show();
 };
 
 window.promptDeclineReopenRequest = function(requestId) {
@@ -1740,8 +1717,50 @@ window.promptDeclineReopenRequest = function(requestId) {
     modal.show();
 };
 
-// Setup Decline Form Submit Handler
+// Setup Reopen Form Submit Handlers
 document.addEventListener('DOMContentLoaded', () => {
+    const approveForm = document.getElementById('approveReopenForm');
+    if (approveForm) {
+        approveForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const requestId = document.getElementById('approveRequestId').value;
+            const confirmBtn = document.getElementById('confirmApproveBtn');
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Approving...';
+
+            try {
+                const response = await fetch(`/api/v1/admin/reopen-requests/${requestId}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const modalEl = document.getElementById('approveReopenModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+
+                    showToast('Reopen request approved successfully', 'success');
+                    loadReopenRequests();
+                    loadDashboardData();
+                } else {
+                    showToast(data.error || 'Failed to approve request', 'error');
+                }
+            } catch (e) {
+                console.error('Approve request failed', e);
+                showToast('An error occurred', 'error');
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirm Approve';
+            }
+        });
+    }
+
     const declineForm = document.getElementById('declineReopenForm');
     if (declineForm) {
         declineForm.addEventListener('submit', async (e) => {

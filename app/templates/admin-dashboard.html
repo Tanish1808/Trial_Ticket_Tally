@@ -849,6 +849,32 @@
       </div>
     </div>
   </div>
+  <!-- Approve Reopen Request Modal -->
+  <div class="modal fade" id="approveReopenModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 1rem; background: var(--surface); color: var(--text-primary);">
+        <div class="modal-header" style="border-bottom: 1px solid var(--border)">
+          <h5 class="modal-title fw-bold text-success"><i class="fas fa-check-circle text-success me-2"></i>Approve Reopen Request</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="approveReopenForm">
+            <input type="hidden" id="approveRequestId">
+            <div class="mb-3 text-start">
+              <p class="mb-0">Are you sure you want to approve this reopen request? The ticket will return to <strong>In Progress</strong> under the original assignee.</p>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-4">
+              <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-success" id="confirmApproveBtn">
+                Confirm Approve
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Decline Reopen Request Modal -->
   <div class="modal fade" id="declineReopenModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
