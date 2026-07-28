@@ -1782,5 +1782,51 @@
     }
 }
 
+/* Success Checkmark Animation Styles */
+.success-checkmark-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1.5rem auto 1rem;
+}
+
+.success-checkmark-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2.5rem;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.2);
+    animation: successPulse 2s infinite, successPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes successPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(16, 185, 129, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+@keyframes successPopIn {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+
 
 
