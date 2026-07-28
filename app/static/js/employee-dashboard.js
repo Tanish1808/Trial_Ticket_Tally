@@ -336,8 +336,18 @@ async function handleRaiseTicket(e) {
             // Reload tickets
             await loadTickets();
 
-            // Show success message
-            alert('Ticket created successfully!');
+            // Populate and show success modal
+            document.getElementById('successTicketId').textContent = formatTicketId(data.ticket_id);
+            document.getElementById('successTicketSubject').textContent = subject;
+            
+            const priorityBadge = document.getElementById('successTicketPriority');
+            priorityBadge.textContent = priority;
+            priorityBadge.className = `priority-badge priority-${priority.toLowerCase()}`;
+            
+            document.getElementById('successTicketViewBtn').setAttribute('href', `/ticket/${data.ticket_id}`);
+            
+            const successModal = new bootstrap.Modal(document.getElementById('successTicketModal'));
+            successModal.show();
         } else {
             if (Array.isArray(data.error)) {
                 const errorMsg = data.error.map(err => `${err.loc.join('.')}: ${err.msg}`).join('\n');
