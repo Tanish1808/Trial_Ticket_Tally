@@ -217,3 +217,66 @@ def test_calendar_event_broadcast(client, admin_headers, monkeypatch):
     assert emitted_events[0][1]['action'] == 'deleted'
     assert emitted_events[0][1]['event']['id'] == event_id
 
+
+@pytest.fixture
+def demo_headers(app):
+    from app.core.config import Config
+    demo_user = User(
+        email=Config.DEMO_EMAIL,
+        password_hash="test",
+        full_name="Demo Employee",
+        role=UserRole.EMPLOYEE
+    )
+    db.session.add(demo_user)
+    db.session.commit()
+    token = create_access_token(identity=str(demo_user.id))
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_calendar_isolation(client, employee_headers, demo_headers, admin_headers):
+    start = utcnow() + timedelta(days=1)
+    end = start + timedelta(hours=2)
+    
+    demo_event = Event(
+        title="Demo Sync Event",
+        description="Demo only",
+        event_type="other",
+        start_time=start,
+        end_time=end,
+        is_demo=True
+    )
+    real_event = Event(
+        title="Real Sync Event",
+        description="Realistic only",
+        event_type="other",
+        start_time=start,
+        end_time=end,
+        is_demo=False
+    )
+    db.session.add(demo_event)
+    db.session.add(real_event)
+    db.session.commit()
+
+    # 1. Realistic user gets events -> should only see real_event
+    res_real = client.get('/api/v1/events', headers=employee_headers)
+    assert res_real.status_code == 200
+    events_real = res_real.get_json()
+    assert len(events_real) == 1
+    assert events_real[0]['title'] == "Real Sync Event"
+
+    # 2. Demo user gets events -> should only see demo_event
+    res_demo = client.get('/api/v1/events', headers=demo_headers)
+    assert res_demo.status_code == 200
+    events_demo = res_demo.get_json()
+    assert len(events_demo) == 1
+    assert events_demo[0]['title'] == "Demo Sync Event"
+
+    # 3. Realistic admin tries to update/delete demo_event -> should get 404
+    update_payload = {"title": "Hacked Demo Title"}
+    res_update = client.patch(f'/api/v1/events/{demo_event.id}', json=update_payload, headers=admin_headers)
+    assert res_update.status_code == 404
+
+    res_delete = client.delete(f'/api/v1/events/{demo_event.id}', headers=admin_headers)
+    assert res_delete.status_code == 404
+
+
