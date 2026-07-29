@@ -25,7 +25,9 @@ def get_events():
       401:
         description: Unauthorized
     """
-    events = Event.query.order_by(Event.start_time.asc()).all()
+    from app.core.config import Config
+    is_demo_user = (g.user.email == Config.DEMO_EMAIL)
+    events = Event.query.filter_by(is_demo=is_demo_user).order_by(Event.start_time.asc()).all()
     return jsonify([e.to_dict() for e in events]), 200
 
 @event_bp.route('', methods=['POST'])
@@ -85,13 +87,16 @@ def create_event():
         if data.end_time <= data.start_time:
             return jsonify({"error": "End time must be after start time"}), 400
 
+        from app.core.config import Config
+        is_demo_user = (g.user.email == Config.DEMO_EMAIL)
         event = Event(
             title=data.title,
             description=data.description,
             event_type=data.event_type,
             start_time=data.start_time,
             end_time=data.end_time,
-            created_by_id=g.user.id
+            created_by_id=g.user.id,
+            is_demo=is_demo_user
         )
         db.session.add(event)
         db.session.commit()
@@ -148,6 +153,10 @@ def update_event(event_id):
         description: Event not found
     """
     event = db.get_or_404(Event, event_id)
+    from app.core.config import Config
+    is_demo_user = (g.user.email == Config.DEMO_EMAIL)
+    if event.is_demo != is_demo_user:
+        return jsonify({"error": "Event not found"}), 404
     try:
         data = EventUpdate(**request.json)
         
@@ -215,6 +224,10 @@ def delete_event(event_id):
         description: Event not found
     """
     event = db.get_or_404(Event, event_id)
+    from app.core.config import Config
+    is_demo_user = (g.user.email == Config.DEMO_EMAIL)
+    if event.is_demo != is_demo_user:
+        return jsonify({"error": "Event not found"}), 404
     try:
         db.session.delete(event)
         db.session.commit()
