@@ -12,6 +12,7 @@ class Event(db.Model):
     end_time = db.Column(db.DateTime, nullable=False)
     
     created_by_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    is_demo = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=utcnow)
     updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
@@ -31,6 +32,7 @@ class Event(db.Model):
             "end_time": self.end_time.isoformat() if self.end_time else None,
             "createdBy": self.creator.full_name if self.creator else "System",
             "createdById": self.created_by_id,
+            "is_demo": self.is_demo,
             "createdAt": self.created_at.isoformat(),
             "updatedAt": self.updated_at.isoformat()
         }
