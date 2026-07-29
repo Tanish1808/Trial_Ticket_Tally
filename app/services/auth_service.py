@@ -288,7 +288,8 @@ class AuthService:
                 event_type="other",
                 start_time=day1_start,
                 end_time=day1_end,
-                created_by_id=user.id
+                created_by_id=user.id,
+                is_demo=True
             ),
             Event(
                 title="Database Security Patching 🔒",
@@ -296,7 +297,8 @@ class AuthService:
                 event_type="maintenance",
                 start_time=day3_start,
                 end_time=day3_end,
-                created_by_id=user.id
+                created_by_id=user.id,
+                is_demo=True
             ),
             Event(
                 title="New Staff Onboarding & Training 📚",
@@ -304,7 +306,8 @@ class AuthService:
                 event_type="training",
                 start_time=day5_start,
                 end_time=day5_end,
-                created_by_id=user.id
+                created_by_id=user.id,
+                is_demo=True
             ),
             Event(
                 title="Quarterly Backup Restoration Drill 💾",
@@ -312,7 +315,8 @@ class AuthService:
                 event_type="system_update",
                 start_time=day7_start,
                 end_time=day7_end,
-                created_by_id=user.id
+                created_by_id=user.id,
+                is_demo=True
             )
         ]
         db.session.add_all(sample_events)
