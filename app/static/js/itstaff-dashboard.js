@@ -128,8 +128,8 @@ async function loadTickets() {
     await updateKPIs();
     // Render Chart
     renderPriorityChart(cachedTickets);
-    // Default view: All tickets
-    displayTickets(cachedTickets, 'all');
+    // Keep user's current filter instead of resetting to 'all'
+    filterTickets(currentFilter);
 }
 
 function formatTicketId(id) {
