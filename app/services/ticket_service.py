@@ -364,27 +364,8 @@ class TicketService:
             created_by=ticket.assignee.full_name
         )
         
-        # Send Email Notification to Creator
-        try:
-            from app.services.email_service import EmailService
-            from app.services.email_templates import get_ticket_approached_email
-            
-            email_body = get_ticket_approached_email(
-                name=ticket.creator.full_name,
-                ticket_id=ticket.id,
-                title=ticket.title,
-                approver_name=ticket.assignee.full_name
-            )
-            
-            EmailService.send_email(
-                ticket.creator.email,
-                f"Ticket Approached - #{ticket.id} 🚀",
-                email_body
-            )
-        except Exception as e:
-            logger.error(f"Failed to send approach email: {e}")
-
         return ticket
+
 
     @staticmethod
     def auto_close_resolved_tickets():

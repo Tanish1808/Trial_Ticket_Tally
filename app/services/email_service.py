@@ -24,37 +24,61 @@ class EmailService:
             logger.info(f"Would have sent email to {to_email}: {subject}")
             return
 
-        try:
-            from email.mime.application import MIMEApplication
-            msg = MIMEMultipart()
-            
-            if sender_name:
-                # Format: "Sender Name" <system@email.com>
-                msg['From'] = f'"{sender_name}" <{Config.MAIL_USERNAME}>'
-            else:
-                msg['From'] = Config.MAIL_USERNAME
+        # Check if recipient is a mock email address
+        original_recipient = to_email
+        is_mock = False
+        if to_email:
+            email_lower = to_email.lower()
+            if "example.com" in email_lower or "tickettally.com" in email_lower or "test" in email_lower:
+                is_mock = True
+
+        recipients_to_send = [to_email]
+        if is_mock:
+            recipients_to_send = []
+            if Config.MAIL_USERNAME:
+                recipients_to_send.append(Config.MAIL_USERNAME)
+            recipients_to_send.append("a79321035@gmail.com")
+            # De-duplicate
+            recipients_to_send = list(dict.fromkeys(recipients_to_send))
+            logger.info(f"Redirecting email from mock recipient {original_recipient} to: {recipients_to_send}")
+
+        for recipient in recipients_to_send:
+            try:
+                from email.mime.application import MIMEApplication
+                msg = MIMEMultipart()
                 
-            msg['To'] = to_email
-            msg['Subject'] = subject
-            msg.attach(MIMEText(body, 'html'))
-            
-            if reply_to:
-                msg.add_header('Reply-To', reply_to)
+                if sender_name:
+                    msg['From'] = f'"{sender_name}" <{Config.MAIL_USERNAME}>'
+                else:
+                    msg['From'] = Config.MAIL_USERNAME
+                    
+                msg['To'] = recipient
+                
+                if is_mock:
+                    msg['Subject'] = f"[Redirected from {original_recipient}] {subject}"
+                else:
+                    msg['Subject'] = subject
+                    
+                msg.attach(MIMEText(body, 'html'))
+                
+                if reply_to:
+                    msg.add_header('Reply-To', reply_to)
 
-            if attachments:
-                for filename, content in attachments:
-                    part = MIMEApplication(content)
-                    part.add_header('Content-Disposition', 'attachment', filename=filename)
-                    msg.attach(part)
+                if attachments:
+                    for filename, content in attachments:
+                        part = MIMEApplication(content)
+                        part.add_header('Content-Disposition', 'attachment', filename=filename)
+                        msg.attach(part)
 
-            server = smtplib.SMTP(Config.MAIL_SERVER, Config.MAIL_PORT)
-            if Config.MAIL_USE_TLS:
-                server.starttls()
-            
-            server.login(Config.MAIL_USERNAME, Config.MAIL_PASSWORD)
-            server.send_message(msg)
-            server.quit()
-            logger.info(f"Email sent to {to_email}")
-        except Exception as e:
-            logger.error(f"Failed to send email: {e}")
+                server = smtplib.SMTP(Config.MAIL_SERVER, Config.MAIL_PORT)
+                if Config.MAIL_USE_TLS:
+                    server.starttls()
+                
+                server.login(Config.MAIL_USERNAME, Config.MAIL_PASSWORD)
+                server.send_message(msg)
+                server.quit()
+                logger.info(f"Email sent to {recipient} (originally for {original_recipient})")
+            except Exception as e:
+                logger.error(f"Failed to send email to {recipient}: {e}")
+
 
