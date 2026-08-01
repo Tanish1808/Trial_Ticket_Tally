@@ -117,7 +117,11 @@ class NotificationService:
         """Notify the ticket creator about status change"""
         from app.core.constants import TicketStatus
         from app.services.email_service import EmailService
-        from app.services.email_templates import get_ticket_resolved_email
+        from app.services.email_templates import (
+            get_ticket_resolved_email,
+            get_ticket_approached_email,
+            get_ticket_status_updated_email
+        )
         from app.services.ticket_pdf_service import TicketPdfService
 
         # 1. Internal Notification
@@ -136,36 +140,70 @@ class NotificationService:
             type='success' if new_status == TicketStatus.RESOLVED else 'info'
         )
 
-        # 2. Email Notification if Resolved
+        # 2. Email Notification
         # Use .value or string comparison to be safe against Enum variations
         status_val = str(new_status.value if hasattr(new_status, 'value') else new_status)
+        creator_name = ticket.creator.full_name if ticket.creator else "User"
+        creator_email = ticket.creator.email if ticket.creator else None
         
+        if not creator_email:
+            logger.warning(f"Could not send status update email for ticket {ticket.id}: No creator email.")
+            return
+
         if status_val == TicketStatus.RESOLVED.value:
             try:
                 # 3. Generate PDF
                 pdf_content = TicketPdfService.generate_ticket_pdf(ticket)
                 
                 # 4. Prepare and Send Email
-                creator_name = ticket.creator.full_name if ticket.creator else "User"
-                creator_email = ticket.creator.email if ticket.creator else None
+                email_body = get_ticket_resolved_email(
+                    creator_name,
+                    ticket.id,
+                    ticket.title
+                )
                 
-                if creator_email:
-                    email_body = get_ticket_resolved_email(
-                        creator_name,
-                        ticket.id,
-                        ticket.title
-                    )
-                    
-                    EmailService.send_email(
-                        to_email=creator_email,
-                        subject=f"Resolved: Ticket #{ticket.id} - {ticket.title}",
-                        body=email_body,
-                        attachments=[(f"Ticket_{ticket.id}_Summary.pdf", pdf_content)]
-                    )
-                else:
-                    logger.warning(f"Could not send resolution email for ticket {ticket.id}: No creator email.")
+                EmailService.send_email(
+                    to_email=creator_email,
+                    subject=f"Resolved: Ticket #{ticket.id} - {ticket.title}",
+                    body=email_body,
+                    attachments=[(f"Ticket_{ticket.id}_Summary.pdf", pdf_content)]
+                )
             except Exception as e:
                 logger.error(f"Failed to send resolution email for ticket {ticket.id}: {e}", exc_info=True)
+        elif status_val == TicketStatus.IN_PROGRESS.value:
+            try:
+                approver_name = ticket.assignee.full_name if ticket.assignee else "IT Staff"
+                email_body = get_ticket_approached_email(
+                    creator_name,
+                    ticket.id,
+                    ticket.title,
+                    approver_name
+                )
+                
+                EmailService.send_email(
+                    to_email=creator_email,
+                    subject=f"Ticket Approached - #{ticket.id} 🚀",
+                    body=email_body
+                )
+            except Exception as e:
+                logger.error(f"Failed to send approach email for ticket {ticket.id}: {e}", exc_info=True)
+        else:
+            try:
+                status_str = new_status.value if hasattr(new_status, 'value') else str(new_status)
+                email_body = get_ticket_status_updated_email(
+                    creator_name,
+                    ticket.id,
+                    ticket.title,
+                    status_str
+                )
+                
+                EmailService.send_email(
+                    to_email=creator_email,
+                    subject=f"Ticket Status Updated - #{ticket.id} 🎫",
+                    body=email_body
+                )
+            except Exception as e:
+                logger.error(f"Failed to send general status update email for ticket {ticket.id}: {e}", exc_info=True)
 
 
     @staticmethod
