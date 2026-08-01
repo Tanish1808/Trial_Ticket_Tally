@@ -431,3 +431,54 @@ def get_project_assignment_email(name, project_name, role, start_date, deadline)
     </body>
     </html>
     """
+
+def get_ticket_status_updated_email(name, ticket_id, title, status_str):
+    base_url = Config.BASE_URL
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Ticket Status Updated</title>
+        {get_base_style()}
+    </head>
+    <body>
+        <div class="container">
+            <div class="header" style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
+                <h1>Ticket Status Updated</h1>
+            </div>
+            <div class="content">
+                <p>Hello {name},</p>
+                <p>Your ticket status has been updated.</p>
+                
+                <div class="info-box" style="border-left-color: #4f46e5;">
+                    <div style="margin-bottom: 5px;">
+                        <span class="credential-label">Ticket ID:</span>
+                        <span style="font-size: 18px; font-weight: bold;">#{ticket_id}</span>
+                    </div>
+                    <div style="margin-bottom: 5px;">
+                        <span class="credential-label">Subject:</span>
+                        <span>{title}</span>
+                    </div>
+                    <div>
+                        <span class="credential-label">New Status:</span>
+                        <span style="font-weight: bold; color: #4f46e5;">{status_str}</span>
+                    </div>
+                </div>
+
+                <p>You can view the full details and history of your ticket by clicking the button below.</p>
+                
+                <div style="text-align: center;">
+                    <a href="{base_url}/ticket/{ticket_id}" class="button" style="background-color: #4f46e5;">View Ticket</a>
+                </div>
+                
+                <p>Best regards,<br>Ticket Tally Support</p>
+            </div>
+            <div class="footer">
+                &copy; 2026 Ticket Tally. All rights reserved.
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
