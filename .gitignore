@@ -10,3 +10,4 @@ venv/
 *.log
 audit_report.md
 ROADMAP.md
+.env.backup
