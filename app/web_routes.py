@@ -53,15 +53,12 @@ def contact():
             admin_users = User.query.filter_by(role=UserRole.ADMIN).all()
             admin_emails = [u.email for u in admin_users]
             
-            # Combine unique recipients (System + Admins + Hardcoded)
+            # Combine unique recipients (System + Admins)
             recipients = set()
             if system_email:
                 recipients.add(system_email)
             for email in admin_emails:
                 recipients.add(email)
-            
-            # Explicitly add user requested email
-            recipients.add('a79321035@gmail.com')
                 
             if recipients:
                 html_body = get_contact_form_email(name, email, subject, message)
