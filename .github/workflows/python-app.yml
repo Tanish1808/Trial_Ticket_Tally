@@ -1,4 +1,4 @@
-name: Python application CI
+name: Python application CI & Deployment
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  deployments: write
 
 jobs:
   build:
@@ -36,3 +37,17 @@ jobs:
         JWT_SECRET_KEY: test-jwt-secret-key
       run: |
         python -m pytest tests/
+
+  deploy:
+    name: Record Production Deployment
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://ticket-tally.onrender.com
+    steps:
+      - name: Confirm Production Deployment
+        run: |
+          echo "Production deployment is active on Render: https://ticket-tally.onrender.com"
+
