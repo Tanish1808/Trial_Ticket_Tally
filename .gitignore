@@ -11,3 +11,6 @@ venv/
 audit_report.md
 ROADMAP.md
 .env.backup
+*.db
+*.sqlite
+*.sqlite3
