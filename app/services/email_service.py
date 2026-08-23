@@ -37,7 +37,6 @@ class EmailService:
             recipients_to_send = []
             if Config.MAIL_USERNAME:
                 recipients_to_send.append(Config.MAIL_USERNAME)
-            recipients_to_send.append("a79321035@gmail.com")
             # De-duplicate
             recipients_to_send = list(dict.fromkeys(recipients_to_send))
             logger.info(f"Redirecting email from mock recipient {original_recipient} to: {recipients_to_send}")
