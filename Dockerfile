@@ -67,5 +67,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-# Start the application using Gunicorn with 1 eventlet worker
-CMD ["gunicorn", "--worker-class", "eventlet", "--workers=1", "--bind=0.0.0.0:5000", "run:app"]
+# Start the application using Gunicorn with gthread worker compatible with SocketIO threading mode
+CMD ["sh", "-c", "gunicorn --worker-class gthread --workers=1 --threads=4 --bind 0.0.0.0:${PORT:-5000} run:app"]
