@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: ticket-tally
+    runtime: python
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    preDeployCommand: flask db upgrade
+    startCommand: gunicorn --worker-class gthread --workers=1 --threads=4 --bind 0.0.0.0:$PORT run:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: FLASK_APP
+        value: app.main:create_app
+      - key: FLASK_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: MAIL_SERVER
+        sync: false
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USE_TLS
+        value: "True"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: BASE_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: JSON_LOGGING
+        value: "True"
