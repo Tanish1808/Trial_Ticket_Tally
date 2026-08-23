@@ -8,6 +8,14 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///ticket_tally.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
+    # SQLAlchemy Engine / Connection Pool Options for Neon
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_size": 3,
+        "max_overflow": 5,
+        "pool_pre_ping": True,
+        "pool_timeout": 30,
+    }
+    
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'default-jwt-secret')
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 3600))
     
@@ -41,6 +49,7 @@ class Config:
 class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_ENGINE_OPTIONS = {}
     RATELIMIT_ENABLED = False
     REDIS_URL = None
     RATELIMIT_STORAGE_URI = 'memory://'
