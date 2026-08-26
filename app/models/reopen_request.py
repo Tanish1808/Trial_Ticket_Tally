@@ -6,14 +6,14 @@ class ReopenRequest(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     reason = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(20), default="pending", nullable=False) # pending, approved, declined
+    status = db.Column(db.String(20), default="pending", nullable=False, index=True) # pending, approved, declined
     decline_reason = db.Column(db.Text, nullable=True)
-    requested_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+    requested_at = db.Column(db.DateTime, default=utcnow, nullable=False, index=True)
     resolved_at = db.Column(db.DateTime, nullable=True)
     
     # Foreign Keys
-    ticket_id = db.Column(db.Integer, db.ForeignKey("tickets.id"), nullable=False)
-    requested_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    ticket_id = db.Column(db.Integer, db.ForeignKey("tickets.id"), nullable=False, index=True)
+    requested_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     resolved_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     
     # Relationships
