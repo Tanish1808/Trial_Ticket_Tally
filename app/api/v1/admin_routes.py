@@ -643,20 +643,23 @@ def export_performance():
     import csv
     import io
 
+    from sqlalchemy.orm import selectinload, joinedload
+    import csv
+    import io
+
     # Format parameter
     format_type = request.args.get('format', 'csv').lower()
     if format_type not in ['csv', 'pdf']:
         return jsonify({"error": "Invalid format. Supported formats are: csv, pdf"}), 400
 
-    # Query all IT staff members
-    query = User.query.filter(User.role == UserRole.IT_STAFF)
-    
-    # Exclude demo email if not demo admin logged in
-    query = query.filter(User.email != Config.DEMO_EMAIL)
-    
-    staff_members = query.all()
+    # Query all IT staff members with eager loading
+    staff_members = User.query.options(
+        joinedload(User.team),
+        selectinload(User.assigned_tickets).selectinload(Ticket.status_history),
+        selectinload(User.assigned_tickets).joinedload(Ticket.feedback)
+    ).filter(User.role == UserRole.IT_STAFF, User.email != Config.DEMO_EMAIL).all()
 
-    # Calculate metrics for each staff member
+    sla_map = SLAService.get_sla_map()
     staff_data = []
     for member in staff_members:
         # Assigned tickets (excluding demo tickets to be safe)
@@ -673,7 +676,7 @@ def export_performance():
         # SLA Compliance: % of their resolved/closed tickets that met SLA
         resolved_with_sla = [t for t in assigned_tickets if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED]]
         if resolved_with_sla:
-            met_count = sum(1 for t in resolved_with_sla if SLAService.check_sla_status(t) == SLAStatus.ACHIEVED)
+            met_count = sum(1 for t in resolved_with_sla if SLAService.check_sla_status(t, sla_map=sla_map) == SLAStatus.ACHIEVED)
             sla_compliance = f"{round((met_count / len(resolved_with_sla)) * 100, 1)}%"
         else:
             sla_compliance = "100.0%"
@@ -799,8 +802,16 @@ def export_dashboard_report():
     if format_type not in ['csv', 'pdf']:
         return jsonify({"error": "Invalid format. Supported formats are: csv, pdf"}), 400
 
-    # Retrieve all tickets excluding demo tickets
-    all_tickets = Ticket.query.filter(Ticket.is_demo == False).all()
+    # Retrieve all tickets excluding demo tickets with eager loading
+    from sqlalchemy.orm import joinedload, selectinload
+    all_tickets = Ticket.query.options(
+        joinedload(Ticket.assignee),
+        joinedload(Ticket.creator),
+        joinedload(Ticket.feedback),
+        selectinload(Ticket.status_history)
+    ).filter(Ticket.is_demo == False).all()
+    
+    sla_map = SLAService.get_sla_map()
     
     # 1. Ticket Resolution Times
     resolved_tickets = [t for t in all_tickets if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED]]
@@ -821,7 +832,7 @@ def export_dashboard_report():
             "resolved_at": ticket.updated_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.updated_at else "N/A",
             "resolution_hours": hours if hours is not None else 0.0,
             "resolution_time_formatted": formatted_duration,
-            "sla_status": SLAService.check_sla_status(ticket).value
+            "sla_status": SLAService.check_sla_status(ticket, sla_map=sla_map).value
         })
 
     # Summary KPIs
@@ -829,7 +840,7 @@ def export_dashboard_report():
     resolved_count = len(resolved_tickets)
     avg_res_hours = round(sum(res_hours_list) / len(res_hours_list), 1) if res_hours_list else 0.0
     
-    breached_count = sum(1 for t in all_tickets if SLAService.check_sla_status(t) == SLAStatus.BREACHED)
+    breached_count = sum(1 for t in all_tickets if SLAService.check_sla_status(t, sla_map=sla_map) == SLAStatus.BREACHED)
     overall_breach_rate = round((breached_count / total_tickets) * 100, 1) if total_tickets > 0 else 0.0
     
     summary_kpis = {
@@ -840,7 +851,12 @@ def export_dashboard_report():
     }
 
     # 2. IT Agents performance
-    staff_members = User.query.filter(User.role == UserRole.IT_STAFF, User.email != Config.DEMO_EMAIL).all()
+    staff_members = User.query.options(
+        joinedload(User.team),
+        selectinload(User.assigned_tickets).selectinload(Ticket.status_history),
+        selectinload(User.assigned_tickets).joinedload(Ticket.feedback)
+    ).filter(User.role == UserRole.IT_STAFF, User.email != Config.DEMO_EMAIL).all()
+    
     agent_data = []
     for member in staff_members:
         assigned_tickets = [t for t in member.assigned_tickets if not t.is_demo]
@@ -848,7 +864,7 @@ def export_dashboard_report():
         active = sum(1 for t in assigned_tickets if t.status in [TicketStatus.OPEN, TicketStatus.IN_PROGRESS])
         resolved = sum(1 for t in assigned_tickets if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED])
         
-        breached = sum(1 for t in assigned_tickets if SLAService.check_sla_status(t) == SLAStatus.BREACHED)
+        breached = sum(1 for t in assigned_tickets if SLAService.check_sla_status(t, sla_map=sla_map) == SLAStatus.BREACHED)
         breach_rate = round((breached / total) * 100, 1) if total > 0 else 0.0
         
         agent_data.append({
@@ -876,7 +892,7 @@ def export_dashboard_report():
         active = sum(1 for t in t_list if t.status in [TicketStatus.OPEN, TicketStatus.IN_PROGRESS])
         resolved = sum(1 for t in t_list if t.status in [TicketStatus.RESOLVED, TicketStatus.CLOSED])
         
-        breached = sum(1 for t in t_list if SLAService.check_sla_status(t) == SLAStatus.BREACHED)
+        breached = sum(1 for t in t_list if SLAService.check_sla_status(t, sla_map=sla_map) == SLAStatus.BREACHED)
         breach_rate = round((breached / total) * 100, 1) if total > 0 else 0.0
         
         feedback_ratings = [t.feedback.rating for t in t_list if t.feedback]

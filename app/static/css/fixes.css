@@ -354,4 +354,167 @@
 .status-card-option.active .status-card-checkmark {
     opacity: 1;
     transform: scale(1);
-}
+}
+
+/* ==========================================================================
+   Comprehensive Mobile Responsiveness & Viewport Stabilization (320px - 1024px+)
+   ========================================================================== */
+
+/* Universal touch scrolling and container protection */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
+/* Ensure no element forces horizontal scrolling */
+.main-content,
+.dashboard-container,
+.dashboard-content {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Mobile Sidebar (320px - 992px) */
+@media (max-width: 992px) {
+    .sidebar {
+        width: 270px;
+        max-width: 82vw;
+        z-index: 1050;
+    }
+
+    .sidebar-overlay {
+        z-index: 1040;
+    }
+}
+
+/* Tablet & Mobile Layout (max-width: 768px) */
+@media (max-width: 768px) {
+    .dashboard-header {
+        padding: 0.875rem 1.25rem;
+    }
+
+    .dashboard-content {
+        padding: 1rem;
+    }
+
+    /* Kanban Board Touch Snap */
+    .kanban-board {
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        gap: 1rem;
+        padding-bottom: 1rem;
+    }
+
+    .kanban-column {
+        scroll-snap-align: start;
+        min-width: 270px;
+        max-width: 85vw;
+        flex-shrink: 0;
+    }
+
+    /* Modal responsiveness */
+    .modal-dialog {
+        margin: 0.75rem auto;
+        max-width: calc(100% - 1.5rem);
+    }
+}
+
+/* Small Mobile Viewports (320px - 480px) */
+@media (max-width: 480px) {
+    .dashboard-header {
+        padding: 0.75rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .header-title-section {
+        width: 100%;
+    }
+
+    .header-title-section h1 {
+        font-size: 1.25rem;
+        line-height: 1.3;
+    }
+
+    .header-subtitle {
+        font-size: 0.8rem;
+    }
+
+    .header-actions {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .btn-icon-only {
+        width: 2.25rem;
+        height: 2.25rem;
+        font-size: 0.875rem;
+    }
+
+    .btn-primary-custom,
+    .btn-outline-custom {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.875rem;
+    }
+
+    /* Dropdowns bounded within screen */
+    .dropdown-menu {
+        max-width: calc(100vw - 1.5rem) !important;
+    }
+
+    /* KPI Cards single column */
+    .kpi-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem;
+    }
+
+    .kpi-card,
+    .stat-card,
+    .content-card {
+        padding: 1rem;
+        border-radius: var(--radius-md);
+    }
+
+    .kpi-value,
+    .stat-value {
+        font-size: 1.5rem;
+    }
+
+    /* Modals for 320px */
+    .modal-dialog {
+        margin: 0.35rem auto;
+        max-width: calc(100% - 0.75rem);
+    }
+
+    .modal-content {
+        padding: 0.75rem;
+    }
+
+    .modal-header,
+    .modal-footer {
+        padding: 0.5rem 0.25rem;
+    }
+
+    .modal-body {
+        padding: 0.75rem 0.25rem;
+    }
+
+    /* Forms */
+    .form-control,
+    .form-select {
+        font-size: 0.9rem;
+    }
+
+    /* Kanban on narrow screens */
+    .kanban-column {
+        min-width: 250px;
+        max-width: 88vw;
+    }
+}
+

@@ -102,14 +102,19 @@ def get_dashboard_stats():
         for fb in feedbacks:
             breakdown[str(fb.rating)] += 1
             
-    # Recent feedback logs (last 5)
-    recent_feedbacks = csat_query.order_by(CSATFeedback.created_at.desc()).limit(5).all()
+    # Recent feedback logs (last 5) with eager loaded relationships to avoid N+1
+    from sqlalchemy.orm import joinedload, selectinload
+    recent_feedbacks = csat_query.options(
+        joinedload(CSATFeedback.ticket),
+        joinedload(CSATFeedback.user)
+    ).order_by(CSATFeedback.created_at.desc()).limit(5).all()
+    
     recent_list = [{
         "ticketId": fb.ticket_id,
-        "ticketTitle": fb.ticket.title,
+        "ticketTitle": fb.ticket.title if fb.ticket else "Unknown",
         "rating": fb.rating,
         "comment": fb.comment,
-        "userName": fb.user.full_name,
+        "userName": fb.user.full_name if fb.user else "Unknown",
         "createdAt": fb.created_at.isoformat()
     } for fb in recent_feedbacks]
     
@@ -147,9 +152,10 @@ def get_sla_stats():
     from app.models.ticket import Ticket
     from app.services.sla_service import SLAService
     from app.core.constants import SLAStatus, TicketStatus
+    from sqlalchemy.orm import selectinload
     
-    SLAService.seed_default_slas()
-    tickets = Ticket.query.filter(Ticket.is_demo == False).all()
+    sla_map = SLAService.get_sla_map()
+    tickets = Ticket.query.options(selectinload(Ticket.status_history)).filter(Ticket.is_demo == False).all()
     
     met = 0
     missed = 0
@@ -159,7 +165,7 @@ def get_sla_stats():
         if t.status == TicketStatus.WITHDRAWN:
             continue
             
-        status = SLAService.check_sla_status(t)
+        status = SLAService.check_sla_status(t, sla_map=sla_map)
         if status == SLAStatus.ACHIEVED:
             met += 1
         elif status == SLAStatus.BREACHED:
@@ -206,18 +212,7 @@ def get_it_dashboard_stats():
     ).count()
     
     # 4. SLA Breaches
-    SLAService.seed_default_slas()
-    sla_configs = SLA.query.all()
-    sla_hours = {cfg.priority: cfg.resolution_time_hours for cfg in sla_configs}
-    defaults = {
-        TicketPriority.CRITICAL: 4,
-        TicketPriority.HIGH: 8,
-        TicketPriority.MEDIUM: 24,
-        TicketPriority.LOW: 48
-    }
-    for p, hrs in defaults.items():
-        if p not in sla_hours:
-            sla_hours[p] = hrs
+    sla_hours = SLAService.get_sla_map()
 
     conditions = []
     for priority, hours in sla_hours.items():

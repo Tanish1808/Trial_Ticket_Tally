@@ -17,11 +17,13 @@ let currentFilter = 'all'; // 'all' or 'my-assignments' or specific status
 let pendingUpdate = null; // Stores ticket status update data during confirmation flow
 
 
-document.addEventListener('DOMContentLoaded', async function () {
-    await initializeDashboard();
-    await loadTickets();
+document.addEventListener('DOMContentLoaded', function () {
     setupEventListeners();
-    loadAnnouncements();
+    Promise.allSettled([
+        initializeDashboard(),
+        loadTickets(),
+        loadAnnouncements()
+    ]);
 });
 
 async function initializeDashboard() {
@@ -124,8 +126,8 @@ async function getTickets() {
 }
 
 async function loadTickets() {
-    cachedTickets = await getTickets();
-    await updateKPIs();
+    const [tickets, _] = await Promise.all([getTickets(), updateKPIs()]);
+    cachedTickets = tickets || [];
     // Render Chart
     renderPriorityChart(cachedTickets);
     // Keep user's current filter instead of resetting to 'all'

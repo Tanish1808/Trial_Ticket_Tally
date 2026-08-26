@@ -269,8 +269,15 @@ class TicketService:
         # Check if user is Demo User
         is_demo_user = (user.email == Config.DEMO_EMAIL)
         
-        # Base query
-        query = Ticket.query
+        from sqlalchemy.orm import joinedload, selectinload
+        
+        # Base query with eager loaded relationships to eliminate N+1 queries during listing
+        query = Ticket.query.options(
+            joinedload(Ticket.creator),
+            joinedload(Ticket.assignee),
+            joinedload(Ticket.team),
+            selectinload(Ticket.status_history)
+        )
         
         # FILTER: 
         # - Demo User sees ONLY Demo tickets

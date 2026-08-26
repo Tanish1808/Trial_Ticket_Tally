@@ -28,15 +28,16 @@
     }
 
     .detail-title {
-      font-size: 2rem;
+      font-size: clamp(1.35rem, 4vw, 2rem);
       font-weight: 800;
       color: var(--text-primary);
       margin-bottom: 1rem;
+      word-break: break-word;
     }
 
     .detail-meta {
       display: flex;
-      gap: 2rem;
+      gap: 1rem;
       flex-wrap: wrap;
       align-items: center;
     }
@@ -67,10 +68,11 @@
 
     .info-row {
       display: grid;
-      grid-template-columns: 150px 1fr;
+      grid-template-columns: 140px 1fr;
       gap: 1rem;
-      padding: 1rem 0;
+      padding: 0.875rem 0;
       border-bottom: 1px solid var(--border-light);
+      word-break: break-word;
     }
 
     .info-row:last-child {
@@ -85,6 +87,66 @@
     .info-value {
       color: var(--text-primary);
     }
+
+    .action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 2px solid var(--border);
+    }
+
+    .refresh-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: var(--radius-md);
+      color: var(--success);
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .refresh-indicator.syncing {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: var(--warning);
+    }
+
+    @media (max-width: 992px) {
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .ticket-detail-page {
+        padding: 1rem 0;
+      }
+      .detail-header {
+        padding: 1.25rem 1rem;
+      }
+      .detail-card {
+        padding: 1.25rem 1rem;
+      }
+      .info-row {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+      }
+      .timeline-container {
+        padding-left: 1.75rem;
+      }
+      .timeline-dot {
+        left: -1.6rem;
+      }
+      .action-buttons .btn {
+        width: 100%;
+      }
+    }
+  </style>
 
     .timeline-container {
       position: relative;
@@ -238,38 +300,6 @@
       line-height: 1.6;
     }
 
-    .action-buttons {
-      display: flex;
-      gap: 1rem;
-      margin-top: 2rem;
-      padding-top: 2rem;
-      border-top: 2px solid var(--border);
-    }
-
-    .refresh-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      border-radius: var(--radius-md);
-      color: var(--success);
-      font-size: 0.875rem;
-      font-weight: 600;
-    }
-
-    .refresh-indicator.syncing {
-      background: rgba(245, 158, 11, 0.1);
-      border-color: rgba(245, 158, 11, 0.3);
-      color: var(--warning);
-    }
-
-    @media (max-width: 992px) {
-      .detail-grid {
-        grid-template-columns: 1fr;
-      }
-    }
   </style>
 </head>
 

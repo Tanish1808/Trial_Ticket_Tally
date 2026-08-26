@@ -10,12 +10,14 @@ if (!requireAuth()) {
 // Global variable to cache tickets for client-side filtering/searching
 let cachedTickets = [];
 
-// Initialize dashboard
+// Initialize dashboard concurrently
 document.addEventListener('DOMContentLoaded', function () {
-    initializeDashboard();
-    loadTickets();
     setupEventListeners();
-    loadAnnouncements();
+    Promise.allSettled([
+        initializeDashboard(),
+        loadTickets(),
+        loadAnnouncements()
+    ]);
 });
 
 // Initialize dashboard
