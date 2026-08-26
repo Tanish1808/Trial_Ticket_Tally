@@ -1,6 +1,7 @@
 from app.core.database import db
 from app.models.notification import Notification
 from app.core.extensions import socketio
+from app.core.config import Config
 import logging
 
 logger = logging.getLogger(__name__)
@@ -151,25 +152,36 @@ class NotificationService:
             return
 
         if status_val == TicketStatus.RESOLVED.value:
+            def _generate_pdf_and_send():
+                try:
+                    pdf_content = TicketPdfService.generate_ticket_pdf(ticket)
+                    email_body = get_ticket_resolved_email(
+                        creator_name,
+                        ticket.id,
+                        ticket.title
+                    )
+                    EmailService.send_email_sync(
+                        to_email=creator_email,
+                        subject=f"Resolved: Ticket #{ticket.id} - {ticket.title}",
+                        body=email_body,
+                        attachments=[(f"Ticket_{ticket.id}_Summary.pdf", pdf_content)]
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to generate PDF and send resolution email for ticket {ticket.id}: {e}", exc_info=True)
+
+            is_testing = False
             try:
-                # 3. Generate PDF
-                pdf_content = TicketPdfService.generate_ticket_pdf(ticket)
-                
-                # 4. Prepare and Send Email
-                email_body = get_ticket_resolved_email(
-                    creator_name,
-                    ticket.id,
-                    ticket.title
-                )
-                
-                EmailService.send_email(
-                    to_email=creator_email,
-                    subject=f"Resolved: Ticket #{ticket.id} - {ticket.title}",
-                    body=email_body,
-                    attachments=[(f"Ticket_{ticket.id}_Summary.pdf", pdf_content)]
-                )
-            except Exception as e:
-                logger.error(f"Failed to send resolution email for ticket {ticket.id}: {e}", exc_info=True)
+                from flask import current_app
+                if current_app and current_app.config.get('TESTING'):
+                    is_testing = True
+            except Exception:
+                pass
+
+            if is_testing or getattr(Config, 'TESTING', False):
+                _generate_pdf_and_send()
+            else:
+                from app.services.email_service import _email_executor
+                _email_executor.submit(_generate_pdf_and_send)
         elif status_val == TicketStatus.IN_PROGRESS.value:
             try:
                 approver_name = ticket.assignee.full_name if ticket.assignee else "IT Staff"
