@@ -611,16 +611,41 @@ async function handleAddComment(e) {
     }
 }
 
-// Start auto-refresh
+let isSyncing = false;
+
+// Start auto-refresh with visibility detection and overlap prevention
 function startAutoRefresh() {
-    // Refresh every 5 seconds
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+    }
+
+    // Refresh every 10 seconds only when tab is visible
     refreshInterval = setInterval(() => {
-        refreshTicketData();
-    }, 5000);
+        if (!document.hidden && !isSyncing) {
+            refreshTicketData();
+        }
+    }, 10000);
+
+    // Immediately refresh when tab becomes visible after being hidden
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && !isSyncing) {
+            refreshTicketData();
+        }
+    });
+
+    window.addEventListener('beforeunload', () => {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+        }
+    });
 }
 
-// Refresh ticket data
-function refreshTicketData() {
+// Refresh ticket data safely
+async function refreshTicketData() {
+    if (isSyncing || document.hidden) return;
+
     // Check if any reply form is active
     const forms = document.querySelectorAll('.reply-form-container');
     for (let form of forms) {
@@ -630,12 +655,16 @@ function refreshTicketData() {
         }
     }
 
+    isSyncing = true;
     showSyncStatus('Syncing...', 'syncing');
-    loadTicketDetails();
-    // Status update handled in UI helper or after load
-    setTimeout(() => {
+    try {
+        await loadTicketDetails();
         showSyncStatus('Updated', 'success');
-    }, 500);
+    } catch (e) {
+        console.warn('Background sync error:', e);
+    } finally {
+        isSyncing = false;
+    }
 }
 
 // Show sync status
