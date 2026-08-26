@@ -198,6 +198,7 @@ def get_tickets():
         per_page = 100
     
     paginated_tickets = TicketService.get_tickets(g.user, page=page, per_page=per_page)
+    sla_map = SLAService.get_sla_map()
     
     return jsonify({
         "items": [{
@@ -209,8 +210,8 @@ def get_tickets():
             "priority": t.priority.value,
             "createdAt": t.created_at.isoformat(),
             "updatedAt": t.updated_at.isoformat() if t.updated_at else t.created_at.isoformat(),
-            "slaDeadline": SLAService.get_deadline(t).isoformat() + "Z",
-            "slaStatus": SLAService.check_sla_status(t).value,
+            "slaDeadline": SLAService.get_deadline(t, sla_map=sla_map).isoformat() + "Z",
+            "slaStatus": SLAService.check_sla_status(t, sla_map=sla_map).value,
             "createdByName": t.creator.full_name if t.creator else "Unknown",
             "createdById": t.created_by_id,
             "assignedToId": t.assigned_to_id,
