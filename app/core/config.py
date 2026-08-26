@@ -13,6 +13,7 @@ class Config:
         "pool_size": 3,
         "max_overflow": 5,
         "pool_pre_ping": True,
+        "pool_recycle": 280,
         "pool_timeout": 30,
     }
     
