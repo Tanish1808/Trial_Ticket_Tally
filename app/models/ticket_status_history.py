@@ -6,13 +6,13 @@ class TicketStatusHistory(db.Model):
     __tablename__ = "ticket_status_history"
 
     id = db.Column(db.Integer, primary_key=True)
-    ticket_id = db.Column(db.Integer, db.ForeignKey("tickets.id"), nullable=False)
+    ticket_id = db.Column(db.Integer, db.ForeignKey("tickets.id"), nullable=False, index=True)
     
     old_status = db.Column(db.Enum(TicketStatus), nullable=True)
     new_status = db.Column(db.Enum(TicketStatus), nullable=False)
     
     changed_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-    changed_at = db.Column(db.DateTime, default=utcnow)
+    changed_at = db.Column(db.DateTime, default=utcnow, index=True)
 
     # Relationships
     ticket = db.relationship("Ticket", back_populates="status_history")
