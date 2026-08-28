@@ -109,3 +109,19 @@ def test_mobile_navbar_contrast_configuration(client):
     css = css_res.get_data(as_text=True)
     assert '.navbar-toggler' in css
     assert '.navbar-toggler-icon' in css
+
+def test_landing_page_horizontal_overflow_constraints(client):
+    # Verify index.html uses responsive margins ms-lg-* rather than hardcoded ms-*
+    response = client.get('/')
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'ms-lg-3' in html
+    assert 'ms-lg-2' in html
+    assert 'hero-cta' in html
+
+    # Verify landing.css contains mobile responsive minmax and grid rules
+    css_res = client.get('/static/css/landing.css')
+    assert css_res.status_code == 200
+    landing_css = css_res.get_data(as_text=True)
+    assert 'minmax(min(100%, 240px), 1fr)' in landing_css
+    assert 'grid-template-columns: repeat(3, 1fr)' in landing_css
