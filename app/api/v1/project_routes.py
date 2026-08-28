@@ -24,7 +24,7 @@ def get_projects():
       401:
         description: Unauthorized
     """
-    projects = Project.query.all()
+    projects = Project.query.filter_by(is_deleted=False).all()
     return jsonify([p.to_dict() for p in projects])
 
 @project_bp.route('', methods=['POST'])
@@ -199,7 +199,7 @@ def get_project(project_id):
       404:
         description: Project not found
     """
-    project = db.get_or_404(Project, project_id)
+    project = Project.query.filter_by(id=project_id, is_deleted=False).first_or_404()
     return jsonify(project.to_dict())
 
 @project_bp.route('/<int:project_id>', methods=['PATCH'])
