@@ -28,22 +28,11 @@ class EmailService:
             logger.info(f"Would have sent email to {to_email}: {subject}")
             return
 
-        # Check if recipient is a mock email address
-        original_recipient = to_email
-        is_mock = False
-        if to_email:
-            email_lower = to_email.lower()
-            if "example.com" in email_lower or "tickettally.com" in email_lower or "test" in email_lower:
-                is_mock = True
+        if not to_email:
+            logger.warning("Empty recipient email. Skipping email send.")
+            return
 
         recipients_to_send = [to_email]
-        if is_mock:
-            recipients_to_send = []
-            if Config.MAIL_USERNAME:
-                recipients_to_send.append(Config.MAIL_USERNAME)
-            # De-duplicate
-            recipients_to_send = list(dict.fromkeys(recipients_to_send))
-            logger.info(f"Redirecting email from mock recipient {original_recipient} to: {recipients_to_send}")
 
         for recipient in recipients_to_send:
             try:
@@ -56,12 +45,7 @@ class EmailService:
                     msg['From'] = Config.MAIL_USERNAME
                     
                 msg['To'] = recipient
-                
-                if is_mock:
-                    msg['Subject'] = f"[Redirected from {original_recipient}] {subject}"
-                else:
-                    msg['Subject'] = subject
-                    
+                msg['Subject'] = subject
                 msg.attach(MIMEText(body, 'html'))
                 
                 if reply_to:
@@ -80,7 +64,7 @@ class EmailService:
                 server.login(Config.MAIL_USERNAME, Config.MAIL_PASSWORD)
                 server.send_message(msg)
                 server.quit()
-                logger.info(f"Email sent successfully to {recipient} (originally for {original_recipient})")
+                logger.info(f"Email sent successfully to {recipient}")
             except Exception as e:
                 logger.error(f"Failed to send email to {recipient}: {e}", exc_info=True)
 

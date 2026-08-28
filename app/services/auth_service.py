@@ -93,7 +93,11 @@ class AuthService:
         Returns:
             bool: True in all cases to prevent email/account enumeration attacks.
         """
-        user = User.query.filter_by(email=email).first()
+        normalized_email = (email or "").strip().lower()
+        if not normalized_email:
+            return True
+
+        user = User.query.filter_by(email=normalized_email).first()
         if user:
             from app.utils.token import generate_reset_token
             from app.services.notification_service import NotificationService
@@ -124,7 +128,8 @@ class AuthService:
         if not email:
             raise ValueError("Invalid or expired token")
             
-        user = User.query.filter_by(email=email).first()
+        normalized_email = email.strip().lower()
+        user = User.query.filter_by(email=normalized_email).first()
         if not user:
             raise ValueError("User not found")
             
