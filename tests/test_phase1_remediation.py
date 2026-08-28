@@ -135,3 +135,11 @@ def test_calendar_mobile_toolbar_responsive_rules(client):
         assert 'fc-header-toolbar' in html
         assert 'flex-direction: column' in html
         assert 'fc-toolbar-chunk' in html
+
+def test_tablet_hero_visual_responsive_breakpoint(client):
+    # Verify landing.css hides hero-visual at max-width 991px to prevent tablet overflow
+    css_res = client.get('/static/css/landing.css')
+    assert css_res.status_code == 200
+    landing_css = css_res.get_data(as_text=True)
+    assert '@media (max-width: 991px)' in landing_css
+    assert '.hero-visual {' in landing_css
