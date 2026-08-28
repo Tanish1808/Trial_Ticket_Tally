@@ -2,11 +2,32 @@ from app.core.database import db
 from app.models.notification import Notification
 from app.core.extensions import socketio
 from app.core.config import Config
+from flask import has_request_context, request
 import logging
 
 logger = logging.getLogger(__name__)
 
 class NotificationService:
+    @staticmethod
+    def get_effective_base_url() -> str:
+        """Returns the effective base URL for outgoing email links.
+        
+        Prioritizes Config.BASE_URL if explicitly configured with a non-localhost host.
+        Falls back to the active Flask request context (respecting reverse proxies)
+        to prevent broken localhost links in production environments.
+        """
+        base_url = (Config.BASE_URL or "").strip().rstrip('/')
+        
+        # If BASE_URL is default localhost or empty, check if we have a live request context
+        is_default_localhost = not base_url or 'localhost' in base_url or '127.0.0.1' in base_url
+        if is_default_localhost and has_request_context():
+            scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
+            host = request.host
+            if host:
+                return f"{scheme}://{host}"
+                
+        return base_url if base_url else 'http://localhost:5000'
+
     @staticmethod
     def create_notification(user_id, title, message, type='info'):
         """Create a new notification and emit socket event"""
@@ -270,7 +291,8 @@ class NotificationService:
         from app.services.email_templates import get_reset_password_email
         
         # Construct Reset Link
-        reset_link = f"{Config.BASE_URL}/reset-password/{token}"
+        base_url = NotificationService.get_effective_base_url()
+        reset_link = f"{base_url}/reset-password/{token}"
         
         # Prepare Email Body
         email_body = get_reset_password_email(user.full_name, reset_link)
