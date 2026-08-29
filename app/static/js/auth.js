@@ -254,13 +254,26 @@ function showToast(message, type = 'info') {
     if (toastEl && toastBody) {
         toastBody.textContent = message;
         let bgClass = 'text-bg-primary';
+        let role = 'status';
+        let ariaLive = 'polite';
+
         if (type === 'error' || type === 'danger') {
             bgClass = 'text-bg-danger';
+            role = 'alert';
+            ariaLive = 'assertive';
         } else if (type === 'warning') {
             bgClass = 'text-bg-warning';
+            role = 'alert';
+            ariaLive = 'assertive';
         } else if (type === 'success') {
             bgClass = 'text-bg-success';
+            role = 'status';
+            ariaLive = 'polite';
         }
+
+        toastEl.setAttribute('role', role);
+        toastEl.setAttribute('aria-live', ariaLive);
+        toastEl.setAttribute('aria-atomic', 'true');
         toastEl.className = `toast align-items-center ${bgClass} border-0`;
 
         const toast = new bootstrap.Toast(toastEl);
