@@ -418,6 +418,33 @@
         margin: 0.75rem auto;
         max-width: calc(100% - 1.5rem);
     }
+
+    /* Demo Mode Exit Button Compact on Mobile */
+    #demoExitBtn {
+        width: 2.25rem;
+        height: 2.25rem;
+        padding: 0 !important;
+        margin-right: 0.25rem !important;
+        border-radius: var(--radius-md);
+    }
+
+    #demoExitBtn span {
+        display: none !important;
+    }
+
+    #demoExitBtn i {
+        margin-right: 0 !important;
+        font-size: 0.875rem;
+    }
+}
+
+/* Demo Mode Exit Button Desktop Defaults */
+#demoExitBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    transition: var(--transition-base);
 }
 
 /* Small Mobile Viewports (320px - 480px) */
