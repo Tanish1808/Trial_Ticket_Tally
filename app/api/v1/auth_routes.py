@@ -3,6 +3,7 @@ from app.services.auth_service import AuthService
 from app.schemas.auth_schema import SignupRequest, LoginRequest
 from pydantic import ValidationError
 from app.core.extensions import limiter
+from app.core.config import Config
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
@@ -206,7 +207,25 @@ def forgot_password():
         
     AuthService.initiate_password_reset(email)
     
+    if not getattr(Config, 'EMAIL_DELIVERY_ENABLED', True):
+        return jsonify({"message": "Your password reset request was processed. Email delivery is currently unavailable on this deployment."})
+    
     return jsonify({"message": "If an account exists with this email, a password reset link has been sent."})
+
+@auth_bp.route('/config', methods=['GET'])
+def get_system_config():
+    """
+    Get Public System Configuration Status
+    ---
+    tags:
+      - System
+    responses:
+      200:
+        description: System public configuration state
+    """
+    return jsonify({
+        "email_delivery_enabled": getattr(Config, 'EMAIL_DELIVERY_ENABLED', True)
+    })
 
 @auth_bp.route('/reset-password', methods=['POST'])
 @limiter.limit("3 per minute")

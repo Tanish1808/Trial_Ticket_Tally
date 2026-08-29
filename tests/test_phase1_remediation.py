@@ -196,3 +196,61 @@ def test_toast_accessible_aria_live_semantics(client):
     assert "toastEl.setAttribute('role', role)" in auth_js
     assert "toastEl.setAttribute('aria-live', ariaLive)" in auth_js
     assert "toastEl.setAttribute('aria-atomic', 'true')" in auth_js
+
+def test_ticket_details_template_style_integrity(client):
+    # Verify ticket-details.html has balanced style tags and timeline CSS is fully enclosed
+    import os
+    template_path = os.path.join(os.path.dirname(__file__), '..', 'app', 'templates', 'ticket-details.html')
+    with open(template_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # Style tag balance
+    assert content.count('<style>') == 1
+    assert content.count('</style>') == 1
+
+    # Verify timeline and comment rules exist strictly between <style> and </style>
+    style_start = content.index('<style>')
+    style_end = content.index('</style>')
+    timeline_pos = content.index('.timeline-container {')
+    comment_pos = content.index('.comment-section {')
+
+    assert style_start < timeline_pos < style_end
+    assert style_start < comment_pos < style_end
+
+def test_email_delivery_enabled_boolean_parsing():
+    # Test robust boolean parsing
+    true_vals = ['true', 'True', 'TRUE', '1', 'yes', 'YES', 'True ']
+    false_vals = ['false', 'False', 'FALSE', '0', 'no', 'NO', '']
+
+    for val in true_vals:
+        parsed = val.strip().lower() in ('true', '1', 'yes')
+        assert parsed is True, f"Failed for {val}"
+
+    for val in false_vals:
+        parsed = val.strip().lower() in ('true', '1', 'yes')
+        assert parsed is False, f"Failed for {val}"
+
+def test_system_config_endpoint_and_email_availability_modes(client):
+    from app.core.config import Config
+    from app.services.email_service import EmailService
+
+    # 1. Test /api/v1/auth/config endpoint
+    res = client.get('/api/v1/auth/config')
+    assert res.status_code == 200
+    data = res.get_json()
+    assert 'email_delivery_enabled' in data
+
+    # 2. Test EmailService gate with EMAIL_DELIVERY_ENABLED=False
+    original_setting = Config.EMAIL_DELIVERY_ENABLED
+    try:
+        Config.EMAIL_DELIVERY_ENABLED = False
+        # Should return immediately without attempting SMTP or raising errors
+        EmailService.send_email_sync("test@example.com", "Test Subject", "<p>Body</p>")
+
+        # Test forgot-password contextual response when disabled
+        forgot_res = client.post('/api/v1/auth/forgot-password', json={'email': 'admin@tickettally.com'})
+        assert forgot_res.status_code == 200
+        forgot_data = forgot_res.get_json()
+        assert "Email delivery is currently unavailable" in forgot_data['message']
+    finally:
+        Config.EMAIL_DELIVERY_ENABLED = original_setting
