@@ -216,3 +216,41 @@ def test_ticket_details_template_style_integrity(client):
 
     assert style_start < timeline_pos < style_end
     assert style_start < comment_pos < style_end
+
+def test_email_delivery_enabled_boolean_parsing():
+    # Test robust boolean parsing
+    true_vals = ['true', 'True', 'TRUE', '1', 'yes', 'YES', 'True ']
+    false_vals = ['false', 'False', 'FALSE', '0', 'no', 'NO', '']
+
+    for val in true_vals:
+        parsed = val.strip().lower() in ('true', '1', 'yes')
+        assert parsed is True, f"Failed for {val}"
+
+    for val in false_vals:
+        parsed = val.strip().lower() in ('true', '1', 'yes')
+        assert parsed is False, f"Failed for {val}"
+
+def test_system_config_endpoint_and_email_availability_modes(client):
+    from app.core.config import Config
+    from app.services.email_service import EmailService
+
+    # 1. Test /api/v1/auth/config endpoint
+    res = client.get('/api/v1/auth/config')
+    assert res.status_code == 200
+    data = res.get_json()
+    assert 'email_delivery_enabled' in data
+
+    # 2. Test EmailService gate with EMAIL_DELIVERY_ENABLED=False
+    original_setting = Config.EMAIL_DELIVERY_ENABLED
+    try:
+        Config.EMAIL_DELIVERY_ENABLED = False
+        # Should return immediately without attempting SMTP or raising errors
+        EmailService.send_email_sync("test@example.com", "Test Subject", "<p>Body</p>")
+
+        # Test forgot-password contextual response when disabled
+        forgot_res = client.post('/api/v1/auth/forgot-password', json={'email': 'admin@tickettally.com'})
+        assert forgot_res.status_code == 200
+        forgot_data = forgot_res.get_json()
+        assert "Email delivery is currently unavailable" in forgot_data['message']
+    finally:
+        Config.EMAIL_DELIVERY_ENABLED = original_setting
