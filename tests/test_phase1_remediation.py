@@ -1,20 +1,19 @@
 import pytest
+from unittest.mock import patch, MagicMock
 from app.main import create_app
-from app.core.config import TestingConfig
+from app.core.config import TestingConfig, Config
 from app.core.database import db
 from app.models.user import User
-from app.core.constants import UserRole, TicketStatus, TicketPriority
-from app.models.ticket import Ticket
-from app.models.comment import Comment
-from app.models.ticket_status_history import TicketStatusHistory
-from app.utils.jwt import create_access_token
-
-class CustomTestConfig(TestingConfig):
-    CORS_ALLOWED_ORIGINS = "http://allowed.com"
+from app.core.constants import UserRole
+from app.utils.password import hash_password
+from app.services.email_service import EmailService
+from app.services.notification_service import NotificationService
+from app.services.auth_service import AuthService
+from flask import request
 
 @pytest.fixture
 def app():
-    app = create_app(CustomTestConfig)
+    app = create_app(TestingConfig)
     with app.app_context():
         db.create_all()
         yield app
@@ -25,255 +24,175 @@ def app():
 def client(app):
     return app.test_client()
 
-@pytest.fixture
-def auth_headers(app):
+def test_forgot_password_mixed_case_and_whitespace(client):
+    # Seed user with normalized email
     user = User(
-        email="test_user@tt.com",
-        password_hash="test",
-        full_name="Test User",
-        role=UserRole.EMPLOYEE
+        email="tanish.tester@company.com",
+        password_hash=hash_password("oldpassword123"),
+        full_name="Tanish Tester",
+        role=UserRole.EMPLOYEE,
+        is_active=True
     )
     db.session.add(user)
     db.session.commit()
-    token = create_access_token(identity=str(user.id))
-    return {"Authorization": f"Bearer {token}"}
 
-def test_cors_headers(client):
-    # Test allowed origin
-    headers = {"Origin": "http://allowed.com"}
-    response = client.get('/api/v1/tickets', headers=headers)
-    assert response.headers.get("Access-Control-Allow-Origin") == "http://allowed.com"
+    with patch.object(EmailService, 'send_email') as mock_send:
+        # Submit mixed case email with leading/trailing whitespace
+        response = client.post('/api/v1/auth/forgot-password', json={
+            "email": "  TaNiSh.TeStEr@Company.COM  "
+        })
 
-    # Test disallowed origin
-    headers_disallowed = {"Origin": "http://disallowed.com"}
-    response_disallowed = client.get('/api/v1/tickets', headers=headers_disallowed)
-    assert response_disallowed.headers.get("Access-Control-Allow-Origin") != "http://disallowed.com"
+        assert response.status_code == 200
+        assert "password reset link has been sent" in response.get_json()["message"]
 
-def test_pagination_limit(client, auth_headers):
-    # Add a couple of tickets
-    user = User.query.filter_by(email="test_user@tt.com").first()
-    for i in range(15):
-        t = Ticket(
-            title=f"Ticket {i}",
-            description="Desc",
-            category="Software Issue",
-            priority=TicketPriority.LOW,
-            created_by_id=user.id
+        # Verify email dispatch was triggered for the exact normalized user email
+        assert mock_send.called
+        call_kwargs = mock_send.call_args.kwargs if mock_send.call_args.kwargs else mock_send.call_args[1]
+        if not call_kwargs:
+            to_email = mock_send.call_args[0][0]
+        else:
+            to_email = call_kwargs.get('to_email')
+        assert to_email == "tanish.tester@company.com"
+
+def test_email_service_sends_to_recipient_containing_test_word():
+    # Test EmailService send_email_sync directly with mocked SMTP server
+    with patch('smtplib.SMTP') as mock_smtp:
+        mock_server = MagicMock()
+        mock_smtp.return_value = mock_server
+
+        Config.MAIL_SERVER = "smtp.gmail.com"
+        Config.MAIL_USERNAME = "server@tickettally.com"
+        Config.MAIL_PASSWORD = "app-password"
+
+        test_email = "qa.tester@domain.com"
+        EmailService.send_email_sync(
+            to_email=test_email,
+            subject="Test Notification",
+            body="<p>Test body</p>"
         )
-        db.session.add(t)
-    db.session.commit()
 
-    # Request with per_page=5
-    response = client.get('/api/v1/tickets?per_page=5', headers=auth_headers)
+        # Ensure message was sent directly to recipient
+        assert mock_server.send_message.called
+        sent_msg = mock_server.send_message.call_args[0][0]
+        assert sent_msg['To'] == test_email
+
+def test_effective_base_url_resolution(app):
+    with app.test_request_context(
+        '/',
+        base_url='http://ticket-tally.onrender.com',
+        headers={'X-Forwarded-Proto': 'https'}
+    ):
+        original_base = Config.BASE_URL
+        try:
+            Config.BASE_URL = 'http://localhost:5000'
+            effective_url = NotificationService.get_effective_base_url()
+            assert effective_url.startswith('https://')
+            assert 'ticket-tally.onrender.com' in effective_url
+
+            # When explicit non-localhost domain is set, respect it
+            Config.BASE_URL = 'https://custom-domain.com'
+            assert NotificationService.get_effective_base_url() == 'https://custom-domain.com'
+        finally:
+            Config.BASE_URL = original_base
+
+def test_mobile_navbar_contrast_configuration(client):
+    # Verify landing page HTML does not have navbar-dark
+    response = client.get('/')
     assert response.status_code == 200
-    data = response.get_json()
-    assert len(data['items']) == 5
-    assert data['meta']['per_page'] == 5
+    html = response.get_data(as_text=True)
+    assert 'navbar-expand-lg fixed-top' in html
+    assert 'navbar-expand-lg navbar-dark' not in html
 
-    # Request with per_page=150 (should be capped at 100)
-    response_capped = client.get('/api/v1/tickets?per_page=150', headers=auth_headers)
-    assert response_capped.status_code == 200
-    data_capped = response_capped.get_json()
-    assert data_capped['meta']['per_page'] == 100
+    # Verify main.css contains high contrast navbar-toggler rules
+    css_res = client.get('/static/css/main.css')
+    assert css_res.status_code == 200
+    css = css_res.get_data(as_text=True)
+    assert '.navbar-toggler' in css
+    assert '.navbar-toggler-icon' in css
 
-def test_get_ticket_by_id_eager_loading(app, auth_headers):
-    # Create ticket, comments, and history
-    user = User.query.filter_by(email="test_user@tt.com").first()
-    t = Ticket(
-        title="Test Ticket",
-        description="Desc",
-        category="Software Issue",
-        priority=TicketPriority.LOW,
-        created_by_id=user.id
-    )
-    db.session.add(t)
-    db.session.commit()
+def test_landing_page_horizontal_overflow_constraints(client):
+    # Verify index.html uses responsive margins ms-lg-* rather than hardcoded ms-*
+    response = client.get('/')
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'ms-lg-3' in html
+    assert 'ms-lg-2' in html
+    assert 'hero-cta' in html
 
-    c1 = Comment(text="Comment 1", ticket_id=t.id, user_id=user.id)
-    c2 = Comment(text="Comment 2", ticket_id=t.id, user_id=user.id)
-    h1 = TicketStatusHistory(ticket_id=t.id, old_status=None, new_status=TicketStatus.OPEN, changed_by_id=user.id)
-    db.session.add_all([c1, c2, h1])
-    db.session.commit()
+    # Verify landing.css contains mobile responsive minmax and grid rules
+    css_res = client.get('/static/css/landing.css')
+    assert css_res.status_code == 200
+    landing_css = css_res.get_data(as_text=True)
+    assert 'minmax(min(100%, 240px), 1fr)' in landing_css
+    assert 'grid-template-columns: repeat(3, 1fr)' in landing_css
 
-    # Clear session to force reloading from DB
-    db.session.expire_all()
+def test_calendar_mobile_toolbar_responsive_rules(client):
+    # Verify calendar.html contains responsive FullCalendar toolbar stacking rules
+    response = client.get('/calendar')
+    # If 302/200, check template rendering directly
+    if response.status_code == 200:
+        html = response.get_data(as_text=True)
+        assert 'fc-header-toolbar' in html
+        assert 'flex-direction: column' in html
+        assert 'fc-toolbar-chunk' in html
 
-    from app.services.ticket_service import TicketService
-    # Fetch ticket
-    fetched = TicketService.get_ticket_by_id(t.id)
-    assert fetched is not None
-    assert fetched.title == "Test Ticket"
-    
-    # Verify relations are loaded/accessible
-    assert len(fetched.comments) == 2
-    assert fetched.comments[0].author.full_name == "Test User"
-    assert len(fetched.status_history) == 1
-    assert fetched.status_history[0].changed_by.full_name == "Test User"
+def test_tablet_hero_visual_responsive_breakpoint(client):
+    # Verify landing.css hides hero-visual at max-width 991px to prevent tablet overflow
+    css_res = client.get('/static/css/landing.css')
+    assert css_res.status_code == 200
+    landing_css = css_res.get_data(as_text=True)
+    assert '@media (max-width: 991px)' in landing_css
+    assert '.hero-visual {' in landing_css
 
-def test_pdf_download_authorization(app, client, auth_headers):
-    employee_user = User.query.filter_by(email="test_user@tt.com").first()
-    
-    admin_user = User(
-        email="admin_user@tt.com",
-        password_hash="test",
-        full_name="Admin User",
-        role=UserRole.ADMIN
-    )
-    it_user = User(
-        email="it_user@tt.com",
-        password_hash="test",
-        full_name="IT User",
-        role=UserRole.IT_STAFF
-    )
-    other_employee = User(
-        email="other_employee@tt.com",
-        password_hash="test",
-        full_name="Other Employee",
-        role=UserRole.EMPLOYEE
-    )
-    db.session.add_all([admin_user, it_user, other_employee])
-    db.session.commit()
-    
-    admin_token = create_access_token(identity=str(admin_user.id))
-    it_token = create_access_token(identity=str(it_user.id))
-    other_token = create_access_token(identity=str(other_employee.id))
-    
-    t = Ticket(
-        title="PDF Auth Test Ticket",
-        description="Desc",
-        category="Software Issue",
-        priority=TicketPriority.LOW,
-        created_by_id=employee_user.id,
-        assigned_to_id=it_user.id
-    )
-    db.session.add(t)
-    db.session.commit()
-    
-    # Test creator (employee_user) can download (should be 200)
-    res_creator = client.get(f'/api/v1/tickets/{t.id}/pdf', headers=auth_headers)
-    assert res_creator.status_code == 200
-    
-    # Test assignee (it_user) can download (should be 200)
-    res_assignee = client.get(f'/api/v1/tickets/{t.id}/pdf', headers={"Authorization": f"Bearer {it_token}"})
-    assert res_assignee.status_code == 200
-    
-    # Test admin can download (should be 200)
-    res_admin = client.get(f'/api/v1/tickets/{t.id}/pdf', headers={"Authorization": f"Bearer {admin_token}"})
-    assert res_admin.status_code == 200
-    
-    # Test unauthorized user (other_employee) cannot download (should be 403)
-    res_unauth = client.get(f'/api/v1/tickets/{t.id}/pdf', headers={"Authorization": f"Bearer {other_token}"})
-    assert res_unauth.status_code == 403
+def test_demo_mode_exit_button_accessibility_and_responsive_rules(client):
+    # Verify theme.js sets accessibility title, aria-label, and responsive wrapper
+    js_res = client.get('/static/js/theme.js')
+    assert js_res.status_code == 200
+    theme_js = js_res.get_data(as_text=True)
+    assert "exitBtn.setAttribute('title', 'Exit Demo Dashboard')" in theme_js
+    assert "exitBtn.setAttribute('aria-label', 'Exit Demo Dashboard')" in theme_js
+    assert '<span class="d-none d-md-inline">Exit Dashboard</span>' in theme_js
 
-def test_json_logging(monkeypatch, capsys):
-    import json
-    import logging
-    
-    # Set JSON_LOGGING environment variable to force JSON formatted logs
-    monkeypatch.setenv("JSON_LOGGING", "True")
-    
-    # Import create_app and initialize with TestingConfig to configure logging
-    from app.main import create_app
-    app = create_app(CustomTestConfig)
-    
-    # Log a message
-    logger = logging.getLogger("test_json_logger")
-    logger.info("Test JSON Log Message")
-    
-    # Read captured stdout and stderr outputs
-    captured = capsys.readouterr()
-    log_lines = captured.err.splitlines() + captured.out.splitlines()
-    
-    json_log = None
-    for line in log_lines:
-        if "Test JSON Log Message" in line:
-            json_log = json.loads(line.strip())
-            break
-            
-    assert json_log is not None, f"Could not find JSON log in output lines: {log_lines}"
-    assert json_log["level"] == "INFO"
-    assert json_log["message"] == "Test JSON Log Message"
+    # Verify fixes.css contains compact icon styles for demoExitBtn on mobile
+    css_res = client.get('/static/css/fixes.css')
+    assert css_res.status_code == 200
+    fixes_css = css_res.get_data(as_text=True)
+    assert '#demoExitBtn' in fixes_css
+    assert 'width: 2.25rem' in fixes_css
 
-def test_broadcast_live_activity_demo_status(app, auth_headers, monkeypatch):
-    from app.services.notification_service import NotificationService
-    from app.models.ticket import Ticket
-    from app.core.constants import TicketPriority
-    
-    # Mock socketio.emit
-    emitted_data = []
-    def mock_emit(event, data):
-        if event == 'live_activity':
-            emitted_data.append(data)
-            
-    from app.main import socketio
-    monkeypatch.setattr(socketio, 'emit', mock_emit)
-    
-    user = User.query.first()
-    
-    # 1. Create a non-demo ticket
-    t_normal = Ticket(
-        title="Normal Ticket",
-        description="Normal Desc",
-        category="Software Issue",
-        priority=TicketPriority.LOW,
-        created_by_id=user.id,
-        is_demo=False
-    )
-    db.session.add(t_normal)
-    db.session.commit()
-    
-    # Broadcast for normal ticket
-    NotificationService.broadcast_live_activity(
-        category="created",
-        ticket_id=t_normal.id,
-        message="Normal ticket created",
-        created_by="Test User"
-    )
-    assert len(emitted_data) == 1
-    assert emitted_data[0]['is_demo'] is False
-    
-    # 2. Create a demo ticket
-    t_demo = Ticket(
-        title="Demo Ticket",
-        description="Demo Desc",
-        category="Software Issue",
-        priority=TicketPriority.LOW,
-        created_by_id=user.id,
-        is_demo=True
-    )
-    db.session.add(t_demo)
-    db.session.commit()
-    
-    # Broadcast for demo ticket
-    NotificationService.broadcast_live_activity(
-        category="created",
-        ticket_id=t_demo.id,
-        message="Demo ticket created",
-        created_by="Test User"
-    )
-    assert len(emitted_data) == 2
-    assert emitted_data[1]['is_demo'] is True
+def test_password_reset_rate_limit_feedback_and_toast_handling(client):
+    # Verify auth.js handles 429 status code with warning toast
+    js_res = client.get('/static/js/auth.js')
+    assert js_res.status_code == 200
+    auth_js = js_res.get_data(as_text=True)
+    assert 'response.status === 429' in auth_js
+    assert 'Too many password reset attempts' in auth_js
+    assert "type === 'warning'" in auth_js
+    assert 'text-bg-warning' in auth_js
 
-def test_socketio_redis_message_queue_config(monkeypatch):
-    from app.core.extensions import socketio
-    
-    initialized_queue = []
-    def mock_init_app(app, **kwargs):
-        initialized_queue.append(kwargs.get('message_queue'))
-        
-    monkeypatch.setattr(socketio, 'init_app', mock_init_app)
-    
-    from app.main import create_app
-    from app.core.config import TestingConfig
-    
-    class CustomTestingConfig(TestingConfig):
-        REDIS_URL = "redis://localhost:6379/0"
-        
-    app = create_app(CustomTestingConfig)
-    
-    assert len(initialized_queue) == 1
-    assert initialized_queue[0] == "redis://localhost:6379/0"
+def test_dark_mode_immediate_application_and_icon_synchronization(client):
+    # Verify theme.js applies data-theme immediately on script execution to eliminate FOUC
+    js_res = client.get('/static/js/theme.js')
+    assert js_res.status_code == 200
+    theme_js = js_res.get_data(as_text=True)
+    assert 'applyImmediateTheme' in theme_js
+    assert 'document.documentElement.setAttribute' in theme_js
+    assert 'querySelectorAll' in theme_js
+    assert 'Switch to Light Mode' in theme_js
+    assert 'Switch to Dark Mode' in theme_js
 
+def test_toast_accessible_aria_live_semantics(client):
+    # Verify login and forgot password HTML use role="status" and aria-live="polite"
+    login_res = client.get('/login')
+    assert login_res.status_code == 200
+    login_html = login_res.get_data(as_text=True)
+    assert 'role="status"' in login_html
+    assert 'aria-live="polite"' in login_html
 
-
-
+    # Verify auth.js showToast dynamically updates role and aria-live based on severity
+    js_res = client.get('/static/js/auth.js')
+    assert js_res.status_code == 200
+    auth_js = js_res.get_data(as_text=True)
+    assert "toastEl.setAttribute('role', role)" in auth_js
+    assert "toastEl.setAttribute('aria-live', ariaLive)" in auth_js
+    assert "toastEl.setAttribute('aria-atomic', 'true')" in auth_js

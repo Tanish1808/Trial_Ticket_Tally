@@ -240,6 +240,38 @@ img {
     background: rgba(30, 41, 59, 0.95);
 }
 
+.navbar-toggler {
+    border: 1px solid var(--border) !important;
+    background: var(--surface-elevated) !important;
+    padding: 0.5rem 0.75rem !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-primary) !important;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.navbar-toggler:focus {
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25) !important;
+    outline: none !important;
+}
+
+.navbar-toggler-icon {
+    width: 1.5em;
+    height: 1.5em;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23111827' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2.5' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+}
+
+[data-theme="dark"] .navbar-toggler {
+    border-color: var(--border) !important;
+    background: var(--surface-elevated) !important;
+}
+
+[data-theme="dark"] .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23f1f5f9' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2.5' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+}
+
 .navbar-brand {
     font-family: var(--font-display);
     font-weight: 800;
