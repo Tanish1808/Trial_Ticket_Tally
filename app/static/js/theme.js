@@ -92,7 +92,7 @@
                 document.head.appendChild(style);
 
                 // Dashboard Specific Logic: Add "Exit Dashboard" Button
-                if (window.location.pathname.includes('/dashboard')) {
+                if (window.location.pathname.includes('/dashboard') || document.querySelector('.header-actions')) {
                     const headerActions = document.querySelector('.header-actions');
                     if (headerActions) {
                         // Check if button already exists to prevent duplicates
@@ -100,7 +100,9 @@
                             const exitBtn = document.createElement('button');
                             exitBtn.id = 'demoExitBtn';
                             exitBtn.className = 'btn btn-outline-danger me-2';
-                            exitBtn.innerHTML = '<i class="fas fa-sign-out-alt me-2"></i>Exit Dashboard';
+                            exitBtn.setAttribute('title', 'Exit Demo Dashboard');
+                            exitBtn.setAttribute('aria-label', 'Exit Demo Dashboard');
+                            exitBtn.innerHTML = '<i class="fas fa-sign-out-alt me-md-2"></i><span class="d-none d-md-inline">Exit Dashboard</span>';
                             exitBtn.onclick = () => logout(); // calls global logout() from auth.js which handles demo exit
 
                             // Insert at the beginning of actions
