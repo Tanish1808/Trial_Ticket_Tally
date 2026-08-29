@@ -7,31 +7,48 @@
 
     // Get theme from localStorage or default to light
     const getTheme = () => {
-        return localStorage.getItem('ticket-tally-theme') || 'light';
+        try {
+            return localStorage.getItem('ticket-tally-theme') || 'light';
+        } catch (e) {
+            return 'light';
+        }
     };
+
+    // Apply saved theme immediately on script evaluation to eliminate render flash
+    const applyImmediateTheme = () => {
+        const theme = getTheme();
+        document.documentElement.setAttribute('data-theme', theme);
+    };
+    applyImmediateTheme();
 
     // Set theme in localStorage and apply to document
     const setTheme = (theme) => {
-        localStorage.setItem('ticket-tally-theme', theme);
+        try {
+            localStorage.setItem('ticket-tally-theme', theme);
+        } catch (e) {}
         document.documentElement.setAttribute('data-theme', theme);
         updateThemeIcon(theme);
     };
 
-    // Update the icon based on current theme
+    // Update the icon based on current theme for all toggle buttons on page
     const updateThemeIcon = (theme) => {
-        const toggleBtn = document.getElementById('darkModeToggle');
-        if (toggleBtn) {
+        const toggleButtons = document.querySelectorAll('#darkModeToggle, .theme-toggle');
+        toggleButtons.forEach((toggleBtn) => {
             const icon = toggleBtn.querySelector('i');
             if (icon) {
                 if (theme === 'dark') {
                     icon.classList.remove('fa-moon');
                     icon.classList.add('fa-sun');
+                    toggleBtn.setAttribute('title', 'Switch to Light Mode');
+                    toggleBtn.setAttribute('aria-label', 'Switch to Light Mode');
                 } else {
                     icon.classList.remove('fa-sun');
                     icon.classList.add('fa-moon');
+                    toggleBtn.setAttribute('title', 'Switch to Dark Mode');
+                    toggleBtn.setAttribute('aria-label', 'Switch to Dark Mode');
                 }
             }
-        }
+        });
     };
 
     // Toggle theme
@@ -41,16 +58,18 @@
         setTheme(newTheme);
     };
 
-    // Initialize theme on page load
+    // Initialize theme and attach listeners on DOM load
     const initTheme = () => {
         const savedTheme = getTheme();
-        setTheme(savedTheme);
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
 
-        // Add event listener to toggle button
-        const toggleBtn = document.getElementById('darkModeToggle');
-        if (toggleBtn) {
+        // Add event listener to all toggle buttons on the page
+        const toggleButtons = document.querySelectorAll('#darkModeToggle, .theme-toggle');
+        toggleButtons.forEach((toggleBtn) => {
+            toggleBtn.removeEventListener('click', toggleTheme);
             toggleBtn.addEventListener('click', toggleTheme);
-        }
+        });
     };
 
     // Exit Demo Mode
