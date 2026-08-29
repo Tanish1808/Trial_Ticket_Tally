@@ -143,3 +143,19 @@ def test_tablet_hero_visual_responsive_breakpoint(client):
     landing_css = css_res.get_data(as_text=True)
     assert '@media (max-width: 991px)' in landing_css
     assert '.hero-visual {' in landing_css
+
+def test_demo_mode_exit_button_accessibility_and_responsive_rules(client):
+    # Verify theme.js sets accessibility title, aria-label, and responsive wrapper
+    js_res = client.get('/static/js/theme.js')
+    assert js_res.status_code == 200
+    theme_js = js_res.get_data(as_text=True)
+    assert "exitBtn.setAttribute('title', 'Exit Demo Dashboard')" in theme_js
+    assert "exitBtn.setAttribute('aria-label', 'Exit Demo Dashboard')" in theme_js
+    assert '<span class="d-none d-md-inline">Exit Dashboard</span>' in theme_js
+
+    # Verify fixes.css contains compact icon styles for demoExitBtn on mobile
+    css_res = client.get('/static/css/fixes.css')
+    assert css_res.status_code == 200
+    fixes_css = css_res.get_data(as_text=True)
+    assert '#demoExitBtn' in fixes_css
+    assert 'width: 2.25rem' in fixes_css
