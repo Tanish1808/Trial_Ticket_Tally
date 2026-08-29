@@ -156,17 +156,29 @@ document.addEventListener('DOMContentLoaded', function () {
                     body: JSON.stringify({ email })
                 });
 
-                const data = await response.json();
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (_) {
+                    data = {};
+                }
 
                 if (response.ok) {
-                    showToast(data.message, 'success');
+                    showToast(data.message || 'If an account exists with this email, a password reset link has been sent.', 'success');
                     forgotForm.reset();
+                } else if (response.status === 429) {
+                    const rateLimitMsg = data.error || 'Too many password reset attempts. Please wait a minute before trying again.';
+                    showToast(rateLimitMsg, 'warning');
+                } else if (response.status === 400) {
+                    showToast(data.error || 'Please provide a valid email address.', 'error');
+                } else if (response.status >= 500) {
+                    showToast('Server error encountered. Please try again later.', 'error');
                 } else {
-                    showToast(data.error || 'Failed to send reset link', 'error');
+                    showToast(data.error || 'Failed to send reset link. Please check your email and try again.', 'error');
                 }
             } catch (e) {
                 console.error("Forgot password error", e);
-                showToast('An error occurred. Please try again.', 'error');
+                showToast('Unable to connect to server. Please check your network and try again.', 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
@@ -200,19 +212,31 @@ document.addEventListener('DOMContentLoaded', function () {
                     body: JSON.stringify({ token, new_password: password })
                 });
 
-                const data = await response.json();
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (_) {
+                    data = {};
+                }
 
                 if (response.ok) {
-                    showToast(data.message, 'success');
+                    showToast(data.message || 'Password reset successfully.', 'success');
                     setTimeout(() => {
                         window.location.href = '/login';
                     }, 2000);
+                } else if (response.status === 429) {
+                    const rateLimitMsg = data.error || 'Too many password reset attempts. Please wait a minute before trying again.';
+                    showToast(rateLimitMsg, 'warning');
+                } else if (response.status === 400) {
+                    showToast(data.error || 'Invalid or expired reset token.', 'error');
+                } else if (response.status >= 500) {
+                    showToast('Server error encountered. Please try again later.', 'error');
                 } else {
-                    showToast(data.error || 'Failed to reset password', 'error');
+                    showToast(data.error || 'Failed to reset password. Please try again.', 'error');
                 }
             } catch (e) {
                 console.error("Reset password error", e);
-                showToast('An error occurred. Please try again.', 'error');
+                showToast('Unable to connect to server. Please check your network and try again.', 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
@@ -229,7 +253,15 @@ function showToast(message, type = 'info') {
 
     if (toastEl && toastBody) {
         toastBody.textContent = message;
-        toastEl.className = `toast align-items-center text-bg-${type === 'error' ? 'danger' : 'success'} border-0`;
+        let bgClass = 'text-bg-primary';
+        if (type === 'error' || type === 'danger') {
+            bgClass = 'text-bg-danger';
+        } else if (type === 'warning') {
+            bgClass = 'text-bg-warning';
+        } else if (type === 'success') {
+            bgClass = 'text-bg-success';
+        }
+        toastEl.className = `toast align-items-center ${bgClass} border-0`;
 
         const toast = new bootstrap.Toast(toastEl);
         toast.show();
