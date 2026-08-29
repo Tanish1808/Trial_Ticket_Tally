@@ -169,3 +169,14 @@ def test_password_reset_rate_limit_feedback_and_toast_handling(client):
     assert 'Too many password reset attempts' in auth_js
     assert "type === 'warning'" in auth_js
     assert 'text-bg-warning' in auth_js
+
+def test_dark_mode_immediate_application_and_icon_synchronization(client):
+    # Verify theme.js applies data-theme immediately on script execution to eliminate FOUC
+    js_res = client.get('/static/js/theme.js')
+    assert js_res.status_code == 200
+    theme_js = js_res.get_data(as_text=True)
+    assert 'applyImmediateTheme' in theme_js
+    assert 'document.documentElement.setAttribute' in theme_js
+    assert 'querySelectorAll' in theme_js
+    assert 'Switch to Light Mode' in theme_js
+    assert 'Switch to Dark Mode' in theme_js
