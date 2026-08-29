@@ -196,3 +196,23 @@ def test_toast_accessible_aria_live_semantics(client):
     assert "toastEl.setAttribute('role', role)" in auth_js
     assert "toastEl.setAttribute('aria-live', ariaLive)" in auth_js
     assert "toastEl.setAttribute('aria-atomic', 'true')" in auth_js
+
+def test_ticket_details_template_style_integrity(client):
+    # Verify ticket-details.html has balanced style tags and timeline CSS is fully enclosed
+    import os
+    template_path = os.path.join(os.path.dirname(__file__), '..', 'app', 'templates', 'ticket-details.html')
+    with open(template_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # Style tag balance
+    assert content.count('<style>') == 1
+    assert content.count('</style>') == 1
+
+    # Verify timeline and comment rules exist strictly between <style> and </style>
+    style_start = content.index('<style>')
+    style_end = content.index('</style>')
+    timeline_pos = content.index('.timeline-container {')
+    comment_pos = content.index('.comment-section {')
+
+    assert style_start < timeline_pos < style_end
+    assert style_start < comment_pos < style_end
