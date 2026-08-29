@@ -159,3 +159,13 @@ def test_demo_mode_exit_button_accessibility_and_responsive_rules(client):
     fixes_css = css_res.get_data(as_text=True)
     assert '#demoExitBtn' in fixes_css
     assert 'width: 2.25rem' in fixes_css
+
+def test_password_reset_rate_limit_feedback_and_toast_handling(client):
+    # Verify auth.js handles 429 status code with warning toast
+    js_res = client.get('/static/js/auth.js')
+    assert js_res.status_code == 200
+    auth_js = js_res.get_data(as_text=True)
+    assert 'response.status === 429' in auth_js
+    assert 'Too many password reset attempts' in auth_js
+    assert "type === 'warning'" in auth_js
+    assert 'text-bg-warning' in auth_js
