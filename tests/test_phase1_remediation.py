@@ -180,3 +180,19 @@ def test_dark_mode_immediate_application_and_icon_synchronization(client):
     assert 'querySelectorAll' in theme_js
     assert 'Switch to Light Mode' in theme_js
     assert 'Switch to Dark Mode' in theme_js
+
+def test_toast_accessible_aria_live_semantics(client):
+    # Verify login and forgot password HTML use role="status" and aria-live="polite"
+    login_res = client.get('/login')
+    assert login_res.status_code == 200
+    login_html = login_res.get_data(as_text=True)
+    assert 'role="status"' in login_html
+    assert 'aria-live="polite"' in login_html
+
+    # Verify auth.js showToast dynamically updates role and aria-live based on severity
+    js_res = client.get('/static/js/auth.js')
+    assert js_res.status_code == 200
+    auth_js = js_res.get_data(as_text=True)
+    assert "toastEl.setAttribute('role', role)" in auth_js
+    assert "toastEl.setAttribute('aria-live', ariaLive)" in auth_js
+    assert "toastEl.setAttribute('aria-atomic', 'true')" in auth_js
