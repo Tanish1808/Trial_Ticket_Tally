@@ -26,6 +26,11 @@ class Config:
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
     
+    # Email Delivery Availability Mode
+    # true: Local development with SMTP enabled (default)
+    # false: Cloud deployment where outbound SMTP is disabled
+    EMAIL_DELIVERY_ENABLED = os.getenv('EMAIL_DELIVERY_ENABLED', 'true').lower() in ('true', '1', 'yes')
+    
     # Upload config for PDF or attachments if needed
     UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
 
