@@ -1056,18 +1056,21 @@ The repository does not currently include a linter or code‑formatter configura
 
 ## 🤝 Contributing
 
-1. Fork the repository.
-2. Create a branch for your change: `git checkout -b feature/your-feature`.
-3. Make your changes, following the existing service‑layer/route‑thin pattern.
-4. Add or update tests under `tests/` for any behavioral change.
-5. Ensure `pytest` passes locally.
-6. Open a pull request describing the change and its motivation.
+Contributions are welcome! Please review our **[Contributing Guidelines](CONTRIBUTING.md)** and **[Code of Conduct](CODE_OF_CONDUCT.md)** before submitting pull requests.
+
+1. Fork the repository and create a branch: `git checkout -b feat/your-feature`.
+2. Implement your changes following the existing service-layer architecture.
+3. Add or update tests under `tests/`.
+4. Ensure the test suite passes locally (`pytest -v`).
+5. Open a pull request describing the changes and motivation.
+
+For security-related issues, please refer to our **[Security Policy](SECURITY.md)**.
 
 ---
 
 ## 📄 License
 
-No license has currently been specified for this repository. No `LICENSE` file was found at the repository root or elsewhere in the codebase.
+This project is open-source software licensed under the **[MIT License](LICENSE)**.
 
 ---
 
