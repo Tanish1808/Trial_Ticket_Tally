@@ -218,15 +218,48 @@
         }
     };
 
+    // Check Email Availability Status on Deployment
+    const checkEmailStatus = () => {
+        fetch('/api/v1/auth/config')
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.email_delivery_enabled === false) {
+                    displayEmailDisabledNotice();
+                }
+            })
+            .catch(() => {});
+    };
+
+    const displayEmailDisabledNotice = () => {
+        if (document.getElementById('emailDeliveryStatusNotice')) return;
+
+        const headerActions = document.querySelector('.header-actions, .navbar-nav, .d-flex.align-items-center.gap-3');
+        if (headerActions) {
+            const badge = document.createElement('div');
+            badge.id = 'emailDeliveryStatusNotice';
+            badge.className = 'badge d-inline-flex align-items-center gap-1 px-2 py-1';
+            badge.style.cssText = 'background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 9999px; font-weight: 600; font-size: 0.75rem; cursor: pointer;';
+            badge.setAttribute('title', 'Email notifications are unavailable on this deployment. In-app notifications remain active.');
+            badge.setAttribute('aria-label', 'Email notifications unavailable. In-app notifications active.');
+            badge.innerHTML = '<i class="fas fa-bell me-1"></i><span>In-App Notifications Only</span>';
+            badge.onclick = () => {
+                alert('Email notifications are unavailable on this cloud deployment. Ticket Tally provides in-app notifications for all ticket updates and assignments.');
+            };
+            headerActions.prepend(badge);
+        }
+    };
+
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
             checkDemoMode();
+            checkEmailStatus();
         });
     } else {
         initTheme();
         checkDemoMode();
+        checkEmailStatus();
     }
 
     // Expose theme functions globally
@@ -239,4 +272,5 @@
     // Make exitDemoMode global for onclick handlers
     window.exitDemoMode = exitDemoMode;
     window.checkDemoMode = checkDemoMode;
+    window.checkEmailStatus = checkEmailStatus;
 })();

@@ -34,3 +34,5 @@ services:
         sync: false
       - key: JSON_LOGGING
         value: "True"
+      - key: EMAIL_DELIVERY_ENABLED
+        value: "false"

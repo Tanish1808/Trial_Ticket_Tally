@@ -23,6 +23,10 @@ class EmailService:
             reply_to (str, optional): A custom Reply-To email address.
             sender_name (str, optional): A custom display name for the sender.
         """
+        if not getattr(Config, 'EMAIL_DELIVERY_ENABLED', True):
+            logger.info(f"Email delivery is disabled (EMAIL_DELIVERY_ENABLED=False). Skipping email dispatch to {to_email}: {subject}")
+            return
+
         if not Config.MAIL_SERVER or not Config.MAIL_USERNAME:
             logger.warning("Email configuration missing. Skipping email send.")
             logger.info(f"Would have sent email to {to_email}: {subject}")
