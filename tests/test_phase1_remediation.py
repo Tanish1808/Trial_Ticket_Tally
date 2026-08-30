@@ -233,6 +233,7 @@ def test_email_delivery_enabled_boolean_parsing():
 def test_system_config_endpoint_and_email_availability_modes(client):
     from app.core.config import Config
     from app.services.email_service import EmailService
+    from app.models.notification import Notification
 
     # 1. Test /api/v1/auth/config endpoint
     res = client.get('/api/v1/auth/config')
@@ -240,7 +241,7 @@ def test_system_config_endpoint_and_email_availability_modes(client):
     data = res.get_json()
     assert 'email_delivery_enabled' in data
 
-    # 2. Test EmailService gate with EMAIL_DELIVERY_ENABLED=False
+    # 2. Test EmailService gate and response flags with EMAIL_DELIVERY_ENABLED=False
     original_setting = Config.EMAIL_DELIVERY_ENABLED
     try:
         Config.EMAIL_DELIVERY_ENABLED = False
@@ -252,5 +253,20 @@ def test_system_config_endpoint_and_email_availability_modes(client):
         assert forgot_res.status_code == 200
         forgot_data = forgot_res.get_json()
         assert "Email delivery is currently unavailable" in forgot_data['message']
+        assert forgot_data['email_sent'] is False
+        assert forgot_data['email_delivery_enabled'] is False
+
+        # Verify in-app notifications are created independently and persist in database
+        notif = NotificationService.create_notification(
+            user_id=1,
+            title="System Alert",
+            message="Test notification while email is disabled",
+            type="info"
+        )
+        assert notif.id is not None
+        persisted = Notification.query.filter_by(id=notif.id).first()
+        assert persisted is not None
+        assert persisted.message == "Test notification while email is disabled"
+
     finally:
         Config.EMAIL_DELIVERY_ENABLED = original_setting
