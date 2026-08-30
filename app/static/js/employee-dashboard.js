@@ -342,6 +342,15 @@ async function handleRaiseTicket(e) {
             document.getElementById('successTicketId').textContent = formatTicketId(data.ticket_id);
             document.getElementById('successTicketSubject').textContent = subject;
             
+            const msgEl = document.getElementById('successTicketMessage');
+            if (msgEl) {
+                if (data.email_delivery_enabled === false || data.email_sent === false) {
+                    msgEl.innerHTML = 'Ticket <strong>#' + (data.ticket_id || '') + '</strong> was created successfully.<br><div class="alert alert-warning py-2 px-3 mt-3 mb-0 text-start" style="font-size: 0.85rem; border-radius: 0.5rem; background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.25);"><i class="fas fa-info-circle me-1"></i>Email notification could not be delivered on this deployment. Track all updates in Ticket Tally and your Notifications center.</div>';
+                } else {
+                    msgEl.textContent = 'Your ticket has been raised successfully.';
+                }
+            }
+            
             const priorityBadge = document.getElementById('successTicketPriority');
             priorityBadge.textContent = priority;
             priorityBadge.className = `priority-badge priority-${priority.toLowerCase()}`;
