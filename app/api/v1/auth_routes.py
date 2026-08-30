@@ -199,7 +199,7 @@ def forgot_password():
       400:
         description: Missing email parameter
     """
-    data = request.get_json()
+    data = request.get_json() or {}
     email = data.get('email')
     
     if not email:
@@ -207,10 +207,19 @@ def forgot_password():
         
     AuthService.initiate_password_reset(email)
     
-    if not getattr(Config, 'EMAIL_DELIVERY_ENABLED', True):
-        return jsonify({"message": "Your password reset request was processed. Email delivery is currently unavailable on this deployment."})
+    email_enabled = getattr(Config, 'EMAIL_DELIVERY_ENABLED', True)
+    if not email_enabled:
+        return jsonify({
+            "message": "Your password reset request was processed. Email delivery is currently unavailable on this deployment.",
+            "email_sent": False,
+            "email_delivery_enabled": False
+        }), 200
     
-    return jsonify({"message": "If an account exists with this email, a password reset link has been sent."})
+    return jsonify({
+        "message": "If an account exists with this email, a password reset link has been sent.",
+        "email_sent": True,
+        "email_delivery_enabled": True
+    }), 200
 
 @auth_bp.route('/config', methods=['GET'])
 def get_system_config():
