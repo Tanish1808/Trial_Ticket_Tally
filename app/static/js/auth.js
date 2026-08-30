@@ -164,8 +164,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 if (response.ok) {
-                    showToast(data.message || 'If an account exists with this email, a password reset link has been sent.', 'success');
                     forgotForm.reset();
+                    if (data.email_delivery_enabled === false || data.email_sent === false) {
+                        if (typeof window.showEmailUnavailableModal === 'function') {
+                            window.showEmailUnavailableModal({
+                                actionTitle: 'Password Reset Request',
+                                actionMessage: 'Password Reset Request Processed',
+                                noticeBody: 'Your password reset request was processed, but email notifications could not be delivered on this deployment.',
+                                subText: 'If you require assisted credential recovery, please contact your system administrator.',
+                                buttonText: 'Continue'
+                            });
+                        } else {
+                            showToast(data.message || 'Password reset request processed. Email delivery is unavailable.', 'info');
+                        }
+                    } else {
+                        showToast(data.message || 'If an account exists with this email, a password reset link has been sent.', 'success');
+                    }
                 } else if (response.status === 429) {
                     const rateLimitMsg = data.error || 'Too many password reset attempts. Please wait a minute before trying again.';
                     showToast(rateLimitMsg, 'warning');
