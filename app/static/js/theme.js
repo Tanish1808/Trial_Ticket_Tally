@@ -218,34 +218,79 @@
         }
     };
 
-    // Check Email Availability Status on Deployment
-    const checkEmailStatus = () => {
-        fetch('/api/v1/auth/config')
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.email_delivery_enabled === false) {
-                    displayEmailDisabledNotice();
-                }
-            })
-            .catch(() => {});
-    };
+    // Universal Live User Modal for Email Availability Feedback
+    window.showEmailUnavailableModal = function (options = {}) {
+        const {
+            actionTitle = 'Email Notification Notice',
+            actionMessage = 'Your action was completed successfully.',
+            noticeBody = 'Email notification could not be delivered on this deployment.',
+            subText = 'Your updates remain securely saved in Ticket Tally and can be viewed in your in-app Notifications center.',
+            buttonText = 'Continue',
+            onClose = null
+        } = options;
 
-    const displayEmailDisabledNotice = () => {
-        if (document.getElementById('emailDeliveryStatusNotice')) return;
+        let modalEl = document.getElementById('emailUnavailableModal');
+        if (!modalEl) {
+            modalEl = document.createElement('div');
+            modalEl.className = 'modal fade';
+            modalEl.id = 'emailUnavailableModal';
+            modalEl.tabIndex = -1;
+            modalEl.setAttribute('aria-labelledby', 'emailUnavailableModalLabel');
+            modalEl.setAttribute('aria-hidden', 'true');
+            modalEl.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered" style="max-width: 480px; margin: 1.5rem auto;">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius: 1rem; background: var(--surface, #ffffff); color: var(--text-primary, #111827); border: 1px solid var(--border, #e5e7eb) !important;">
+                        <div class="modal-header border-bottom-0 pb-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); color: #d97706;">
+                                    <i class="fas fa-envelope-open-text fa-lg"></i>
+                                </div>
+                                <h5 class="modal-title fw-bold mb-0" id="emailUnavailableModalLabel" style="font-size: 1.1rem; color: var(--text-primary, #111827);">Email Notification Notice</h5>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-3 px-4">
+                            <div class="alert alert-success d-flex align-items-center gap-2 mb-3 py-2 px-3" style="border-radius: 0.5rem; font-size: 0.95rem; background: rgba(16, 185, 129, 0.12); color: #047857; border: 1px solid rgba(16, 185, 129, 0.25);">
+                                <i class="fas fa-check-circle fs-5 flex-shrink-0"></i>
+                                <span id="emailUnavailableSuccessText" class="fw-semibold"></span>
+                            </div>
+                            <p class="mb-2" id="emailUnavailableNoticeBody" style="font-size: 0.95rem; line-height: 1.5; color: var(--text-primary, #111827);"></p>
+                            <p class="mb-0 text-muted" id="emailUnavailableSubText" style="font-size: 0.85rem; line-height: 1.4;"></p>
+                        </div>
+                        <div class="modal-footer border-top-0 pt-1 pb-4 px-4">
+                            <button type="button" class="btn btn-primary-custom w-100 py-2 fw-semibold" data-bs-dismiss="modal" id="emailUnavailableDismissBtn" style="border-radius: 0.5rem;">
+                                ${buttonText}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modalEl);
+        }
 
-        const headerActions = document.querySelector('.header-actions, .navbar-nav, .d-flex.align-items-center.gap-3');
-        if (headerActions) {
-            const badge = document.createElement('div');
-            badge.id = 'emailDeliveryStatusNotice';
-            badge.className = 'badge d-inline-flex align-items-center gap-1 px-2 py-1';
-            badge.style.cssText = 'background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 9999px; font-weight: 600; font-size: 0.75rem; cursor: pointer;';
-            badge.setAttribute('title', 'Email notifications are unavailable on this deployment. In-app notifications remain active.');
-            badge.setAttribute('aria-label', 'Email notifications unavailable. In-app notifications active.');
-            badge.innerHTML = '<i class="fas fa-bell me-1"></i><span>In-App Notifications Only</span>';
-            badge.onclick = () => {
-                alert('Email notifications are unavailable on this cloud deployment. Ticket Tally provides in-app notifications for all ticket updates and assignments.');
+        const titleEl = modalEl.querySelector('#emailUnavailableModalLabel');
+        const successEl = modalEl.querySelector('#emailUnavailableSuccessText');
+        const noticeEl = modalEl.querySelector('#emailUnavailableNoticeBody');
+        const subEl = modalEl.querySelector('#emailUnavailableSubText');
+        const btnEl = modalEl.querySelector('#emailUnavailableDismissBtn');
+
+        if (titleEl) titleEl.textContent = actionTitle;
+        if (successEl) successEl.textContent = actionMessage;
+        if (noticeEl) noticeEl.textContent = noticeBody;
+        if (subEl) subEl.textContent = subText;
+        if (btnEl) btnEl.textContent = buttonText;
+
+        if (onClose) {
+            const handleHidden = function () {
+                modalEl.removeEventListener('hidden.bs.modal', handleHidden);
+                onClose();
             };
-            headerActions.prepend(badge);
+            modalEl.addEventListener('hidden.bs.modal', handleHidden);
+        }
+
+        if (window.bootstrap && window.bootstrap.Modal) {
+            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modalInstance.show();
         }
     };
 
@@ -254,12 +299,10 @@
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
             checkDemoMode();
-            checkEmailStatus();
         });
     } else {
         initTheme();
         checkDemoMode();
-        checkEmailStatus();
     }
 
     // Expose theme functions globally
@@ -272,5 +315,4 @@
     // Make exitDemoMode global for onclick handlers
     window.exitDemoMode = exitDemoMode;
     window.checkDemoMode = checkDemoMode;
-    window.checkEmailStatus = checkEmailStatus;
 })();

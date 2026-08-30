@@ -437,10 +437,28 @@ async function handleRaiseTicketSubmit(e) {
 
         if (response.ok) {
             bootstrap.Modal.getInstance(document.getElementById('raiseTicketModal')).hide();
-            showToast('Directed ticket raised successfully! Redirecting...', 'success');
-            setTimeout(() => {
-                window.location.href = '/dashboard/employee';
-            }, 1500);
+            if (data.email_delivery_enabled === false || data.email_sent === false) {
+                if (typeof window.showEmailUnavailableModal === 'function') {
+                    window.showEmailUnavailableModal({
+                        actionTitle: 'Ticket Created',
+                        actionMessage: `Directed Ticket #${data.ticket_id || ''} Created Successfully`,
+                        noticeBody: 'The ticket has been assigned to the technician. Email notification could not be delivered on this deployment.',
+                        subText: 'The technician and you can view all updates directly in Ticket Tally and your in-app Notifications center.',
+                        buttonText: 'Continue to Dashboard',
+                        onClose: () => { window.location.href = '/dashboard/employee'; }
+                    });
+                } else {
+                    showToast('Directed ticket raised successfully! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard/employee';
+                    }, 1500);
+                }
+            } else {
+                showToast('Directed ticket raised successfully! Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = '/dashboard/employee';
+                }, 1500);
+            }
         } else {
             alert(data.error || 'Failed to submit ticket');
         }

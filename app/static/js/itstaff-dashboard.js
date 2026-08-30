@@ -1042,15 +1042,30 @@ async function executeStatusUpdate() {
         if (confirmModal) confirmModal.hide();
 
         if (response.ok) {
+            let data = {};
+            try { data = await response.json(); } catch (_) {}
             document.getElementById('updateTicketForm').reset();
             pendingUpdate = null;
             loadTickets();
 
-            // Show Success Toast
-            if (newStatus === 'Resolved') {
-                showToast('Ticket resolved successfully', 'success');
+            if (data.email_delivery_enabled === false || data.email_sent === false) {
+                if (typeof window.showEmailUnavailableModal === 'function') {
+                    window.showEmailUnavailableModal({
+                        actionTitle: 'Ticket Status Updated',
+                        actionMessage: newStatus === 'Resolved' ? `Ticket #${ticketId} Resolved Successfully` : `Ticket #${ticketId} Updated to ${newStatus}`,
+                        noticeBody: 'Status change saved. Email notification could not be delivered on this deployment.',
+                        subText: 'The requester will receive this update in their Ticket Tally dashboard and in-app Notification Center.',
+                        buttonText: 'Continue'
+                    });
+                } else {
+                    showToast(newStatus === 'Resolved' ? 'Ticket resolved successfully' : 'Ticket updated successfully', 'success');
+                }
             } else {
-                showToast('Ticket updated successfully', 'success');
+                if (newStatus === 'Resolved') {
+                    showToast('Ticket resolved successfully', 'success');
+                } else {
+                    showToast('Ticket updated successfully', 'success');
+                }
             }
         } else {
             showToast('Failed to update ticket', 'error');
