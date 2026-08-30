@@ -12,6 +12,7 @@ from app.core.extensions import limiter
 from app.models.comment import Comment
 from app.models.csat_feedback import CSATFeedback
 from app.core.database import db
+from app.core.config import Config
 import logging
 
 logger = logging.getLogger(__name__)
@@ -75,7 +76,13 @@ def create_ticket():
     try:
         data = TicketCreate(**request.json)
         ticket = TicketService.create_ticket(data, g.user.id)
-        return jsonify({"message": "Ticket created", "ticket_id": ticket.id}), 201
+        email_enabled = getattr(Config, 'EMAIL_DELIVERY_ENABLED', True)
+        return jsonify({
+            "message": "Ticket created",
+            "ticket_id": ticket.id,
+            "email_sent": email_enabled,
+            "email_delivery_enabled": email_enabled
+        }), 201
     except ValidationError as e:
         return jsonify({"error": e.errors()}), 400
     except Exception as e:
@@ -282,7 +289,12 @@ def update_ticket(ticket_id):
     try:
         data = TicketUpdate(**request.json)
         TicketService.update_ticket(ticket_id, data, g.user.id)
-        return jsonify({"message": "Ticket updated"}), 200
+        email_enabled = getattr(Config, 'EMAIL_DELIVERY_ENABLED', True)
+        return jsonify({
+            "message": "Ticket updated",
+            "email_sent": email_enabled,
+            "email_delivery_enabled": email_enabled
+        }), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
     except Exception as e:
@@ -590,7 +602,12 @@ def claim_ticket(ticket_id):
     """
     try:
         TicketService.claim_ticket(ticket_id, g.user.id)
-        return jsonify({"message": "Ticket claimed successfully"}), 200
+        email_enabled = getattr(Config, 'EMAIL_DELIVERY_ENABLED', True)
+        return jsonify({
+            "message": "Ticket claimed successfully",
+            "email_sent": email_enabled,
+            "email_delivery_enabled": email_enabled
+        }), 200
     except ValueError as e:
         # Check specific error messages to return correct status codes
         msg = str(e)

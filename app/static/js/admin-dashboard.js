@@ -841,15 +841,27 @@ async function handleChangePriority(e) {
         });
 
         if (response.ok) {
+            let data = {};
+            try { data = await response.json(); } catch (_) {}
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('changePriorityModal'));
-            modal.hide();
+            if (modal) modal.hide();
 
             // Reload tickets
             loadAllTickets();
             loadDashboardData();
 
-            alert(`Ticket ${ticketId} priority changed to ${newPriority}`);
+            if (data.email_delivery_enabled === false || data.email_sent === false) {
+                if (typeof window.showEmailUnavailableModal === 'function') {
+                    window.showEmailUnavailableModal({
+                        actionTitle: 'Ticket Priority Updated',
+                        actionMessage: `Ticket #${ticketId} Priority Changed to ${newPriority}`,
+                        noticeBody: 'Priority update saved. Outbound email notification is disabled on this deployment.',
+                        subText: 'The requester and assigned team will receive this update in their in-app Notifications center.',
+                        buttonText: 'Continue'
+                    });
+                }
+            }
         } else {
             alert('Failed to update priority');
         }
